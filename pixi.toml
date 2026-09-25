@@ -1,0 +1,44 @@
+[workspace]
+channels = ["conda-forge"]
+platforms = ["linux-64", "osx-arm64", "win-64"]
+preview = ["pixi-build"]
+
+[package.build]
+backend = { name = "pixi-build-python", version = "*" }
+config = { ignore-pypi-mapping = false }  # Enable automatic PyPI-to-conda mapping
+
+[environments]
+default = ["py312", "test", "lint", "build"]
+py313 = ["py313", "test"]
+py314 = ["py314", "test"]
+
+[dependencies]
+symbolcat = { path = "." }
+
+[feature]
+py312.dependencies = { python = "3.12.*" }
+py313.dependencies = { python = "3.13.*" }
+py314.dependencies = { python = "3.14.*" }
+
+[feature.lint]
+dependencies = {
+  prek = "*",
+  tombi = "*",
+  ruff = "*",
+  mdformat = "*",
+}
+tasks = { lint = "prek run --all-files" }
+
+[feature.build]
+dependencies = { uv = "*" }
+tasks = {
+  build = "uv build",
+  _publish = "uv publish",
+}
+
+[feature.test]
+dependencies = {
+  pytest = "*",
+  pytest-xdist = "*",
+}
+tasks = { test = "pytest --doctest-modules -n auto" }

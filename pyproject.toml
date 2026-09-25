@@ -1,0 +1,30 @@
+[project]
+name = "symbolcat"
+version = "0.0.1"
+description = "A minimalistic symbolic package."
+readme = "README.md"
+requires-python = ">=3.12"
+license = "MIT"
+authors = [{ name = "Dyscolab" }]
+keywords = ["symbolic"]
+classifiers = [
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Topic :: Scientific/Engineering",
+  "Topic :: Software Development :: Libraries",
+]
+
+[project.urls]
+changelog = "https://github.com/dyscolab/symbolcat/blob/main/CHANGES"
+homepage = "https://github.com/dyscolab/symbolcat"
+issues = "https://github.com/dyscolab/symbolcat/issues"
+
+[build-system]
+requires = ["uv_build>=0.12"]
+build-backend = "uv_build"
+
+[tool.ruff.format]
+docstring-code-format = true
+
+[tool.tombi]
+toml-version = "v1.1.0"

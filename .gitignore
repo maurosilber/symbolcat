@@ -1,0 +1,7 @@
+.*
+
+!.gitignore
+!.github/
+
+*.py[cod]
+__pycache__
