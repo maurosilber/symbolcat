@@ -16,7 +16,7 @@ from typing import Any
 from typing import Literal as Side
 
 from .. import operators as op
-from ..core import Algebra, Call, Function, Literal, Operator, Symbol, cata
+from ..core import Algebra, Call, Constant, Function, Literal, Operator, Symbol, cata
 
 ATOM = 100
 
@@ -51,6 +51,11 @@ str_algebra = Algebra[Printed]("str")
 
 @str_algebra.register(Symbol)
 def _(node: Symbol) -> Printed:
+    return Printed(node.name)
+
+
+@str_algebra.register(Constant)
+def _(node: Constant) -> Printed:
     return Printed(node.qualname)
 
 

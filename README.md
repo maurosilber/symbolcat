@@ -22,8 +22,9 @@ All of these operations are written as
 [catamorphisms](https://lab.abilian.com/Tech/Python/OOP/The%20Zen%20of%20Polymorphism%20-%204%20Ways%20to%20Write%20Cleaner%20Python/#approach-4-the-ultimate-decoupling-with-catamorphism),
 also called folds. The code is split into three parts:
 
-1. **The data** (`symbolcat.core`). There are three node types:
-   `Symbol`, `Literal` and `Call(func, args)`. Two `singledispatch` functions
+1. **The data** (`symbolcat.core`). There are four node types: the leaves
+   `Symbol` (user-defined, `x`), `Constant` (library-defined, `real.pi`) and
+   `Literal` (`2`), plus `Call(func, args)`. Two `singledispatch` functions
    describe their shape from the outside: `children` lists a node's direct
    children, and `fmap` applies a function to them, keeping the node shape.
 1. **The traversal** (`cata`). It is written once and folds the tree bottom-up.
@@ -44,9 +45,9 @@ Most operations need one rule per node type or function. The `Algebra` class
 collects those rules in a registry:
 
 ```python
->>> from symbolcat import Algebra, Call, Literal
+>>> from symbolcat import Algebra, Call, Expr
 >>> depth = Algebra("depth")
->>> @depth.register(Symbol, Literal)
+>>> @depth.register(Expr)  # any leaf
 ... def _(node):
 ...     return 1
 >>> @depth.register(Call)
@@ -62,7 +63,7 @@ most specific one wins:
 
 - a specific function, such as `operators.add` or `real.sin`;
 - a kind of function, such as `Function` or `Operator`;
-- a node type, such as `Symbol`, `Literal` or `Call`.
+- a node type, such as `Symbol`, `Constant`, `Literal` or `Call`.
 
 ## Operations
 

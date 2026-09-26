@@ -5,6 +5,7 @@ import pytest
 from symbolcat import (
     Algebra,
     Call,
+    Constant,
     Function,
     Literal,
     Operator,
@@ -40,6 +41,12 @@ def test_literal_equality_includes_type():
     assert Literal(1) != Literal(1.0)
     assert Literal(1) != Literal(True)
     assert len({Literal(1), Literal(1.0), Literal(True)}) == 3
+
+
+def test_constants_compare_by_identity():
+    assert real.pi == real.pi
+    assert real.pi != Constant("pi", "real")
+    assert real.pi != Symbol("pi")
 
 
 def test_functions_compare_by_identity():
@@ -113,7 +120,7 @@ def test_cata_handles_deep_trees():
 
 def test_algebra_dispatch_priority():
     alg = Algebra("test")
-    alg.register(Symbol, Literal)(lambda node: "leaf")
+    alg.register(Symbol, Constant, Literal)(lambda node: "leaf")
     alg.register(Call)(lambda node: "call")
     alg.register(Operator)(lambda node: "operator")
     alg.register(op.add)(lambda node: "add")

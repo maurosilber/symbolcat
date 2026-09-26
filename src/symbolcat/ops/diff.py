@@ -17,7 +17,7 @@ from typing import Any
 
 from .. import operators as op
 from .. import real
-from ..core import Algebra, Call, Expr, Function, Literal, Symbol, cata
+from ..core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata
 from .simplify import is_number, simplify
 
 type Dual = tuple[Expr, Expr]
@@ -34,8 +34,8 @@ def _(node: Symbol, *, var: Symbol) -> Dual:
     return node, ONE if node == var else ZERO
 
 
-@diff_algebra.register(Literal)
-def _(node: Literal, *, var: Symbol) -> Dual:
+@diff_algebra.register(Constant, Literal)
+def _(node: Constant | Literal, *, var: Symbol) -> Dual:
     return node, ZERO
 
 

@@ -13,7 +13,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ..core import Algebra, Call, Literal, Symbol, cata
+from ..core import Algebra, Call, Constant, Literal, Symbol, cata
 
 evaluate_algebra = Algebra[Any]("evaluate")
 
@@ -22,11 +22,17 @@ evaluate_algebra = Algebra[Any]("evaluate")
 def _(node: Symbol, *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> Any:
     if node in env:
         return env[node]
-    if node in lib:
-        return lib[node]
     if Symbol in lib:
         return lib[Symbol](node)
-    raise NameError(f"No value for symbol {node.qualname!r}")
+    raise NameError(f"No value for symbol {node.name!r}")
+
+
+@evaluate_algebra.register(Constant)
+def _(node: Constant, *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> Any:
+    try:
+        return lib[node]
+    except KeyError:
+        raise NotImplementedError(f"No value for {node.qualname!r}") from None
 
 
 @evaluate_algebra.register(Literal)

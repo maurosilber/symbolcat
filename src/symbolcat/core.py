@@ -4,9 +4,10 @@ symbolcat.core
 
 The expression tree, its functor structure and the catamorphism.
 
-An expression is a tree built from three kinds of nodes:
+An expression is a tree built from these kinds of nodes:
 
-- ``Symbol``: a named leaf (``x``, or ``real.pi`` for library constants).
+- ``Symbol``: a user-defined named leaf (``x``).
+- ``Constant``: a library-defined named leaf (``real.pi``).
 - ``Literal``: a leaf wrapping a Python value (``2``, ``0.5``).
 - ``Call``: a ``Function`` applied to child expressions.
 
@@ -157,13 +158,28 @@ class Expr:
 
 @dataclass(frozen=True, repr=False)
 class Symbol(Expr):
-    """A named leaf. Library constants live in a namespace (``real.pi``)."""
+    """A user-defined named leaf. Compares by name."""
+
+    name: str
+
+    def __repr__(self) -> str:
+        return f"Symbol({self.name!r})"
+
+
+@dataclass(frozen=True, repr=False, eq=False)
+class Constant(Expr):
+    """A library-defined named leaf, such as ``real.pi``.
+
+    Like ``Function``, constants compare by identity, so they never collide
+    with a user ``Symbol`` of the same name. ``namespace`` is only used for
+    printing.
+    """
 
     name: str
     namespace: str = ""
 
     def __repr__(self) -> str:
-        return f"Symbol({self.qualname!r})"
+        return f"Constant({self.qualname!r})"
 
     @property
     def qualname(self) -> str:
@@ -348,10 +364,10 @@ class Algebra[A]:
 
     - a ``Function`` instance (e.g. ``operators.add``): most specific;
     - a ``Function`` subclass (e.g. ``Operator``): default for that kind;
-    - an ``Expr`` subclass (``Symbol``, ``Literal``, ``Call``).
+    - an ``Expr`` subclass (``Symbol``, ``Constant``, ``Literal``, ``Call``).
 
     >>> depth = Algebra("depth")
-    >>> @depth.register(Symbol, Literal)
+    >>> @depth.register(Expr)  # any leaf
     ... def _(node):
     ...     return 1
     >>> @depth.register(Call)

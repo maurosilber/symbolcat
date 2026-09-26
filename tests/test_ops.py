@@ -35,6 +35,15 @@ def test_evaluate_missing_symbol():
         evaluate(x + 1)
 
 
+def test_user_symbol_is_not_a_constant():
+    pi = Symbol("pi")
+    with pytest.raises(NameError, match="'pi'"):
+        evaluate(pi)
+    assert evaluate(pi + real.pi, {pi: 1}) == 1 + math.pi
+    assert substitute(pi * real.pi, {pi: 2}) == 2 * real.pi
+    assert free_symbols(pi * real.pi) == (pi,)
+
+
 def test_evaluate_missing_implementation():
     f = Function("f", arity=1)
     with pytest.raises(NotImplementedError, match="'f'"):

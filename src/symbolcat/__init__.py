@@ -19,6 +19,7 @@ from . import operators, real
 from .core import (
     Algebra,
     Call,
+    Constant,
     Expr,
     Function,
     Literal,
@@ -54,6 +55,7 @@ def symbols(names: str) -> tuple[Symbol, ...]:
 __all__ = [
     "Algebra",
     "Call",
+    "Constant",
     "Expr",
     "Function",
     "Literal",

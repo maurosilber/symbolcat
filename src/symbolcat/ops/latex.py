@@ -20,7 +20,7 @@ from typing import Any
 
 from .. import operators as op
 from .. import real
-from ..core import Algebra, Call, Function, Literal, Operator, Symbol, cata
+from ..core import Algebra, Call, Constant, Function, Literal, Operator, Symbol, cata
 from .printing import Printed, literal_precedence, needs_parens
 
 GREEK = frozenset(
@@ -175,9 +175,12 @@ latex_algebra = Algebra[Printed]("latex")
 
 @latex_algebra.register(Symbol)
 def _(node: Symbol) -> Printed:
-    if node in CONSTANTS:
-        return Printed(CONSTANTS[node])
     return Printed(latex_name(node.name))
+
+
+@latex_algebra.register(Constant)
+def _(node: Constant) -> Printed:
+    return Printed(CONSTANTS.get(node) or latex_name(node.name))
 
 
 @latex_algebra.register(Literal)

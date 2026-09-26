@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..core import Algebra, Call, Literal, Symbol, cata, children
+from ..core import Algebra, Call, Constant, Literal, Symbol, cata, children
 
 # Folds into an insertion-ordered set (a dict with None values).
 free_symbols_algebra = Algebra[dict[Symbol, None]]("free_symbols")
@@ -17,11 +17,11 @@ free_symbols_algebra = Algebra[dict[Symbol, None]]("free_symbols")
 
 @free_symbols_algebra.register(Symbol)
 def _(node: Symbol) -> dict[Symbol, None]:
-    return {} if node.namespace else {node: None}
+    return {node: None}
 
 
-@free_symbols_algebra.register(Literal)
-def _(node: Literal) -> dict[Symbol, None]:
+@free_symbols_algebra.register(Constant, Literal)
+def _(node: Constant | Literal) -> dict[Symbol, None]:
     return {}
 
 
