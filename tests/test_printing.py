@@ -1,6 +1,7 @@
 import pytest
 
 from symbolcat import Symbol, real, to_latex, to_str
+from symbolcat import operators as op
 
 x, y, z = Symbol("x"), Symbol("y"), Symbol("z")
 
@@ -19,7 +20,7 @@ x, y, z = Symbol("x"), Symbol("y"), Symbol("z")
         ((-x) ** 2, "(-x) ** 2"),
         (x + -1, "x + -1"),
         (x * -1, "x * -1"),
-        ((x < y).eq(z < x), "(x < y) == (z < x)"),
+        (op.eq(x < y, z < x), "(x < y) == (z < x)"),
         (x[y + 1] * 2, "x[y + 1] * 2"),
         ((x + y)[0], "(x + y)[0]"),
         (real.atan2(x, y + 1), "real.atan2(x, y + 1)"),
@@ -52,7 +53,7 @@ def test_to_str_roundtrip():
         (-(x**2), "-x^{2}"),
         (x // y, r"\left\lfloor \frac{x}{y} \right\rfloor"),
         (x[0], "x_{0}"),
-        (x.eq(y), "x = y"),
+        (op.eq(x, y), "x = y"),
         (x <= y, r"x \leq y"),
         (real.sin(x), r"\sin\left(x\right)"),
         (real.sqrt(x + 1), r"\sqrt{x + 1}"),

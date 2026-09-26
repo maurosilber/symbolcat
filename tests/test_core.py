@@ -25,7 +25,9 @@ def test_operators_build_calls():
     assert -x == Call(op.neg, (x,))
     assert x[0] == Call(op.getitem, (x, Literal(0)))
     assert (x < y) == Call(op.lt, (x, y))
-    assert x.eq(y) == Call(op.eq, (x, y))
+    assert op.eq(x, y) == Call(op.eq, (x, y))
+    assert op.eq(1, x) == Call(op.eq, (Literal(1), x))
+    assert op.ne(x, y) == Call(op.ne, (x, y))
 
 
 def test_structural_equality_and_hash():

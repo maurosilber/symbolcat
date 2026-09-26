@@ -31,7 +31,8 @@ class Expr:
     """Base class of expression nodes. Provides the operator overloads.
 
     ``==`` and ``hash`` are structural, so expressions can be used as
-    dictionary keys. Use ``.eq`` and ``.ne`` to build symbolic comparisons.
+    dictionary keys. Use ``operators.eq`` and ``operators.ne`` to build
+    symbolic comparisons: ``operators.eq(x, 1)``.
     """
 
     __slots__ = ()
@@ -47,12 +48,6 @@ class Expr:
         return f"${to_latex(self)}$"
 
     # Comparisons
-    def eq(self, other: Any) -> Call[Expr]:
-        return _op.eq(self, other)
-
-    def ne(self, other: Any) -> Call[Expr]:
-        return _op.ne(self, other)
-
     def __lt__(self, other: Any) -> Call[Expr]:
         return _op.lt(self, other)
 
