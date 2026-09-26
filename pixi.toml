@@ -40,5 +40,7 @@ tasks = {
 dependencies = {
   pytest = "*",
   pytest-xdist = "*",
+  numpy = "*",
+  sympy = "*",
 }
 tasks = { test = "pytest --doctest-modules -n auto" }
