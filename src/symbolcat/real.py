@@ -6,7 +6,7 @@ Mathematical functions and constants, named after Python's ``math`` module.
 
 >>> from symbolcat import Symbol, real
 >>> x = Symbol("x")
->>> print(2 * real.cos(x) + real.pi)
+>>> print(2 * real.cos(x) + real.constants.pi)
 2 * cos(x) + pi
 """
 
@@ -40,8 +40,10 @@ gamma = _fn("gamma")
 factorial = _fn("factorial")
 hypot = _fn("hypot", 2)
 
-e = Constant("e")
-pi = Constant("pi")
-tau = Constant("tau")
-inf = Constant("inf")
-nan = Constant("nan")
+
+class constants:
+    e = Constant()
+    pi = Constant()
+    tau = Constant()
+    inf = Constant()
+    nan = Constant()

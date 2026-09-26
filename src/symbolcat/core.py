@@ -158,26 +158,45 @@ class Expr:
 
 @dataclass(frozen=True, repr=False)
 class Symbol(Expr):
-    """A user-defined named leaf. Compares by name."""
+    """A user-defined named leaf. Compares by name.
 
-    name: str
+    The name can be omitted when the symbol is assigned in a class body,
+    where it takes the attribute name:
+
+    >>> class Model:
+    ...     x = Symbol()
+    ...     y = Symbol("why")
+    >>> Model.x, Model.y
+    (Symbol('x'), Symbol('why'))
+    """
+
+    name: str = ""
 
     def __repr__(self) -> str:
         return f"Symbol({self.name!r})"
 
+    def __set_name__(self, owner: type, name: str) -> None:
+        if not self.name:
+            object.__setattr__(self, "name", name)
+
 
 @dataclass(frozen=True, repr=False, eq=False)
 class Constant(Expr):
-    """A library-defined named leaf, such as ``real.pi``.
+    """A library-defined named leaf, such as ``real.constants.pi``.
 
     Like ``Function``, constants compare by identity, so they never collide
-    with a user ``Symbol`` of the same name.
+    with a user ``Symbol`` of the same name. As with ``Symbol``, the name can
+    be omitted when assigned in a class body.
     """
 
-    name: str
+    name: str = ""
 
     def __repr__(self) -> str:
         return f"Constant({self.name!r})"
+
+    def __set_name__(self, owner: type, name: str) -> None:
+        if not self.name:
+            object.__setattr__(self, "name", name)
 
 
 @dataclass(frozen=True, repr=False, eq=False)

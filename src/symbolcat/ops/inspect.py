@@ -36,11 +36,11 @@ def _(node: Call[dict[Symbol, None]]) -> dict[Symbol, None]:
 def free_symbols(expr: Any) -> tuple[Symbol, ...]:
     """User symbols in ``expr``, in order of first appearance.
 
-    Library constants (``real.pi``) are not free.
+    Library constants (``real.constants.pi``) are not free.
 
     >>> from symbolcat import Symbol, real
     >>> x, y = Symbol("x"), Symbol("y")
-    >>> free_symbols(y * real.pi + x * y)
+    >>> free_symbols(y * real.constants.pi + x * y)
     (Symbol('y'), Symbol('x'))
     """
     return tuple(cata(free_symbols_algebra, expr))

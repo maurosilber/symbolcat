@@ -24,7 +24,7 @@ x, y, z = Symbol("x"), Symbol("y"), Symbol("z")
         (x[y + 1] * 2, "x[y + 1] * 2"),
         ((x + y)[0], "(x + y)[0]"),
         (real.atan2(x, y + 1), "atan2(x, y + 1)"),
-        (real.pi * x, "pi * x"),
+        (real.constants.pi * x, "pi * x"),
         (x & y | z, "x & y | z"),
         (x & (y | z), "x & (y | z)"),
     ],
@@ -36,8 +36,11 @@ def test_to_str(expr, expected):
 
 def test_to_str_roundtrip():
     """Printed expressions are valid Python that rebuilds the same tree."""
-    expr = (x + 2) ** -y / real.sin(x - y) % real.pi
-    assert eval(to_str(expr), {**vars(real), "x": x, "y": y}) == expr
+    expr = (x + 2) ** -y / real.sin(x - y) % real.constants.pi
+    assert (
+        eval(to_str(expr), {**vars(real), **vars(real.constants), "x": x, "y": y})
+        == expr
+    )
 
 
 @pytest.mark.parametrize(
@@ -61,8 +64,8 @@ def test_to_str_roundtrip():
         (real.factorial(x + 1), r"\left(x + 1\right)!"),
         (real.log10(x), r"\log_{10}\left(x\right)"),
         (real.hypot(x, y), r"\operatorname{hypot}\left(x, y\right)"),
-        (real.pi * real.e**x, r"\pi \cdot e^{x}"),
-        (real.inf, r"\infty"),
+        (real.constants.pi * real.constants.e**x, r"\pi \cdot e^{x}"),
+        (real.constants.inf, r"\infty"),
         (x * 1e-5, r"x \cdot 10^{-5}"),
         (x * 2.5e20, r"x \cdot 2.5 \times 10^{20}"),
     ],

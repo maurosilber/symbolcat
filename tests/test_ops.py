@@ -26,7 +26,7 @@ x, y = Symbol("x"), Symbol("y")
 
 def test_evaluate_std():
     assert evaluate(x + 2 * y, {x: 1, y: 3}) == 7
-    assert evaluate(real.cos(real.pi)) == -1.0
+    assert evaluate(real.cos(real.constants.pi)) == -1.0
     assert evaluate(x[1], {"x": [10, 20]}) == 20
 
 
@@ -39,9 +39,9 @@ def test_user_symbol_is_not_a_constant():
     pi = Symbol("pi")
     with pytest.raises(NameError, match="'pi'"):
         evaluate(pi)
-    assert evaluate(pi + real.pi, {pi: 1}) == 1 + math.pi
-    assert substitute(pi * real.pi, {pi: 2}) == 2 * real.pi
-    assert free_symbols(pi * real.pi) == (pi,)
+    assert evaluate(pi + real.constants.pi, {pi: 1}) == 1 + math.pi
+    assert substitute(pi * real.constants.pi, {pi: 2}) == 2 * real.constants.pi
+    assert free_symbols(pi * real.constants.pi) == (pi,)
 
 
 def test_evaluate_missing_implementation():
@@ -56,7 +56,7 @@ def test_evaluate_numpy():
     from symbolcat.lib.numpy import IMPL as NP
 
     values = np.linspace(0, 1, 5)
-    result = evaluate(real.exp(x) * real.pi, {x: values}, lib=NP)
+    result = evaluate(real.exp(x) * real.constants.pi, {x: values}, lib=NP)
     np.testing.assert_allclose(result, np.exp(values) * np.pi)
 
 
@@ -90,7 +90,7 @@ def test_substitute_with_values():
 
 
 def test_free_symbols():
-    assert free_symbols(y * real.pi + x * y) == (y, x)
+    assert free_symbols(y * real.constants.pi + x * y) == (y, x)
     assert free_symbols(Literal(1)) == ()
 
 
@@ -181,4 +181,4 @@ def test_diff_unknown_function():
 
 
 def test_math_consistency():
-    assert evaluate(real.tau / 2) == math.pi
+    assert evaluate(real.constants.tau / 2) == math.pi

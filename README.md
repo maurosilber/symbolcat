@@ -23,7 +23,7 @@ All of these operations are written as
 also called folds. The code is split into three parts:
 
 1. **The data** (`symbolcat.core`). There are four node types: the leaves
-   `Symbol` (user-defined, `x`), `Constant` (library-defined, `real.pi`) and
+   `Symbol` (user-defined, `x`), `Constant` (library-defined, `real.constants.pi`) and
    `Literal` (`2`), plus `Call(func, args)`. Two `singledispatch` functions
    describe their shape from the outside: `children` lists a node's direct
    children, and `fmap` applies a function to them, keeping the node shape.

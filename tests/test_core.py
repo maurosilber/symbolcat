@@ -44,9 +44,9 @@ def test_literal_equality_includes_type():
 
 
 def test_constants_compare_by_identity():
-    assert real.pi == real.pi
-    assert real.pi != Constant("pi")
-    assert real.pi != Symbol("pi")
+    assert real.constants.pi == real.constants.pi
+    assert real.constants.pi != Constant("pi")
+    assert real.constants.pi != Symbol("pi")
 
 
 def test_functions_compare_by_identity():

@@ -119,11 +119,11 @@ ENCLOSING = {
 }
 
 CONSTANTS = {
-    real.e: "e",
-    real.pi: r"\pi",
-    real.tau: r"\tau",
-    real.inf: r"\infty",
-    real.nan: r"\mathrm{NaN}",
+    real.constants.e: "e",
+    real.constants.pi: r"\pi",
+    real.constants.tau: r"\tau",
+    real.constants.inf: r"\infty",
+    real.constants.nan: r"\mathrm{NaN}",
 }
 
 
