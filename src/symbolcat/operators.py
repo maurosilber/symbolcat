@@ -12,7 +12,7 @@ Precedences follow Python (higher binds tighter). Comparisons are non-associativ
 ``a < b < c`` means something else in Python.
 """
 
-from .core import Operator
+from .core.expr import Operator
 
 CMP, OR, XOR, AND, SHIFT, ADD, MUL, UNARY, POW, POSTFIX = range(10)
 

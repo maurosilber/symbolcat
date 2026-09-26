@@ -1,30 +1,13 @@
 """
-symbolcat.core
-~~~~~~~~~~~~~~
+symbolcat.core.expr
+~~~~~~~~~~~~~~~~~~~
 
-The expression tree, its functor structure and the catamorphism.
-
-An expression is a tree built from these kinds of nodes:
-
-- ``Symbol``: a user-defined named leaf (``x``).
-- ``Constant``: a library-defined named leaf (``pi``).
-- ``Literal``: a leaf wrapping a Python value (``2``, ``0.5``).
-- ``Call``: a ``Function`` applied to child expressions.
-
-``Call`` is generic in the type of its children. A ``Call[Expr]`` is part of
-an expression tree, while a ``Call[str]`` is a *layer* whose children have
-already been folded into strings. ``fmap`` goes from one to the other, and
-``cata`` uses it to fold a whole tree bottom-up with an *algebra*: a function
-that knows how to collapse a single layer. The traversal lives here, once;
-every operation (printing, LaTeX, evaluation, differentiation, ...) is only
-an algebra.
+Expression nodes and symbolic functions.
 """
 
 from __future__ import annotations
 
-from collections.abc import Callable
-from dataclasses import dataclass, field
-from functools import singledispatch
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -39,12 +22,12 @@ class Expr:
     __slots__ = ()
 
     def __str__(self) -> str:
-        from .ops import to_str
+        from ..ops import to_str
 
         return to_str(self)
 
     def _repr_latex_(self) -> str:
-        from .ops import to_latex
+        from ..ops import to_latex
 
         return f"${to_latex(self)}$"
 
@@ -273,168 +256,6 @@ class Operator(Function):
     assoc: str = "left"
 
 
-# ---------------------------------------------------------------------------
-# Functor structure
-# ---------------------------------------------------------------------------
-
-
-@singledispatch
-def children(node: Any) -> tuple[Any, ...]:
-    """The direct children of a node.
-
-    >>> from symbolcat import Symbol
-    >>> x = Symbol("x")
-    >>> children(x + 1)
-    (Symbol('x'), Literal(1))
-    >>> children(x)
-    ()
-    """
-    raise TypeError(f"{type(node).__name__} is not an expression node")
-
-
-@children.register(Expr)
-def _(node: Expr) -> tuple[Any, ...]:
-    return ()
-
-
-@children.register(Call)
-def _[T](node: Call[T]) -> tuple[T, ...]:
-    return node.args
-
-
-@singledispatch
-def fmap(node: Any, f: Callable[[Any], Any]) -> Any:
-    """Apply ``f`` to the direct children, keeping the node shape.
-
-    >>> from symbolcat import Symbol
-    >>> x, y = Symbol("x"), Symbol("y")
-    >>> fmap(x + y, lambda child: child.name)
-    Call(add, ('x', 'y'))
-    """
-    raise TypeError(f"{type(node).__name__} is not an expression node")
-
-
-@fmap.register(Expr)
-def _(node: Expr, f: Callable[[Any], Any]) -> Expr:
-    return node
-
-
-@fmap.register(Call)
-def _[T, S](node: Call[T], f: Callable[[T], S]) -> Call[S]:
-    return Call(node.func, tuple(map(f, node.args)))
-
-
-# ---------------------------------------------------------------------------
-# Catamorphism
-# ---------------------------------------------------------------------------
-
-
-def cata[A](algebra: Callable[..., A], expr: Any, **ctx: Any) -> A:
-    """Fold ``expr`` bottom-up with ``algebra``.
-
-    ``algebra`` receives one layer at a time: a node whose children have
-    already been replaced by their folded values (``fmap(node, fold)``).
-    Extra keyword arguments are forwarded to every algebra call.
-
-    Shared sub-expressions (the same object reachable twice) are folded once.
-    The traversal uses an explicit stack, so deep trees do not hit the
-    recursion limit.
-
-    >>> from symbolcat import Symbol
-    >>> x = Symbol("x")
-    >>> count = lambda node: 1 + sum(children(node))
-    >>> cata(count, x * x + 1)
-    5
-    """
-    expr = as_expr(expr)
-    done: dict[int, A] = {}
-    stack = [expr]
-    while stack:
-        node = stack[-1]
-        if id(node) in done:
-            stack.pop()
-            continue
-        pending = [c for c in children(node) if id(c) not in done]
-        if pending:
-            stack.extend(pending)
-            continue
-        stack.pop()
-        done[id(node)] = algebra(fmap(node, lambda c: done[id(c)]), **ctx)
-    return done[id(expr)]
-
-
-@dataclass
-class Algebra[A]:
-    """An algebra assembled from handlers registered per node or function.
-
-    A handler receives a single layer (children already folded) plus any
-    context passed to ``cata``. Keys can be:
-
-    - a ``Function`` instance (e.g. ``operators.add``): most specific;
-    - a ``Function`` subclass (e.g. ``Operator``): default for that kind;
-    - an ``Expr`` subclass (``Symbol``, ``Constant``, ``Literal``, ``Call``).
-
-    >>> depth = Algebra("depth")
-    >>> @depth.register(Expr)  # any leaf
-    ... def _(node):
-    ...     return 1
-    >>> @depth.register(Call)
-    ... def _(node):
-    ...     return 1 + max(node.args)
-    >>> from symbolcat import Symbol
-    >>> x = Symbol("x")
-    >>> cata(depth, (x + 1) * 2)
-    3
-    """
-
-    name: str
-    _by_func: dict[Function, Callable[..., A]] = field(default_factory=dict)
-    _by_kind: dict[type, Callable[..., A]] = field(default_factory=dict)
-    _by_node: dict[type, Callable[..., A]] = field(default_factory=dict)
-
-    def register(self, *keys: Function | type) -> Callable[[Callable[..., A]], Any]:
-        def decorator(handler: Callable[..., A]) -> Callable[..., A]:
-            for key in keys:
-                if isinstance(key, Function):
-                    self._by_func[key] = handler
-                elif issubclass(key, Function):
-                    self._by_kind[key] = handler
-                elif issubclass(key, Expr):
-                    self._by_node[key] = handler
-                else:
-                    raise TypeError(f"Cannot register {key!r}")
-            return handler
-
-        return decorator
-
-    def copy(self, name: str) -> Algebra[A]:
-        """A new algebra that starts with the same handlers."""
-        return Algebra(
-            name, dict(self._by_func), dict(self._by_kind), dict(self._by_node)
-        )
-
-    def handler_for(self, node: Expr) -> Callable[..., A]:
-        if isinstance(node, Call):
-            if (handler := self._by_func.get(node.func)) is not None:
-                return handler
-            if (handler := _lookup_mro(self._by_kind, type(node.func))) is not None:
-                return handler
-        if (handler := _lookup_mro(self._by_node, type(node))) is not None:
-            return handler
-        what = node.func.name if isinstance(node, Call) else type(node).__name__
-        raise NotImplementedError(f"{self.name}: no rule for {what}")
-
-    def __call__(self, node: Expr, **ctx: Any) -> A:
-        return self.handler_for(node)(node, **ctx)
-
-
-def _lookup_mro[V](registry: dict[type, V], cls: type) -> V | None:
-    for base in cls.__mro__:
-        if base in registry:
-            return registry[base]
-    return None
-
-
 # Expr's operator overloads need the operator definitions, which in turn
 # need the classes above.
-from . import operators as _op
+from .. import operators as _op
