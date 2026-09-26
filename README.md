@@ -12,7 +12,7 @@ differentiate them.
 >>> y = Symbol("y")
 >>> expr = x + 3 * real.sin(y)
 >>> print(expr)
-x + 3 * real.sin(y)
+x + 3 * sin(y)
 
 ```
 
@@ -143,7 +143,7 @@ A new function only needs rules in the algebras that should support it:
 
 ```python
 >>> from symbolcat.ops import latex_algebra, Printed
->>> sinc = Function("sinc", "real", arity=1)
+>>> sinc = Function("sinc", arity=1)
 >>> @latex_algebra.register(sinc)
 ... def _(node):
 ...     return Printed(rf"\operatorname{{sinc}}\left({node.args[0].text}\right)")

@@ -176,7 +176,7 @@ def test_diff_higher_order():
 
 
 def test_diff_unknown_function():
-    with pytest.raises(NotImplementedError, match="real.erf"):
+    with pytest.raises(NotImplementedError, match="diff: no rule for erf"):
         diff(real.erf(x), x)
 
 

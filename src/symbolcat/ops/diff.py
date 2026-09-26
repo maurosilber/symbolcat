@@ -121,7 +121,7 @@ def diff(expr: Any, var: Symbol) -> Expr:
     >>> print(diff(x**3 + y * x, x))
     3 * x ** 2 + y
     >>> print(diff(real.sin(x) * x, x))
-    real.cos(x) * x + real.sin(x)
+    cos(x) * x + sin(x)
     """
     _, derivative = cata(diff_algebra, expr, var=var)
     return simplify(derivative)

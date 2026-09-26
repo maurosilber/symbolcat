@@ -32,7 +32,7 @@ def _(node: Constant, *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> A
     try:
         return lib[node]
     except KeyError:
-        raise NotImplementedError(f"No value for {node.qualname!r}") from None
+        raise NotImplementedError(f"No value for {node.name!r}") from None
 
 
 @evaluate_algebra.register(Literal)
@@ -45,9 +45,7 @@ def _(node: Call[Any], *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> 
     try:
         func = lib[node.func]
     except KeyError:
-        raise NotImplementedError(
-            f"No implementation for {node.func.qualname!r}"
-        ) from None
+        raise NotImplementedError(f"No implementation for {node.func.name!r}") from None
     return func(*node.args)
 
 

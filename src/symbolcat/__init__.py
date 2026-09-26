@@ -8,7 +8,7 @@ A minimalistic symbolic package, organized around catamorphisms.
 >>> x, y = Symbol("x"), Symbol("y")
 >>> expr = x + 3 * real.sin(y)
 >>> print(expr)
-x + 3 * real.sin(y)
+x + 3 * sin(y)
 >>> print(to_latex(expr))
 x + 3 \\cdot \\sin\\left(y\\right)
 >>> evaluate(expr, {x: 1, y: 0})

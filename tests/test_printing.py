@@ -23,8 +23,8 @@ x, y, z = Symbol("x"), Symbol("y"), Symbol("z")
         (op.eq(x < y, z < x), "(x < y) == (z < x)"),
         (x[y + 1] * 2, "x[y + 1] * 2"),
         ((x + y)[0], "(x + y)[0]"),
-        (real.atan2(x, y + 1), "real.atan2(x, y + 1)"),
-        (real.pi * x, "real.pi * x"),
+        (real.atan2(x, y + 1), "atan2(x, y + 1)"),
+        (real.pi * x, "pi * x"),
         (x & y | z, "x & y | z"),
         (x & (y | z), "x & (y | z)"),
     ],
@@ -36,8 +36,8 @@ def test_to_str(expr, expected):
 
 def test_to_str_roundtrip():
     """Printed expressions are valid Python that rebuilds the same tree."""
-    expr = (x + 2) ** -y / real.sin(x - y) % 3
-    assert eval(to_str(expr), {"x": x, "y": y, "real": real}) == expr
+    expr = (x + 2) ** -y / real.sin(x - y) % real.pi
+    assert eval(to_str(expr), {**vars(real), "x": x, "y": y}) == expr
 
 
 @pytest.mark.parametrize(

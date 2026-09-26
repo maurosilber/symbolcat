@@ -7,7 +7,7 @@ The expression tree, its functor structure and the catamorphism.
 An expression is a tree built from these kinds of nodes:
 
 - ``Symbol``: a user-defined named leaf (``x``).
-- ``Constant``: a library-defined named leaf (``real.pi``).
+- ``Constant``: a library-defined named leaf (``pi``).
 - ``Literal``: a leaf wrapping a Python value (``2``, ``0.5``).
 - ``Call``: a ``Function`` applied to child expressions.
 
@@ -171,19 +171,13 @@ class Constant(Expr):
     """A library-defined named leaf, such as ``real.pi``.
 
     Like ``Function``, constants compare by identity, so they never collide
-    with a user ``Symbol`` of the same name. ``namespace`` is only used for
-    printing.
+    with a user ``Symbol`` of the same name.
     """
 
     name: str
-    namespace: str = ""
 
     def __repr__(self) -> str:
-        return f"Constant({self.qualname!r})"
-
-    @property
-    def qualname(self) -> str:
-        return f"{self.namespace}.{self.name}" if self.namespace else self.name
+        return f"Constant({self.name!r})"
 
 
 @dataclass(frozen=True, repr=False, eq=False)
@@ -218,7 +212,7 @@ class Call[T](Expr):
     args: tuple[T, ...]
 
     def __repr__(self) -> str:
-        return f"Call({self.func.qualname}, {self.args!r})"
+        return f"Call({self.func.name}, {self.args!r})"
 
 
 def as_expr(value: Any) -> Expr:
@@ -237,17 +231,12 @@ class Function:
     """
 
     name: str
-    namespace: str = ""
     arity: int | None = None
-
-    @property
-    def qualname(self) -> str:
-        return f"{self.namespace}.{self.name}" if self.namespace else self.name
 
     def __call__(self, *args: Any) -> Call[Expr]:
         if self.arity is not None and len(args) != self.arity:
             raise TypeError(
-                f"{self.qualname} expected {self.arity} arguments, got {len(args)}"
+                f"{self.name} expected {self.arity} arguments, got {len(args)}"
             )
         return Call(self, tuple(map(as_expr, args)))
 
@@ -301,7 +290,7 @@ def fmap(node: Any, f: Callable[[Any], Any]) -> Any:
     >>> from symbolcat import Symbol
     >>> x, y = Symbol("x"), Symbol("y")
     >>> fmap(x + y, lambda child: child.name)
-    Call(op.add, ('x', 'y'))
+    Call(add, ('x', 'y'))
     """
     raise TypeError(f"{type(node).__name__} is not an expression node")
 
@@ -413,7 +402,7 @@ class Algebra[A]:
                 return handler
         if (handler := _lookup_mro(self._by_node, type(node))) is not None:
             return handler
-        what = node.func.qualname if isinstance(node, Call) else type(node).__name__
+        what = node.func.name if isinstance(node, Call) else type(node).__name__
         raise NotImplementedError(f"{self.name}: no rule for {what}")
 
     def __call__(self, node: Expr, **ctx: Any) -> A:

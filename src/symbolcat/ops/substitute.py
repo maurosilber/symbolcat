@@ -41,7 +41,7 @@ def substitute(expr: Any, mapping: Mapping[Any, Any]) -> Expr:
     >>> print(substitute(x + 2 * y, {x: y, y: x}))
     y + 2 * x
     >>> print(substitute(real.sin(x) + 1, {real.sin: real.cos, 1: 2}))
-    real.cos(x) + 2
+    cos(x) + 2
     """
     mapping = {as_expr(k) if not callable(k) else k: v for k, v in mapping.items()}
     return cata(substitute_algebra, expr, mapping=mapping)

@@ -20,7 +20,6 @@ CMP, OR, XOR, AND, SHIFT, ADD, MUL, UNARY, POW, POSTFIX = range(10)
 def _binary(name: str, symbol: str, precedence: int, assoc: str = "left") -> Operator:
     return Operator(
         name,
-        "op",
         arity=2,
         fmt=f"{{}} {symbol} {{}}",
         precedence=precedence,
@@ -29,7 +28,7 @@ def _binary(name: str, symbol: str, precedence: int, assoc: str = "left") -> Ope
 
 
 def _unary(name: str, symbol: str) -> Operator:
-    return Operator(name, "op", arity=1, fmt=f"{symbol}{{}}", precedence=UNARY)
+    return Operator(name, arity=1, fmt=f"{symbol}{{}}", precedence=UNARY)
 
 
 eq = _binary("eq", "==", CMP, assoc="none")
@@ -58,4 +57,4 @@ neg = _unary("neg", "-")
 pos = _unary("pos", "+")
 invert = _unary("invert", "~")
 
-getitem = Operator("getitem", "op", arity=2, fmt="{}[{}]", precedence=POSTFIX)
+getitem = Operator("getitem", arity=2, fmt="{}[{}]", precedence=POSTFIX)

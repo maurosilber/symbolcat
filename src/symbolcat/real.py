@@ -7,14 +7,14 @@ Mathematical functions and constants, named after Python's ``math`` module.
 >>> from symbolcat import Symbol, real
 >>> x = Symbol("x")
 >>> print(2 * real.cos(x) + real.pi)
-2 * real.cos(x) + real.pi
+2 * cos(x) + pi
 """
 
 from .core import Constant, Function
 
 
 def _fn(name: str, arity: int = 1) -> Function:
-    return Function(name, "real", arity=arity)
+    return Function(name, arity=arity)
 
 
 abs = _fn("abs")
@@ -40,8 +40,8 @@ gamma = _fn("gamma")
 factorial = _fn("factorial")
 hypot = _fn("hypot", 2)
 
-e = Constant("e", "real")
-pi = Constant("pi", "real")
-tau = Constant("tau", "real")
-inf = Constant("inf", "real")
-nan = Constant("nan", "real")
+e = Constant("e")
+pi = Constant("pi")
+tau = Constant("tau")
+inf = Constant("inf")
+nan = Constant("nan")

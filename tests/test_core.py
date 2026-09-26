@@ -45,7 +45,7 @@ def test_literal_equality_includes_type():
 
 def test_constants_compare_by_identity():
     assert real.pi == real.pi
-    assert real.pi != Constant("pi", "real")
+    assert real.pi != Constant("pi")
     assert real.pi != Symbol("pi")
 
 
@@ -134,7 +134,7 @@ def test_algebra_dispatch_priority():
 def test_algebra_missing_rule():
     alg = Algebra("partial")
     alg.register(Symbol)(lambda node: node)
-    with pytest.raises(NotImplementedError, match="partial: no rule for real.sin"):
+    with pytest.raises(NotImplementedError, match="partial: no rule for sin"):
         cata(alg, real.sin(x))
 
 

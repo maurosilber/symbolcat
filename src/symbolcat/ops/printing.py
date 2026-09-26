@@ -49,14 +49,9 @@ def literal_precedence(value: Any) -> int:
 str_algebra = Algebra[Printed]("str")
 
 
-@str_algebra.register(Symbol)
-def _(node: Symbol) -> Printed:
+@str_algebra.register(Symbol, Constant)
+def _(node: Symbol | Constant) -> Printed:
     return Printed(node.name)
-
-
-@str_algebra.register(Constant)
-def _(node: Constant) -> Printed:
-    return Printed(node.qualname)
 
 
 @str_algebra.register(Literal)
@@ -67,7 +62,7 @@ def _(node: Literal) -> Printed:
 @str_algebra.register(Function)
 def _(node: Call[Printed]) -> Printed:
     args = ", ".join(arg.text for arg in node.args)
-    return Printed(f"{node.func.qualname}({args})")
+    return Printed(f"{node.func.name}({args})")
 
 
 @str_algebra.register(Operator)
