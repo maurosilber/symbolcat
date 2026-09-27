@@ -18,7 +18,7 @@ from ._evaluate import evaluate
 from ._inspect import count_nodes, depth, free_symbols
 from ._latex import to_latex
 from ._printing import to_str
-from ._simplify import simplify
+from ._simplify import simplify_naive
 from ._substitute import substitute
 
 __all__ = [
@@ -27,7 +27,7 @@ __all__ = [
     "diff",
     "evaluate",
     "free_symbols",
-    "simplify",
+    "simplify_naive",
     "substitute",
     "to_latex",
     "to_str",

@@ -12,7 +12,7 @@ from symbolcat.ops import (
     diff,
     evaluate,
     free_symbols,
-    simplify,
+    simplify_naive,
     substitute,
 )
 from symbolcat.ops.algebras import Literal
@@ -82,7 +82,7 @@ def test_substitute_subexpressions_functions_and_literals():
 
 
 def test_substitute_with_values():
-    assert simplify(substitute(x * y, {x: 2, y: 3})) == Literal(6)
+    assert simplify_naive(substitute(x * y, {x: 2, y: 3})) == Literal(6)
 
 
 # inspect
@@ -125,11 +125,11 @@ def test_count_and_depth():
     ],
 )
 def test_simplify(expr, expected):
-    assert simplify(expr) == expected
+    assert simplify_naive(expr) == expected
 
 
 def test_simplify_does_not_fold_errors():
-    assert simplify(Literal(1) / 0) == Literal(1) / 0
+    assert simplify_naive(Literal(1) / 0) == Literal(1) / 0
 
 
 # diff

@@ -115,7 +115,7 @@ def _(node: Call[Expr]) -> Expr:
     return node.args[0]
 
 
-def simplify(expr: Any) -> Expr:
+def simplify_naive(expr: Any) -> Expr:
     """Fold constants and remove trivial operations.
 
     >>> from symbolcat import Symbol

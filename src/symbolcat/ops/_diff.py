@@ -18,7 +18,7 @@ from typing import Any
 from .. import real
 from .._core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata
 from ..lib import operators as op
-from ._simplify import is_number, simplify
+from ._simplify import is_number, simplify_naive
 
 type Dual = tuple[Expr, Expr]
 type Rule = Callable[[tuple[Expr, ...], tuple[Expr, ...]], Expr]
@@ -89,7 +89,7 @@ def _(args, dargs):
 @rule(op.pow)
 def _(args, dargs):
     (a, b), (da, db) = args, dargs
-    if is_number(simplify(db), 0):
+    if is_number(simplify_naive(db), 0):
         return b * a ** (b - 1) * da
     return a**b * (db * real.log(a) + b * da / a)
 
@@ -124,4 +124,4 @@ def diff(expr: Any, var: Symbol) -> Expr:
     cos(x) * x + sin(x)
     """
     _, derivative = cata(diff_algebra, expr, var=var)
-    return simplify(derivative)
+    return simplify_naive(derivative)
