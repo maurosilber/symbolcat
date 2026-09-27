@@ -31,6 +31,7 @@ from egglog import (
     function,
     i64Like,
     method,
+    relation,
 )
 
 NODE = 1000
@@ -135,3 +136,12 @@ def cosh(x: Num) -> Num: ...
 
 @function(cost=NODE)
 def tanh(x: Num) -> Num: ...
+
+
+# Properties of terms, as facts in the e-graph. Given by assumptions, and
+# derived by ``_rules.signs``.
+is_positive = relation("is_positive", Num)
+is_nonnegative = relation("is_nonnegative", Num)
+is_negative = relation("is_negative", Num)
+is_nonzero = relation("is_nonzero", Num)
+is_integer = relation("is_integer", Num)

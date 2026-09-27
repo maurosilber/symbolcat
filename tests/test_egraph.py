@@ -9,7 +9,14 @@ from symbolcat.lib import Constant, Function
 from symbolcat.lib.std import IMPL
 from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Literal
-from symbolcat.ops.egraph import optimize, simplify
+from symbolcat.ops.egraph import (
+    integer,
+    negative,
+    nonnegative,
+    optimize,
+    positive,
+    simplify,
+)
 from symbolcat.ops.egraph._convert import Table, from_egglog, to_egglog
 
 x, y, z = Symbol("x"), Symbol("y"), Symbol("z")
@@ -73,7 +80,6 @@ def test_known_constants_come_back():
         (real.sqrt(x**2), real.abs(x)),
         (real.abs(-x) - real.abs(x), Literal(0)),
         # exponential and logarithm
-        (real.log(x * y) - real.log(x), real.log(y)),
         (real.log(x**3) / real.log(x), Literal(3)),
         (real.exp(real.log(x)), x),
         # trigonometric
@@ -131,13 +137,126 @@ def test_known_constants_come_back():
         # roots, logarithms and hyperbolic functions
         (real.exp(real.log(x) / 2), real.sqrt(x)),
         (real.log(1 / x), -real.log(x)),
-        (real.log(x**2 * y) - 2 * real.log(x), real.log(y)),
         (real.cosh(x) ** 2 + real.sinh(x) ** 2, real.cosh(2 * x)),
         (4 * real.sin(x) ** 2 * real.cos(x) ** 2, real.sin(2 * x) ** 2),
     ],
 )
 def test_simplify(expr, expected):
     assert simplify(expr) == expected
+
+
+@pytest.mark.parametrize(
+    "expr",
+    [
+        real.log(x * y) - real.log(x),  # false for negative x and y
+        real.log(x**2),  # 2 * log(x) is undefined for negative x
+        real.abs(x) - x,
+        real.sin(real.constants.pi * y),
+    ],
+)
+def test_strict_by_default(expr):
+    assert simplify(expr) == expr
+
+
+@pytest.mark.parametrize(
+    "expr, expected",
+    [
+        # valid wherever the input is defined, so no assumption needed
+        (real.log(x) + real.log(y), real.log(x * y)),
+        (real.log(x / y) + real.log(y), real.log(x)),
+        (real.log(x**3) / real.log(x), Literal(3)),  # odd power: x > 0
+        (real.sqrt(x**2), real.abs(x)),
+    ],
+)
+def test_rules_valid_where_defined(expr, expected):
+    assert simplify(expr) == expected
+
+
+@pytest.mark.parametrize(
+    "expr, assume, expected",
+    [
+        (real.log(x * y) - real.log(x), [positive(x)], real.log(y)),
+        (real.log(x**2 * y) - 2 * real.log(x), [positive(x)], real.log(y)),
+        (real.sqrt(x**2), [nonnegative(x)], x),
+        (real.abs(x) + x, [negative(x)], Literal(0)),
+        (real.abs(real.exp(y) * x), [positive(x)], x * real.exp(y)),
+        (real.sin(real.constants.pi * y), [integer(y)], Literal(0)),
+        (real.cos(real.constants.pi * y) ** 2, [integer(y)], Literal(1)),
+        (Literal(0) ** (x + 1), [positive(x)], Literal(0)),
+    ],
+)
+def test_assumptions(expr, assume, expected):
+    assert simplify(expr, assume=assume) == expected
+
+
+def test_contradictory_assumptions_return_input():
+    expr = real.log(x * y)
+    assert simplify(expr, assume=[positive(x), negative(x)]) == expr
+
+
+a, b, c, d = Symbol("a"), Symbol("b"), Symbol("c"), Symbol("d")
+
+
+@pytest.mark.parametrize(
+    "expr, expected",
+    [
+        # the tests of Metatheory.jl's CAS theory
+        (2 * a + a + a, 4 * a),
+        (a * c * b, a * b * c),
+        (1 * x * 2, 2 * x),
+        ((a**2 * b**2) ** 3, (a * b) ** 6),
+        (a + b + 0 * c + d, a + b + d),
+        (a + b + c * 0 + d - d, a + b),
+        (a * x**y * b * x**d, a * b * x ** (y + d)),
+        (real.cos(x) ** 2 + 1 + real.sin(x) ** 2, Literal(2)),
+        # and rules from its theories
+        (x / (x / y), y),
+        (x * (y / x), y),
+        (real.sin(x) ** 2 - 1, -(real.cos(x) ** 2)),
+        (real.cos(x) ** 2 - 1, -(real.sin(x) ** 2)),
+        (real.cos(x) ** -2 - 1, real.tan(x) ** 2),
+        (1 + real.tan(x) ** -2, real.sin(x) ** -2),
+    ],
+)
+def test_metatheory(expr, expected):
+    assert simplify(expr) == expected
+
+
+def _horner(coefficients, constant_first=True):
+    result = Literal(coefficients[-1])
+    for coefficient in reversed(coefficients[:-1]):
+        if constant_first:
+            result = coefficient + x * result
+        else:
+            result = x * result + coefficient
+    return result
+
+
+@pytest.mark.parametrize("degree", [3, 6, 9])
+@pytest.mark.parametrize("ascending", [True, False])
+def test_horner_is_reachable(degree, ascending):
+    """The rules prove a polynomial equal to its Horner form."""
+    from symbolcat.ops.egraph._saturate import search
+
+    terms = [c * x**k for k, c in enumerate(range(1, degree + 2))]
+    if not ascending:
+        terms.reverse()
+    poly = sum(terms[1:], start=terms[0])
+    found = search(poly, iterations=8, max_nodes=20_000)
+    coefficients = list(range(1, degree + 2))
+    assert found.equivalent(_horner(coefficients)) or found.equivalent(
+        _horner(coefficients, constant_first=False)
+    )
+
+
+def test_optimize_evaluates_polynomials_by_horner():
+    """One multiplication per degree, and no powers."""
+    from symbolcat.lib import operators as op
+
+    result = optimize(sum(k * x**k for k in range(1, 6)))
+    funcs = [getattr(n, "func", None) for n in _walk(result)]
+    assert op.pow not in funcs
+    assert funcs.count(op.mul) == 5
 
 
 def test_max_nodes_stops_early():
@@ -268,11 +387,8 @@ def _value(expr, env):
 
 @pytest.mark.parametrize("seed", range(4))
 def test_random_expressions_keep_their_value(seed):
-    """Fuzzing: wherever both are defined, the result has the same value.
-
-    (The result may be undefined where the input is not: rules assume
-    positive arguments of log, see ``_rules``.)
-    """
+    """Fuzzing: wherever the input is defined, the result is defined and has
+    the same value (the result may be defined on a larger domain)."""
     import random
 
     rng = random.Random(seed)
@@ -282,5 +398,6 @@ def test_random_expressions_keep_their_value(seed):
         for _ in range(4):
             env = {x: rng.uniform(-3, 3), y: rng.uniform(-3, 3)}
             a, b = _value(expr, env), _value(result, env)
-            if a is not None and b is not None:
+            if a is not None:
+                assert b is not None, (expr, result, env)
                 assert b == pytest.approx(a, rel=1e-4, abs=1e-9), (expr, result, env)

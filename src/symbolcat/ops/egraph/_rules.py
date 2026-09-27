@@ -18,10 +18,12 @@ Rulesets come in two kinds:
 - ``GROW``: rules that reshape an expression and can make the e-graph grow
   without bound, so they run for a limited number of iterations.
 
-Like ``symbolcat.ops.simplify``, some rules assume the expression is
-defined: denominators are non-zero (``a / a -> 1``), and arguments of
-``log`` and bases of real powers are positive (``exp(log(a)) -> a``,
-``log(a * b) -> log(a) + log(b)``).
+Rules are valid wherever the expression is defined: ``a / a -> 1`` and
+``exp(log(a)) -> a`` only extend the domain. Rules that could change the
+value where the expression is defined, like ``log(a * b) -> log(a) +
+log(b)`` (false for negative ``a`` and ``b``), only fire under assumptions:
+properties of terms stored as relations (``is_positive``, ...), given by
+the user (``_assume``) or derived by ``signs``.
 """
 
 from __future__ import annotations
@@ -33,6 +35,7 @@ from egglog import (
     BigRat,
     Fact,
     RewriteOrRule,
+    String,
     birewrite,
     eq,
     f64,
@@ -55,6 +58,11 @@ from ._term import (
     cos,
     cosh,
     exp,
+    is_integer,
+    is_negative,
+    is_nonnegative,
+    is_nonzero,
+    is_positive,
     log,
     sin,
     sinh,
@@ -98,7 +106,7 @@ def small(r: BigRat, bound: int = 16) -> tuple[Fact, Fact]:
 
 
 @ruleset
-def contradictions(p: BigRat, q: BigRat, f: f64, g: f64) -> Rules:
+def contradictions(p: BigRat, q: BigRat) -> Rules:
     """Two different numbers proven equal mean the input is undefined.
 
     The rules assume non-zero denominators and positive bases, so a
@@ -107,9 +115,107 @@ def contradictions(p: BigRat, q: BigRat, f: f64, g: f64) -> Rules:
     Any such merge is recorded as ``0 == 1``, which stops the search.
     """
     yield rule(eq(Num(p)).to(Num(q)), ne(p).to(q)).then(union(ZERO).with_(ONE))
-    yield rule(eq(Num.float(f)).to(Num.float(g)), ne(f).to(g)).then(
-        union(ZERO).with_(ONE)
+    # Not for floats: they are approximate, so equal values can fold to
+    # different floats (rounding, and underflow: 0.5 ** 1100 == 0.0).
+
+
+@ruleset
+def signs(a: Num, b: Num, c: Num, p: BigRat) -> Rules:
+    """Derive properties of terms. Only adds facts, so it terminates.
+
+    Assumptions that contradict each other or a literal are recorded as
+    ``0 == 1``, like other contradictions: the input is then undefined.
+    """
+    # literals and constants
+    yield rule(eq(a).to(Num(p)), p > BigRat(0, 1)).then(is_positive(a))
+    yield rule(eq(a).to(Num(p)), p < BigRat(0, 1)).then(is_negative(a))
+    # no signs from floats: rounding residues (2.2e-16) end up merged with
+    # exact zeros, which would look like a contradiction
+    yield rule(eq(a).to(Num.pi)).then(is_positive(a))
+    yield rule(eq(a).to(Num.e)).then(is_positive(a))
+    # implications between properties
+    yield rule(is_positive(a)).then(is_nonnegative(a), is_nonzero(a))
+    yield rule(is_negative(a)).then(is_nonzero(a))
+    # sums, products and quotients
+    for op in (Num.__add__, Num.__mul__, Num.__truediv__):
+        yield rule(eq(c).to(op(a, b)), is_positive(a), is_positive(b)).then(
+            is_positive(c)
+        )
+    for op in (Num.__add__, Num.__mul__):
+        yield rule(eq(c).to(op(a, b)), is_nonnegative(a), is_nonnegative(b)).then(
+            is_nonnegative(c)
+        )
+    yield rule(eq(c).to(a + b), is_negative(a), is_negative(b)).then(is_negative(c))
+    for op in (Num.__mul__, Num.__truediv__):
+        yield rule(eq(c).to(op(a, b)), is_negative(a), is_negative(b)).then(
+            is_positive(c)
+        )
+        yield rule(eq(c).to(op(a, b)), is_positive(a), is_negative(b)).then(
+            is_negative(c)
+        )
+        yield rule(eq(c).to(op(a, b)), is_negative(a), is_positive(b)).then(
+            is_negative(c)
+        )
+        yield rule(eq(c).to(op(a, b)), is_nonzero(a), is_nonzero(b)).then(is_nonzero(c))
+    yield rule(eq(c).to(-a), is_positive(a)).then(is_negative(c))
+    yield rule(eq(c).to(-a), is_negative(a)).then(is_positive(c))
+    yield rule(eq(c).to(-a), is_nonzero(a)).then(is_nonzero(c))
+    # functions and powers
+    yield rule(eq(c).to(exp(a))).then(is_positive(c))
+    yield rule(eq(c).to(cosh(a))).then(is_positive(c))
+    yield rule(eq(c).to(abs(a))).then(is_nonnegative(c))
+    yield rule(eq(c).to(abs(a)), is_nonzero(a)).then(is_positive(c))
+    yield rule(eq(c).to(a**TWO)).then(is_nonnegative(c))
+    yield rule(eq(c).to(a**TWO), is_nonzero(a)).then(is_positive(c))
+    yield rule(eq(c).to(a**b), is_positive(a)).then(is_positive(c))
+    yield rule(eq(c).to(sqrt(a)), is_nonnegative(a)).then(is_nonnegative(c))
+    yield rule(eq(c).to(sqrt(a)), is_positive(a)).then(is_positive(c))
+    # integers (literals are not marked as integers: that would enable the
+    # integer rules in ``assumed`` for every literal exponent, duplicating
+    # the bounded ones in ``powers``)
+    for op in (Num.__add__, Num.__sub__, Num.__mul__):
+        yield rule(eq(c).to(op(a, b)), is_integer(a), is_integer(b)).then(is_integer(c))
+        yield rule(eq(c).to(op(a, Num(p))), is_integer(a), integer(p)).then(
+            is_integer(c)
+        )
+        yield rule(eq(c).to(op(Num(p), a)), is_integer(a), integer(p)).then(
+            is_integer(c)
+        )
+    yield rule(eq(c).to(-a), is_integer(a)).then(is_integer(c))
+    # contradictions
+    contradiction = union(ZERO).with_(ONE)
+    yield rule(is_positive(a), is_negative(a)).then(contradiction)
+    yield rule(is_nonnegative(a), is_negative(a)).then(contradiction)
+    yield rule(is_positive(a), eq(a).to(ZERO)).then(contradiction)
+    yield rule(is_nonzero(a), eq(a).to(ZERO)).then(contradiction)
+    yield rule(is_integer(a), eq(a).to(Num(p)), ne(p.denom).to(BigInt(1))).then(
+        contradiction
     )
+
+
+@ruleset
+def assumed(a: Num, b: Num, c: Num) -> Rules:
+    """Rules that need properties of their terms."""
+    # logarithms: log(a * b) is defined when a * b > 0, so a > 0 is enough
+    yield rewrite(log(a * b)).to(log(a) + log(b), is_positive(a))
+    yield rewrite(log(a * b)).to(log(a) + log(b), is_positive(b))
+    yield rewrite(log(a**b)).to(b * log(a), is_positive(a))
+    # absolute values and roots
+    yield rewrite(abs(a)).to(a, is_nonnegative(a))
+    yield rewrite(abs(a)).to(-a, is_negative(a))
+    yield rewrite(sqrt(a * b)).to(sqrt(a) * sqrt(b), is_positive(a))
+    yield rewrite(sqrt(a * b)).to(sqrt(a) * sqrt(b), is_positive(b))
+    # powers with any exponent
+    # (literal integer exponents are handled by ``powers``, with a bound)
+    yield rewrite((a * b) ** c).to(a**c * b**c, is_positive(a), is_positive(b))
+    yield rewrite((a**b) ** c).to(a ** (b * c), is_positive(a))
+    yield rewrite((a**b) ** c).to(a ** (b * c), is_integer(c))
+    yield rewrite(ZERO**a).to(ZERO, is_positive(a))
+    # integer multiples of pi
+    yield rewrite(sin(Num.pi * a)).to(ZERO, is_integer(a))
+    yield rewrite(tan(Num.pi * a)).to(ZERO, is_integer(a))
+    yield rewrite(cos(Num.pi * a)).to(MINUS_ONE**a, is_integer(a))
+    yield rewrite(MINUS_ONE ** (TWO * a)).to(ONE, is_integer(a))
 
 
 @ruleset
@@ -181,15 +287,19 @@ def identities(a: Num) -> Rules:
     side: the e-class of ``0`` would otherwise fill up with rewritings of
     ``0 * a``.
     """
-    # arithmetic
-    yield rewrite(a + ZERO).to(a)
+    # arithmetic, with the neutral element on either side (commutativity is
+    # a growing rule, so it may not get there)
+    for zero, one in [(ZERO, ONE), (Num.float(0.0), Num.float(1.0))]:
+        yield rewrite(a + zero).to(a)
+        yield rewrite(zero + a).to(a)
+        yield rewrite(a * one).to(a)
+        yield rewrite(one * a).to(a)
     yield rewrite(a - ZERO).to(a)
     yield rewrite(ZERO - a).to(-a)
-    yield rewrite(a * ONE).to(a)
-    yield rewrite(a * Num.float(1.0)).to(a)
-    yield rewrite(a + Num.float(0.0)).to(a)
     yield replace(a * ZERO).to(ZERO)
+    yield replace(ZERO * a).to(ZERO)
     yield rewrite(a * MINUS_ONE).to(-a)
+    yield rewrite(MINUS_ONE * a).to(-a)
     yield rewrite(a / ONE).to(a)
     yield replace(ZERO / a).to(ZERO)
     yield replace(a - a).to(ZERO)
@@ -239,6 +349,7 @@ def identities(a: Num) -> Rules:
             yield replace(cos(angle)).to(cosine)
     yield replace(tan(Num.pi / rat(4))).to(ONE)
     yield replace(sin(a) ** TWO + cos(a) ** TWO).to(ONE)
+    yield replace(cos(a) ** TWO + sin(a) ** TWO).to(ONE)
     yield rewrite(sin(asin(a))).to(a)
     yield rewrite(cos(acos(a))).to(a)
     yield rewrite(tan(atan(a))).to(a)
@@ -272,6 +383,11 @@ def algebra(a: Num, b: Num, c: Num, p: BigRat, q: BigRat) -> Rules:
     yield birewrite(a - b).to(a + -b)
     yield birewrite(-a).to(MINUS_ONE * a)
     yield birewrite(a / b).to(a * b**MINUS_ONE)
+    # from Metatheory.jl's CAS theory
+    yield rewrite(a + b * a).to((b + ONE) * a)
+    yield rewrite(a / (a / b)).to(b)
+    yield rewrite(a * (b / a)).to(b)
+    yield birewrite(a * (b / c)).to((a * b) / c)
     yield rewrite((a / b) / c).to(a / (b * c))
     yield rewrite(a / (b / c)).to(a * c / b)
     # factoring
@@ -297,6 +413,31 @@ def algebra(a: Num, b: Num, c: Num, p: BigRat, q: BigRat) -> Rules:
 
 
 @ruleset
+def horner(b: Num, c: Num, d: Num, p: BigRat, name: String) -> Rules:
+    """Steps towards Horner's form in a symbol, c0 + x * (c1 + x * (c2 + ...)).
+
+    Factor the symbol out of each monomial, then out of the sum, and repeat
+    inside. They run on their own before the search (``PREPARE``): mixed
+    with the other growing rules, commutativity and distributivity would
+    rewrite every intermediate sum, and the search would stop at its node
+    budget long before a polynomial of high degree reaches Horner's form.
+    """
+    x = Num.var(name)
+    # factor out of a left-nested sum without reassociating it
+    yield rewrite((c + x * b) + x * d).to(c + x * (b + d))
+    yield rewrite((c + x) + x * d).to(c + x * (ONE + d))
+    yield rewrite((c + x * b) + x).to(c + x * (b + ONE))
+    yield rewrite(x * b + x * d).to(x * (b + d))
+    # factor out of a monomial: c * x ** 3 == x * (c * x ** 2)
+    below = x ** Num(p - BigRat(1, 1))
+    in_range = (integer(p), p > BigRat(1, 1), p <= BigRat(64, 1))
+    yield rewrite(b * x ** Num(p)).to(x * (b * below), *in_range)
+    yield rewrite(x ** Num(p)).to(x * below, *in_range)
+    # symbol first in products, so the steps above match: 3 * x -> x * 3
+    yield rewrite(b * x).to(x * b)
+
+
+@ruleset
 def powers(a: Num, b: Num, c: Num, p: BigRat, q: BigRat) -> Rules:
     yield birewrite(sqrt(a)).to(a**HALF)
     yield birewrite(a * a).to(a**TWO)
@@ -304,6 +445,7 @@ def powers(a: Num, b: Num, c: Num, p: BigRat, q: BigRat) -> Rules:
     # small: otherwise x ** 2 * x ** 2 -> x ** 4 -> ... grows without bound.
     yield rewrite(a**b * a**c).to(a ** (b + c))
     yield rewrite(a * a**b).to(a ** (b + ONE))
+    yield rewrite(a**b * a).to(a ** (b + ONE))
     yield rewrite((a * b) ** Num(q)).to(
         a ** Num(q) * b ** Num(q), integer(q), *small(q)
     )
@@ -336,14 +478,18 @@ def powers(a: Num, b: Num, c: Num, p: BigRat, q: BigRat) -> Rules:
 
 
 @ruleset
-def exponential(a: Num, b: Num) -> Rules:
+def exponential(a: Num, b: Num, p: BigRat) -> Rules:
     yield birewrite(exp(a) * exp(b)).to(exp(a + b))
     yield rewrite(exp(a) ** b).to(exp(a * b))
     yield birewrite(Num.e**a).to(exp(a))
-    yield birewrite(log(a * b)).to(log(a) + log(b))
-    # one way: the reverse folds any product into a logarithm
-    yield rewrite(log(a**b)).to(b * log(a))
+    # valid wherever the left-hand side is defined (a, b > 0); the other
+    # direction needs assumptions (see ``assumed``)
+    yield rewrite(log(a) + log(b)).to(log(a * b))
     yield rewrite(exp(b * log(a))).to(a**b)
+    # log(a ** p) is defined only for a ** p > 0: a > 0 unless p is even
+    half_p = p / BigRat(2, 1)
+    yield rewrite(log(a ** Num(p))).to(Num(p) * log(abs(a)), integer(half_p))
+    yield rewrite(log(a ** Num(p))).to(Num(p) * log(a), ne(half_p.denom).to(BigInt(1)))
 
 
 @ruleset
@@ -355,6 +501,14 @@ def trigonometric(a: Num, b: Num) -> Rules:
     yield birewrite(cos(a + b)).to(cos(a) * cos(b) - sin(a) * sin(b))
     yield birewrite(sin(a) ** TWO).to(ONE - cos(a) ** TWO)
     yield rewrite(ONE + tan(a) ** TWO).to(cos(a) ** rat(-2))
+    # Pythagorean identities, after Metatheory.jl (with its signs corrected),
+    # writing sec, csc and cot as powers of cos, sin and tan
+    yield rewrite(sin(a) ** TWO - ONE).to(-(cos(a) ** TWO))
+    yield rewrite(cos(a) ** TWO - ONE).to(-(sin(a) ** TWO))
+    yield rewrite(tan(a) ** TWO - cos(a) ** rat(-2)).to(MINUS_ONE)
+    yield rewrite(cos(a) ** rat(-2) - ONE).to(tan(a) ** TWO)
+    yield rewrite(ONE + tan(a) ** rat(-2)).to(sin(a) ** rat(-2))
+    yield rewrite(sin(a) ** rat(-2) - ONE).to(tan(a) ** rat(-2))
 
 
 @ruleset
@@ -370,4 +524,17 @@ def hyperbolic(a: Num, b: Num) -> Rules:
 
 
 SHRINK = (contradictions, fold, identities, literal_costs)
-GROW = (coefficients, algebra, powers, exponential, trigonometric, hyperbolic)
+#: Rules deriving facts, run to saturation once per iteration (not in every
+#: shrinking pass: they only feed ``assumed`` and the contradiction check).
+ANALYSIS = (signs,)
+#: Growing rules that run on their own before the search.
+PREPARE = (horner,)
+GROW = (
+    coefficients,
+    algebra,
+    powers,
+    exponential,
+    trigonometric,
+    hyperbolic,
+    assumed,
+)

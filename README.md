@@ -179,10 +179,30 @@ x + 1
 ```
 
 The rules cover arithmetic (exact on rationals), factoring, powers, `abs`,
-`exp` and `log`, and trigonometric and hyperbolic identities. Like
-`ops.simplify`, they assume the expression is defined: denominators are
-non-zero, and arguments of `log` and bases of real powers are positive. An
-input that divides by zero is returned unchanged.
+`exp` and `log`, and trigonometric and hyperbolic identities, including the
+math theories of [Metatheory.jl](https://github.com/JuliaSymbolics/Metatheory.jl).
+
+By default, only rules that are valid wherever the expression is defined are
+applied (the result may be defined on a larger domain: `x / x` becomes `1`).
+Rules like `log(x * y) = log(x) + log(y)`, false for negative `x` and `y`,
+need assumptions:
+
+```python
+>>> from symbolcat.ops.egraph import integer, positive
+>>> print(egraph.simplify(real.log(x * y) - real.log(x)))
+log(x * y) - log(x)
+>>> print(egraph.simplify(real.log(x * y) - real.log(x), assume=[positive(x)]))
+log(y)
+>>> n = Symbol("n")
+>>> print(egraph.simplify(real.cos(real.constants.pi * n) ** 2, assume=[integer(n)]))
+1
+
+```
+
+The assumptions are `positive`, `nonnegative`, `negative`, `nonzero` and
+`integer`, for any sub-expression. More properties are derived (`exp(x) > 0`,
+a product of positives is positive, ...). An undefined input (a division by
+zero, contradictory assumptions) is returned unchanged.
 
 The search is bounded by `iterations` (passes of the rewrite rules) and
 `max_nodes` (size of the e-graph), so it stays fast on large expressions at
@@ -197,6 +217,9 @@ smallest one, and returns repeated sub-expressions as the same object, so
 sin(x) + sin(x) * sin(x)
 >>> print(egraph.optimize(x**8))  # three shared squarings
 x * x * (x * x) * (x * x * (x * x))
+>>> poly = 6 * x**5 + 5 * x**4 + 4 * x**3 + 3 * x**2 + 2 * x + 1
+>>> print(egraph.optimize(poly))  # Horner's scheme
+1 + ((((6 * x + 5) * x + 4) * x + 3) * x + 2) * x
 
 ```
 

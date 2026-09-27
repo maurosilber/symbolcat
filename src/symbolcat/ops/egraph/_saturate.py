@@ -11,6 +11,9 @@ extracted back.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
+from dataclasses import dataclass
+from itertools import count
 from typing import Any, Literal
 
 from egglog import DagCostModel, EGraph, Schedule, back_off, eq, run, seq
@@ -18,8 +21,10 @@ from egglog import DagCostModel, EGraph, Schedule, back_off, eq, run, seq
 from ..._core import Expr, as_expr
 from . import _cost as cost
 from . import _rules as rules
+from ._assume import Assumption
 from ._canonical import canonical
 from ._convert import Table, from_egglog, to_egglog
+from ._term import Num, is_integer, is_negative, is_nonnegative, is_nonzero, is_positive
 
 
 def shrink(passes: int = 50) -> Schedule:
@@ -60,47 +65,131 @@ def contradiction(egraph: EGraph) -> bool:
     return egraph.check_bool(eq(rules.ZERO).to(rules.ONE))
 
 
+PROPERTIES = {
+    "positive": is_positive,
+    "nonnegative": is_nonnegative,
+    "negative": is_negative,
+    "nonzero": is_nonzero,
+    "integer": is_integer,
+}
+
+
+@dataclass
+class Search:
+    """A saturated e-graph holding the expression being simplified."""
+
+    egraph: EGraph
+    root: Num
+    table: Table
+
+    def equivalent(self, other: Any) -> bool:
+        """Whether the search proved ``other`` equal to the expression.
+
+        Only the shrinking rules run on ``other`` itself (so that ``2 * x ** 0``
+        matches ``2``), not the rules that search.
+        """
+        term = self.egraph.let(f"other{next(_names)}", to_egglog(other, self.table))
+        self.egraph.run(shrink())
+        return self.egraph.check_bool(eq(self.root).to(term))
+
+    def extract(
+        self,
+        cost_model: DagCostModel[Any] | None,
+        extractor: Literal["tree", "greedy-dag"],
+    ) -> Expr:
+        if cost_model is None:
+            best = self.egraph.extract(self.root, extractor=extractor)
+        else:
+            best = self.egraph.extract(
+                self.root, cost_model=cost_model, extractor=extractor
+            )
+        result = from_egglog(best, self.table)
+        # Ordering products flattens them, which would undo the sharing that
+        # DAG extraction found, so it is only applied to trees.
+        return canonical(result) if extractor == "tree" else result
+
+
+_names = count()
+
+
+def search(
+    expr: Any,
+    *,
+    assume: Iterable[Assumption] = (),
+    iterations: int,
+    max_nodes: int,
+    prepare_passes: int = 64,
+) -> Search | None:
+    """Saturate an e-graph with ``expr``.
+
+    First the ``PREPARE`` rules run alone, until nothing changes or for
+    ``prepare_passes`` passes. Then the growing rules run for ``iterations``
+    passes, or until the e-graph has more than ``max_nodes`` e-nodes.
+
+    Returns ``None`` if the input is undefined: the rules then prove two
+    different numbers equal (as for a division by zero, or contradictory
+    assumptions).
+    """
+    table = Table()
+    egraph = EGraph()
+    root = egraph.let("root", to_egglog(expr, table))
+    for assumption in assume:
+        term = to_egglog(assumption.expr, table)
+        egraph.register(PROPERTIES[assumption.property](term))
+    shrinking = shrink()
+    analysis = seq(*map(run, rules.ANALYSIS)).saturate()
+    egraph.run(shrinking)
+    egraph.run(analysis)
+    preparing = seq(*map(run, rules.PREPARE))
+    for _ in range(prepare_passes):
+        report = egraph.run(preparing)
+        egraph.run(shrinking)
+        if not report.updated or size(egraph) > max_nodes:
+            break
+    growing = grow()
+    for _ in range(iterations):
+        if contradiction(egraph):
+            return None
+        egraph.run(growing)
+        egraph.run(shrinking)
+        egraph.run(analysis)
+        if size(egraph) > max_nodes:
+            break
+    if contradiction(egraph):
+        return None
+    return Search(egraph, root, table)
+
+
 def saturate(
     expr: Any,
     *,
+    assume: Iterable[Assumption],
     iterations: int,
     max_nodes: int,
     cost_model: DagCostModel[Any] | None,
     extractor: Literal["tree", "greedy-dag"],
 ) -> Expr:
-    """Grow the e-graph for ``iterations`` passes, or until it has more than
-    ``max_nodes`` e-nodes, and extract the cheapest expression.
+    """Search, and extract the cheapest expression.
 
-    An undefined input (such as a division by zero, or the square root of a
-    negative number) is returned unchanged.
+    An undefined input is returned unchanged.
     """
     expr = as_expr(expr)
-    table = Table()
-    egraph = EGraph()
-    root = egraph.let("root", to_egglog(expr, table))
-    growing, shrinking = grow(), shrink()
-    egraph.run(shrinking)
-    for _ in range(iterations):
-        if contradiction(egraph):
-            return expr
-        egraph.run(growing)
-        egraph.run(shrinking)
-        if size(egraph) > max_nodes:
-            break
-    if contradiction(egraph):
+    found = search(expr, assume=assume, iterations=iterations, max_nodes=max_nodes)
+    if found is None:
         return expr
-    if cost_model is None:
-        best = egraph.extract(root, extractor=extractor)
-    else:
-        best = egraph.extract(root, cost_model=cost_model, extractor=extractor)
-    result = from_egglog(best, table)
-    # Ordering products flattens them, which would undo the sharing that DAG
-    # extraction found, so it is only applied to trees.
-    return canonical(result) if extractor == "tree" else result
+    return found.extract(cost_model, extractor)
 
 
-def simplify(expr: Any, iterations: int = 8, max_nodes: int = 20_000) -> Expr:
+def simplify(
+    expr: Any,
+    assume: Iterable[Assumption] = (),
+    iterations: int = 8,
+    max_nodes: int = 20_000,
+) -> Expr:
     """The smallest equivalent expression found.
+
+    Only rules valid wherever ``expr`` is defined are applied, unless
+    ``assume`` enables more (see ``positive``, ``integer``, ...).
 
     The e-graph grows for ``iterations`` passes of the rewrite rules, or
     until it holds more than ``max_nodes`` e-nodes.
@@ -116,6 +205,7 @@ def simplify(expr: Any, iterations: int = 8, max_nodes: int = 20_000) -> Expr:
     """
     return saturate(
         expr,
+        assume=assume,
         iterations=iterations,
         max_nodes=max_nodes,
         cost_model=cost.size,
@@ -123,10 +213,15 @@ def simplify(expr: Any, iterations: int = 8, max_nodes: int = 20_000) -> Expr:
     )
 
 
-def optimize(expr: Any, iterations: int = 8, max_nodes: int = 20_000) -> Expr:
+def optimize(
+    expr: Any,
+    assume: Iterable[Assumption] = (),
+    iterations: int = 8,
+    max_nodes: int = 20_000,
+) -> Expr:
     """The cheapest equivalent expression to evaluate that was found.
 
-    ``iterations`` and ``max_nodes`` limit the search as in ``simplify``.
+    ``assume``, ``iterations`` and ``max_nodes`` are as in ``simplify``.
 
     Uses DAG extraction: repeated sub-expressions are returned as the same
     object, so ``cata`` (and therefore ``evaluate``) computes them once.
@@ -142,6 +237,7 @@ def optimize(expr: Any, iterations: int = 8, max_nodes: int = 20_000) -> Expr:
     """
     return saturate(
         expr,
+        assume=assume,
         iterations=iterations,
         max_nodes=max_nodes,
         cost_model=cost.evaluation,
