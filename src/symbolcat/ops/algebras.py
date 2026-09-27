@@ -47,10 +47,14 @@ from .._core import (
     name_of,
 )
 from ._diff import diff_algebra
+from ._dimensions import dimensions_algebra
 from ._evaluate import evaluate_algebra
 from ._inspect import free_symbols_algebra
 from ._latex import latex_algebra
+from ._mathml import mathml_algebra
+from ._polynomial import coefficients_algebra
 from ._printing import Printed, str_algebra
+from ._series import series_algebra
 from ._simplify import simplify_algebra
 from ._substitute import substitute_algebra
 
@@ -67,12 +71,16 @@ __all__ = [
     "as_expr",
     "cata",
     "children",
+    "coefficients_algebra",
     "diff_algebra",
+    "dimensions_algebra",
     "evaluate_algebra",
     "fmap",
     "free_symbols_algebra",
     "latex_algebra",
+    "mathml_algebra",
     "name_of",
+    "series_algebra",
     "simplify_algebra",
     "str_algebra",
     "substitute_algebra",

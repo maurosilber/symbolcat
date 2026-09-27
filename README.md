@@ -95,6 +95,16 @@ most specific one wins:
 | `simplify_naive` | the rebuilt expression, constant-folded |
 | `diff` | a `(value, derivative)` pair |
 | `free_symbols` | the ordered set of user symbols |
+| `to_mathml` | `Printed(markup, precedence)` |
+| `tree_view`, `to_graphviz` | lines of an indented tree, or a graph node id |
+| `share` | the rebuilt node, reusing an equal earlier one |
+| `cse`, `to_python` | an `(original, reduced)` pair, naming repeated nodes |
+| `coefficients` | a `(value, polynomial)` pair |
+| `series` | the first Taylor coefficients |
+| `dimensions` | a `(value, dimension)` pair |
+
+`gradient`, `jacobian` and `hessian` build on `diff`, and `solve_dependencies`
+orders a system `{symbol: expression}` using `free_symbols`.
 
 ### LaTeX
 
@@ -155,6 +165,33 @@ x
 product rule). Its algebra therefore folds every node into a
 `(value, derivative)` pair, the same idea as forward-mode automatic
 differentiation.
+
+### Code generation, series and dimensions
+
+`to_python` writes a function that computes an expression, with repeated
+sub-expressions computed once:
+
+```python
+>>> from symbolcat.ops import to_python
+>>> print(to_python(real.sin(x) ** 2 + real.sin(x) * y))
+def f(x, y):
+    _0 = sin(x)
+    return _0 ** 2 + _0 * y
+
+```
+
+`series` gives Taylor polynomials, extending the `(value, derivative)` idea of
+`diff` to the first coefficients, and `dimensions` checks physical units:
+
+```python
+>>> from symbolcat.ops import dimensions, series
+>>> print(series(real.sin(x) / x, x, order=5))
+1 - x ** 2 / 6 + x ** 4 / 120
+>>> t, v = Symbol("t"), Symbol("v")
+>>> dimensions(x + v * t, {x: {"m": 1}, t: {"s": 1}, v: {"m": 1, "s": -1}})
+{'m': 1}
+
+```
 
 ### E-graphs
 

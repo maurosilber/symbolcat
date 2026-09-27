@@ -12,12 +12,13 @@ type, the same trick used by forward-mode automatic differentiation.
 
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
 from typing import Any
 
 from .. import real
 from .._core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata
 from ..lib import operators as op
+from ._inspect import free_symbols
 from ._simplify import is_number, simplify_naive
 
 type Dual = tuple[Expr, Expr]
@@ -125,3 +126,52 @@ def diff(expr: Any, var: Symbol, /) -> Expr:
     """
     _, derivative = cata(diff_algebra, expr, var=var)
     return simplify_naive(derivative)
+
+
+def gradient(expr: Any, vars: Sequence[Symbol] | None = None, /) -> tuple[Expr, ...]:
+    """Derivatives of ``expr`` with respect to each of ``vars``.
+
+    ``vars`` defaults to the free symbols of ``expr``.
+
+    >>> from symbolcat import Symbol
+    >>> x, y = Symbol("x"), Symbol("y")
+    >>> [str(d) for d in gradient(x**2 * y)]
+    ['2 * x * y', 'x ** 2']
+    """
+    if vars is None:
+        vars = free_symbols(expr)
+    return tuple(diff(expr, var) for var in vars)
+
+
+def jacobian(
+    exprs: Sequence[Any], vars: Sequence[Symbol] | None = None, /
+) -> tuple[tuple[Expr, ...], ...]:
+    """Derivatives of each of ``exprs`` (rows) with respect to ``vars``
+    (columns).
+
+    ``vars`` defaults to the free symbols of ``exprs``, in order of
+    appearance.
+
+    >>> from symbolcat import Symbol
+    >>> x, y = Symbol("x"), Symbol("y")
+    >>> [[str(d) for d in row] for row in jacobian([x * y, x + y])]
+    [['y', 'x'], ['1', '1']]
+    """
+    if vars is None:
+        vars = tuple(dict.fromkeys(s for e in exprs for s in free_symbols(e)))
+    return tuple(gradient(expr, vars) for expr in exprs)
+
+
+def hessian(
+    expr: Any, vars: Sequence[Symbol] | None = None, /
+) -> tuple[tuple[Expr, ...], ...]:
+    """Second derivatives of ``expr`` with respect to each pair of ``vars``.
+
+    >>> from symbolcat import Symbol
+    >>> x, y = Symbol("x"), Symbol("y")
+    >>> [[str(d) for d in row] for row in hessian(x**2 * y)]
+    [['2 * y', '2 * x'], ['2 * x', '0']]
+    """
+    if vars is None:
+        vars = free_symbols(expr)
+    return jacobian(gradient(expr, vars), vars)
