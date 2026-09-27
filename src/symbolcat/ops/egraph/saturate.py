@@ -13,17 +13,25 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from egglog import DagCostModel, EGraph, Schedule, run, seq
+from egglog import DagCostModel, EGraph, Schedule, back_off, run, seq
 
 from ...core import Expr
 from . import cost, rules
 from .convert import Table, from_egglog, to_egglog
 
 
-def schedule(iterations: int) -> Schedule:
-    """Alternate the growing rules with the shrinking ones to saturation."""
-    shrink = seq(run(rules.fold), run(rules.identities)).saturate()
-    return seq(shrink, seq(run(rules.algebra), shrink) * iterations)
+def schedule(iterations: int, match_limit: int = 1000) -> Schedule:
+    """Alternate the growing rules with the shrinking ones to saturation.
+
+    Growing rules run under a back-off scheduler: a rule that matches more
+    than ``match_limit`` times in an iteration is banned for a while, so a
+    few explosive rules (commutativity, associativity) do not starve the
+    rest.
+    """
+    scheduler = back_off(match_limit=match_limit)
+    shrink = seq(*map(run, rules.SHRINK)).saturate()
+    grow = seq(*(run(r, scheduler=scheduler) for r in rules.GROW))
+    return seq(shrink, seq(grow, shrink) * iterations)
 
 
 def saturate(
@@ -41,7 +49,7 @@ def saturate(
     return from_egglog(best, table)
 
 
-def simplify(expr: Any, iterations: int = 5) -> Expr:
+def simplify(expr: Any, iterations: int = 8) -> Expr:
     """The smallest equivalent expression found.
 
     >>> from symbolcat import Symbol, real
@@ -56,7 +64,7 @@ def simplify(expr: Any, iterations: int = 5) -> Expr:
     return saturate(expr, iterations=iterations, cost_model=cost.size, extractor="tree")
 
 
-def optimize(expr: Any, iterations: int = 5) -> Expr:
+def optimize(expr: Any, iterations: int = 8) -> Expr:
     """The cheapest equivalent expression to evaluate that was found.
 
     Uses DAG extraction: repeated sub-expressions are returned as the same

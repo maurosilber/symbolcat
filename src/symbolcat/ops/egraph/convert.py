@@ -32,14 +32,29 @@ FUNCTIONS: dict[Function, Any] = {
     op.truediv: Num.__truediv__,
     op.pow: Num.__pow__,
     op.neg: Num.__neg__,
+    real.abs: term.abs,
     real.exp: term.exp,
     real.log: term.log,
     real.sqrt: term.sqrt,
     real.sin: term.sin,
     real.cos: term.cos,
     real.tan: term.tan,
+    real.asin: term.asin,
+    real.acos: term.acos,
+    real.atan: term.atan,
+    real.sinh: term.sinh,
+    real.cosh: term.cosh,
+    real.tanh: term.tanh,
 }
 FUNCTIONS_BACK = {v: k for k, v in FUNCTIONS.items()}
+
+# symbolcat constants with a dedicated egglog constant
+CONSTANTS: dict[Constant, Num] = {
+    real.constants.pi: Num.pi,
+    real.constants.e: Num.e,
+}
+# An extracted constant is recognized by its callable, not by the term.
+CONSTANTS_BACK = {get_callable_fn(v): k for k, v in CONSTANTS.items()}
 
 
 @dataclass
@@ -70,6 +85,8 @@ def _(node: Symbol, *, table: Table) -> Num:
 
 @to_egglog_algebra.register(Constant)
 def _(node: Constant, *, table: Table) -> Num:
+    if (constant := CONSTANTS.get(node)) is not None:
+        return constant
     return Num.opaque(table.index(node))
 
 
@@ -110,7 +127,9 @@ def from_egglog(num: Num, table: Table) -> Expr:
             return memo[num]
         fn = get_callable_fn(num)
         args = get_callable_args(num) or ()
-        if fn == Num:
+        if fn in CONSTANTS_BACK:
+            result = CONSTANTS_BACK[fn]
+        elif fn == Num:
             (rational,) = args
             result = from_rational(rational.value)
         elif fn == Num.float:

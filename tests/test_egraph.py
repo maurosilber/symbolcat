@@ -4,7 +4,7 @@ pytest.importorskip("egglog")
 
 from egglog import EGraph
 
-from symbolcat import Function, Literal, Symbol, evaluate, real
+from symbolcat import Constant, Function, Literal, Symbol, evaluate, real
 from symbolcat.lib.std import IMPL
 from symbolcat.ops.egraph import optimize, simplify
 from symbolcat.ops.egraph.convert import Table, from_egglog, to_egglog
@@ -33,10 +33,16 @@ def test_roundtrip(expr):
 def test_opaque_parts_keep_identity():
     """Functions and constants egglog does not know come back as the same objects."""
     g = Function("f", arity=1)  # same name as f, different function
-    expr = simplify(f(x) + g(x) + real.constants.pi * 1)
+    k = Constant("k")
+    expr = simplify(f(x) + g(x) + k * 1)
     funcs = {id(arg.func) for arg in expr.args[0].args}
     assert funcs == {id(f), id(g)}
-    assert expr.args[1] is real.constants.pi
+    assert expr.args[1] is k
+
+
+def test_known_constants_come_back():
+    pi, e = real.constants.pi, real.constants.e
+    assert simplify(pi + e * 1) == pi + e
 
 
 @pytest.mark.parametrize(
@@ -53,6 +59,28 @@ def test_opaque_parts_keep_identity():
         (real.tan(x) * real.cos(x), real.sin(x)),
         (x - x + f(x * 1), f(x)),
         (x + 0.5 + 0.25, x + 0.75),
+        (x + 0.5 + Literal(1) / 4, x + 0.75),
+        ((x + 1) ** 2 - x**2 - 2 * x, Literal(1)),
+        # constants
+        (real.sin(real.constants.pi) + real.cos(real.constants.pi), Literal(-1)),
+        (real.log(real.constants.e), Literal(1)),
+        (real.constants.e**x / real.exp(x), Literal(1)),
+        # powers and absolute value
+        ((x * y) ** 2 / y**2, x**2),
+        (real.sqrt(x**2), real.abs(x)),
+        (real.abs(-x) - real.abs(x), Literal(0)),
+        # exponential and logarithm
+        (real.log(x * y) - real.log(x), real.log(y)),
+        (real.log(x**3) / real.log(x), Literal(3)),
+        (real.exp(real.log(x)), x),
+        # trigonometric
+        (real.sin(x) * real.cos(y) + real.cos(x) * real.sin(y), real.sin(y + x)),
+        (1 - real.cos(x) ** 2, real.sin(x) ** 2),
+        (real.sin(real.asin(x)), x),
+        # hyperbolic
+        (real.cosh(x) + real.sinh(x), real.exp(x)),
+        (real.cosh(x) ** 2 - real.sinh(x) ** 2, Literal(1)),
+        (real.tanh(x) * real.cosh(x), real.sinh(x)),
     ],
 )
 def test_simplify(expr, expected):
@@ -80,11 +108,16 @@ def test_optimize_avoids_expensive_operations():
         x**3 + x**2 + x,
         (x + y) ** 2 - (x - y) ** 2,
         real.sin(x) ** 2 + real.sin(x) * real.cos(x) + x / x,
+        real.sqrt(x**2) + real.abs(x * y),
+        real.sin(x + y) - real.cos(x - y) + real.tan(-x),
+        real.sinh(x) ** 2 + real.tanh(-y) * real.cosh(x + y),
+        (x * y) ** 3 / (x**2 * y) + real.atan(x) - real.acos(x / 2),
     ],
 )
 @pytest.mark.parametrize("transform", [simplify, optimize])
-def test_equivalent_values(expr, transform):
-    env = {x: 0.3, y: -1.7}
+@pytest.mark.parametrize("env", [{x: 0.3, y: -1.7}, {x: -0.8, y: 0.4}])
+def test_equivalent_values(expr, transform, env):
+    """Rules must not change values, including at negative points."""
     assert evaluate(transform(expr), env, IMPL) == pytest.approx(
         evaluate(expr, env, IMPL)
     )

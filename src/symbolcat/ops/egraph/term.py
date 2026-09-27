@@ -15,6 +15,8 @@ Everything else is kept opaque so it survives the round trip:
 
 from __future__ import annotations
 
+from typing import ClassVar
+
 from egglog import (
     BigRatLike,
     Expr,
@@ -28,6 +30,9 @@ from egglog import (
 
 class Num(Expr):
     """A real-valued term."""
+
+    pi: ClassVar[Num]
+    e: ClassVar[Num]
 
     def __init__(self, value: BigRatLike) -> None:
         """An exact rational number."""
@@ -62,6 +67,10 @@ class Num(Expr):
 
 
 @function
+def abs(x: Num) -> Num: ...
+
+
+@function
 def exp(x: Num) -> Num: ...
 
 
@@ -83,3 +92,27 @@ def cos(x: Num) -> Num: ...
 
 @function
 def tan(x: Num) -> Num: ...
+
+
+@function
+def asin(x: Num) -> Num: ...
+
+
+@function
+def acos(x: Num) -> Num: ...
+
+
+@function
+def atan(x: Num) -> Num: ...
+
+
+@function
+def sinh(x: Num) -> Num: ...
+
+
+@function
+def cosh(x: Num) -> Num: ...
+
+
+@function
+def tanh(x: Num) -> Num: ...

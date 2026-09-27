@@ -15,10 +15,10 @@ from typing import Any
 
 from egglog import DagCostModel, EGraph, get_callable_fn
 
-from .convert import FUNCTIONS
-from .term import Num, cos, exp, log, sin, sqrt, tan
+from .convert import CONSTANTS_BACK, FUNCTIONS
+from .term import Num, abs, cos, exp, log, sin, sqrt, tan
 
-LEAVES = (Num, Num.float, Num.var, Num.opaque)
+LEAVES = (Num, Num.float, Num.var, Num.opaque, *CONSTANTS_BACK)
 NUM_FUNCTIONS = frozenset((*LEAVES, Num.apply, *FUNCTIONS.values()))
 
 
@@ -47,6 +47,7 @@ evaluation = node_cost(
         Num.__neg__: 1,
         Num.__mul__: 2,
         Num.__truediv__: 8,
+        abs: 2,
         sqrt: 10,
         Num.__pow__: 20,
         exp: 20,
