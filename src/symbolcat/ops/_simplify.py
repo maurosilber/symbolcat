@@ -16,6 +16,7 @@ from collections.abc import Callable
 from fractions import Fraction
 from typing import Any
 
+from .. import linalg
 from .._core import Algebra, Call, Expr, Function, Literal, cata
 from ..lib import operators as op
 from ..lib.std import IMPL
@@ -182,6 +183,23 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
 @simplify_algebra.register(op.pos)
 def _(node: Call[Expr], *, exact: bool = False) -> Expr:
     return node.args[0]
+
+
+@simplify_algebra.register(
+    op.matmul, linalg.transpose, linalg.trace, linalg.sum, linalg.cross
+)
+def _(node: Call[Expr], *, exact: bool = False) -> Expr:
+    """A literal 0 stands for a zero array of any shape (the derivative of
+    a constant array is 0), and these functions are linear in it."""
+    if any(is_number(arg, 0) for arg in node.args):
+        return Literal(0)
+    return node
+
+
+@simplify_algebra.register(op.getitem)
+def _(node: Call[Expr], *, exact: bool = False) -> Expr:
+    obj, _ = node.args
+    return Literal(0) if is_number(obj, 0) else node
 
 
 def simplify_naive(expr: Any, /) -> Expr:

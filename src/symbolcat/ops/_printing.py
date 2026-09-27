@@ -15,6 +15,7 @@ from dataclasses import dataclass
 from typing import Any
 from typing import Literal as LiteralType
 
+from .. import linalg
 from .._core import (
     Algebra,
     Call,
@@ -28,15 +29,29 @@ from .._core import (
 )
 from .._core.precedence import POSTFIX, UNARY
 from ..lib import operators as op
-from ..linalg import Array, nest
+from ..linalg import ENTRYWISE, Array, nest
 
 ATOM = 100
 
 
 @dataclass(frozen=True)
 class Printed:
+    """Printed text, with its precedence and, for explicit arrays and
+    operations on them, the number of dimensions."""
+
     text: str
     precedence: int = ATOM
+    ndim: int = 0
+
+
+def result_ndim(func: Function, args: tuple[Printed, ...], /) -> int:
+    """Dimensions of the result, when its arguments are explicit arrays."""
+    if func is op.matmul:
+        a, b = args
+        return max(a.ndim + b.ndim - 2, 0) if a.ndim and b.ndim else 0
+    if func in ENTRYWISE or func in (linalg.transpose, linalg.inv):
+        return max((arg.ndim for arg in args), default=0)
+    return 0
 
 
 type Side = LiteralType["left", "right"]
@@ -85,9 +100,9 @@ def _(node: Call[Printed]) -> Printed:
     assert isinstance(node.func, Array)
     rows = nest(node.func.shape, [arg.text for arg in node.args])
     if len(node.func.shape) == 1:
-        return Printed(f"vector([{', '.join(rows)}])")
+        return Printed(f"vector([{', '.join(rows)}])", ndim=1)
     text = ", ".join(f"[{', '.join(row)}]" for row in rows)
-    return Printed(f"matrix([{text}])")
+    return Printed(f"matrix([{text}])", ndim=2)
 
 
 @str_algebra.register(Operator)

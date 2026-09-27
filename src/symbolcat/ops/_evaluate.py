@@ -15,6 +15,7 @@ from typing import Any
 
 from .._core import Algebra, Call, Constant, Literal, Symbol, cata, name_of
 from ..linalg import Array, nest
+from ._arrays import expand_arrays
 
 evaluate_algebra = Algebra[Any]("evaluate")
 
@@ -72,8 +73,11 @@ def evaluate(
 
     ``env`` maps symbols (or their names) to values.
     ``lib`` defaults to ``symbolcat.lib.std.IMPL``.
-    Arrays evaluate to nested lists, unless ``lib`` maps ``Array`` to a
-    constructor taking them.
+    Operations on arrays are first computed entry by entry
+    (``expand_arrays``), so every backend gives the same result. Arrays
+    evaluate to nested lists, unless ``lib`` maps ``Array`` to a constructor
+    taking them. Values in ``env`` with a ``shape`` attribute (NumPy arrays,
+    SymPy matrices) are arrays; operations on them are left to ``lib``.
 
     >>> from symbolcat import Symbol, real
     >>> x = Symbol("x")
@@ -85,4 +89,5 @@ def evaluate(
     if lib is None:
         from ..lib.std import IMPL as lib
     env = {Symbol(k) if isinstance(k, str) else k: v for k, v in (env or {}).items()}
-    return cata(evaluate_algebra, expr, env=env, lib=lib)
+    shapes = {k: s for k, v in env.items() if (s := tuple(getattr(v, "shape", ())))}
+    return cata(evaluate_algebra, expand_arrays(expr, shapes), env=env, lib=lib)

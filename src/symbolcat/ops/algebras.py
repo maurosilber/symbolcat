@@ -46,6 +46,7 @@ from .._core import (
     fmap,
     name_of,
 )
+from ._arrays import arrays_algebra
 from ._diff import diff_algebra
 from ._dimensions import dimensions_algebra
 from ._evaluate import evaluate_algebra
@@ -68,6 +69,7 @@ __all__ = [
     "Operator",
     "Printed",
     "Symbol",
+    "arrays_algebra",
     "as_expr",
     "cata",
     "children",

@@ -13,6 +13,7 @@ Two subpackages are imported on demand:
   the optional ``egglog`` package.
 """
 
+from ._arrays import expand_arrays, shape
 from ._dependencies import solve_dependencies
 from ._diff import diff, gradient, hessian, jacobian
 from ._dimensions import dimensions
@@ -37,11 +38,13 @@ __all__ = [
     "diff",
     "dimensions",
     "evaluate",
+    "expand_arrays",
     "free_symbols",
     "gradient",
     "hessian",
     "jacobian",
     "series",
+    "shape",
     "share",
     "simplify_naive",
     "solve_dependencies",

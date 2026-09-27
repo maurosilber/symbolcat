@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .. import real
+from .. import linalg, real
 from .._core import (
     Algebra,
     Call,
@@ -33,7 +33,7 @@ from .._core import (
 from .._core.precedence import POSTFIX, POW
 from ..lib import operators as op
 from ..linalg import Array, nest
-from ._printing import Printed, Side, literal_precedence, needs_parens
+from ._printing import Printed, Side, literal_precedence, needs_parens, result_ndim
 
 GREEK = frozenset(
     [
@@ -120,6 +120,8 @@ FUNCTION_NAMES = {
     real.cosh: r"\cosh",
     real.tanh: r"\tanh",
     real.gamma: r"\Gamma",
+    linalg.trace: r"\operatorname{tr}",
+    linalg.det: r"\det",
 }
 
 # Functions rendered as delimiters around their single argument.
@@ -128,6 +130,13 @@ ENCLOSING = {
     real.floor: (r"\left\lfloor ", r"\right\rfloor"),
     real.ceil: (r"\left\lceil ", r"\right\rceil"),
     real.sqrt: (r"\sqrt{", "}"),
+    linalg.norm: (r"\left\|", r"\right\|"),
+}
+
+# Functions rendered as a superscript on their single argument.
+SUPERSCRIPT = {
+    linalg.transpose: r"\mathsf{T}",
+    linalg.inv: "-1",
 }
 
 CONSTANTS = {
@@ -204,7 +213,8 @@ def _(node: Literal) -> Printed:
 def _(node: Call[Printed]) -> Printed:
     func = node.func
     name = FUNCTION_NAMES.get(func, rf"\operatorname{{{name_of(func)}}}")
-    return Printed(name + paren(", ".join(arg.text for arg in node.args)))
+    text = name + paren(", ".join(arg.text for arg in node.args))
+    return Printed(text, ndim=result_ndim(func, node.args))
 
 
 @latex_algebra.register(Array)
@@ -214,14 +224,29 @@ def _(node: Call[Printed]) -> Printed:
     if len(node.func.shape) == 1:  # a column vector
         rows = [[entry] for entry in rows]
     body = r" \\ ".join(" & ".join(row) for row in rows)
-    return Printed(rf"\begin{{pmatrix}} {body} \end{{pmatrix}}")
+    text = rf"\begin{{pmatrix}} {body} \end{{pmatrix}}"
+    return Printed(text, ndim=len(node.func.shape))
 
 
 @latex_algebra.register(*ENCLOSING)
 def _(node: Call[Printed]) -> Printed:
     left, right = ENCLOSING[node.func]
     (arg,) = node.args
-    return Printed(f"{left}{arg.text}{right}")
+    return Printed(f"{left}{arg.text}{right}", ndim=result_ndim(node.func, node.args))
+
+
+@latex_algebra.register(*SUPERSCRIPT)
+def _(node: Call[Printed]) -> Printed:
+    (arg,) = node.args
+    text = f"{operand(arg, op.pow, 'left')}^{{{SUPERSCRIPT[node.func]}}}"
+    return Printed(text, POW, arg.ndim)
+
+
+@latex_algebra.register(linalg.cross)
+def _(node: Call[Printed]) -> Printed:
+    a, b = node.args
+    text = rf"{operand(a, op.mul, 'left')} \times {operand(b, op.mul, 'right')}"
+    return Printed(text, op.mul.precedence, ndim=1)
 
 
 @latex_algebra.register(real.factorial)
@@ -241,14 +266,18 @@ def _(node: Call[Printed]) -> Printed:
     else:
         left, right = node.args
         symbol = INFIX.get(func, func.fmt.format("", "").strip())
+        if func is op.mul and left.ndim and right.ndim:
+            symbol = r"\odot"  # entrywise product of arrays
         text = f"{operand(left, func, 'left')} {symbol} {operand(right, func, 'right')}"
-    return Printed(text, func.precedence)
+    return Printed(text, func.precedence, result_ndim(func, node.args))
 
 
 @latex_algebra.register(op.truediv)
 def _(node: Call[Printed]) -> Printed:
     num, den = node.args
-    return Printed(rf"\frac{{{num.text}}}{{{den.text}}}")
+    return Printed(
+        rf"\frac{{{num.text}}}{{{den.text}}}", ndim=result_ndim(op.truediv, node.args)
+    )
 
 
 @latex_algebra.register(op.floordiv)
@@ -260,7 +289,8 @@ def _(node: Call[Printed]) -> Printed:
 @latex_algebra.register(op.pow)
 def _(node: Call[Printed]) -> Printed:
     base, exponent = node.args
-    return Printed(f"{operand(base, op.pow, 'left')}^{{{exponent.text}}}", POW)
+    text = f"{operand(base, op.pow, 'left')}^{{{exponent.text}}}"
+    return Printed(text, POW, result_ndim(op.pow, node.args))
 
 
 @latex_algebra.register(op.getitem)

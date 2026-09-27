@@ -10,7 +10,7 @@ import math
 
 import numpy as np
 
-from .. import real
+from .. import linalg, real
 from ..linalg import Array
 from ._std import OPERATORS
 
@@ -44,4 +44,11 @@ IMPL = {
     real.constants.tau: 2 * np.pi,
     real.constants.inf: np.inf,
     real.constants.nan: np.nan,
+    linalg.transpose: np.transpose,
+    linalg.trace: np.trace,
+    linalg.det: np.linalg.det,
+    linalg.inv: np.linalg.inv,
+    linalg.norm: np.linalg.norm,
+    linalg.sum: np.sum,
+    linalg.cross: np.cross,
 }

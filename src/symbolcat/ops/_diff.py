@@ -15,7 +15,7 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from .. import real
+from .. import linalg, real
 from .._core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata
 from ..lib import operators as op
 from ..linalg import Array, matrix, vector
@@ -96,12 +96,49 @@ def _(args, dargs):
     return a**b * (db * real.log(a) + b * da / a)
 
 
-@diff_algebra.register(Array)
+@diff_algebra.register(Array, linalg.transpose, linalg.trace, linalg.sum)
 def _(node: Call[Dual], *, var: Symbol) -> Dual:
-    """Arrays are differentiated entrywise."""
+    """Linear functions: the derivative is the function of the derivatives.
+    Arrays are differentiated entrywise."""
     values = tuple(value for value, _ in node.args)
     derivatives = tuple(d for _, d in node.args)
     return node.func(*values), node.func(*derivatives)
+
+
+@rule(op.getitem)
+def _(args, dargs):
+    (_, key), (da, _) = args, dargs
+    return da[key]
+
+
+@rule(op.matmul)
+def _(args, dargs):
+    (a, b), (da, db) = args, dargs
+    return da @ b + a @ db
+
+
+@rule(linalg.det)
+def _(args, dargs):
+    ((a,), (da,)) = args, dargs
+    return linalg.det(a) * linalg.trace(linalg.inv(a) @ da)
+
+
+@rule(linalg.inv)
+def _(args, dargs):
+    ((a,), (da,)) = args, dargs
+    return -(linalg.inv(a) @ da @ linalg.inv(a))
+
+
+@rule(linalg.norm)
+def _(args, dargs):
+    ((a,), (da,)) = args, dargs
+    return linalg.sum(a * da) / linalg.norm(a)
+
+
+@rule(linalg.cross)
+def _(args, dargs):
+    (a, b), (da, db) = args, dargs
+    return linalg.cross(da, b) + linalg.cross(a, db)
 
 
 def chain(outer: Callable[[Expr], Expr], /) -> Rule:

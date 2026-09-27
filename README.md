@@ -23,7 +23,7 @@ The top level only has what you need to build expressions and act on them:
 - `Symbol`: a symbol; combine symbols with Python operators.
 - `real`: mathematical functions (`real.sin`) and constants
   (`real.constants.pi`).
-- `linalg`: vectors and matrices of expressions.
+- `linalg`: vectors, matrices and linear algebra (`det`, `inv`, ...).
 - `ops`: operations on expressions (`ops.to_latex`, `ops.evaluate`, ...).
   - `ops.egraph`: simplification with e-graphs (needs `egglog`).
   - `ops.algebras`: the extension API (algebras, `cata`, node types).
@@ -103,6 +103,7 @@ most specific one wins:
 | `coefficients` | a `(value, polynomial)` pair |
 | `series` | the first Taylor coefficients |
 | `dimensions` | a `(value, dimension)` pair |
+| `shape`, `expand_arrays` | an `(expanded, shape)` pair |
 
 `gradient`, `jacobian` and `hessian` build on `diff`, and `solve_dependencies`
 orders a system `{symbol: expression}` using `free_symbols`.
@@ -177,6 +178,38 @@ evaluates them to nested lists (NumPy arrays, SymPy matrices):
 \begin{pmatrix} 2 \cdot y & 2 \cdot x \\ 2 \cdot x & 0 \end{pmatrix}
 >>> evaluate(hessian(x**2 * y), {x: 1, y: 2})
 [[4, 2], [2, 0]]
+
+```
+
+### Vectors and matrices
+
+Arrays follow NumPy. Operators and `real` functions apply entry by entry,
+broadcasting scalars, while `@` is the matrix product (the dot product for
+two vectors). `linalg` also has `transpose`, `trace`, `det`, `inv`, `norm`,
+`sum` and `cross`. `expand_arrays` computes these entry by entry:
+
+```python
+>>> from symbolcat import linalg
+>>> from symbolcat.ops import expand_arrays, shape
+>>> m = linalg.matrix([[x, 1], [0, y]])
+>>> print(expand_arrays(linalg.det(m)))
+x * y - 1 * 0
+>>> print(to_latex(m * m + linalg.inv(m)))
+\begin{pmatrix} x & 1 \\ 0 & y \end{pmatrix} \odot \begin{pmatrix} x & 1 \\ 0 & y \end{pmatrix} + \begin{pmatrix} x & 1 \\ 0 & y \end{pmatrix}^{-1}
+
+```
+
+`evaluate` expands arrays first, so every backend gives the same result.
+Symbols are scalars, unless given a shape. Operations on symbols with an
+array shape are kept, and computed by the backend:
+
+```python
+>>> A = Symbol("A")
+>>> shape(linalg.transpose(A) @ A, {A: (3, 2)})
+(2, 2)
+>>> B = Symbol("B")
+>>> print(diff(linalg.det(A + x * B), x))
+det(A + x * B) * trace(inv(A + x * B) @ B)
 
 ```
 

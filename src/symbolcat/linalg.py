@@ -2,7 +2,7 @@
 symbolcat.linalg
 ~~~~~~~~~~~~~~~~
 
-Vectors and matrices of expressions.
+Vectors, matrices and linear algebra functions.
 
 An array is a ``Call`` of an ``Array`` function, whose arguments are the
 entries in row-major order. There is one ``Array`` per shape, so arrays of
@@ -14,8 +14,19 @@ the same shape and entries compare equal, and every operation that handles
 >>> m = linalg.matrix([[x, 1], [0, y]])
 >>> print(m)
 matrix([[x, 1], [0, y]])
->>> linalg.tolist(m)
+>>> linalg.to_list(m)
 [[Symbol('x'), Literal(1)], [Literal(0), Symbol('y')]]
+
+Arrays follow NumPy: operators (except ``@``) and ``real`` functions apply
+entrywise, broadcasting scalars, and ``@`` is the matrix product, which is
+the dot product for two vectors. ``symbolcat.ops.expand_arrays`` computes
+these entry by entry:
+
+>>> from symbolcat import ops
+>>> print(ops.expand_arrays(m @ linalg.vector([1, 2])))
+vector([x * 1 + 1 * 2, 0 * 1 + y * 2])
+>>> print(ops.expand_arrays(linalg.det(m)))
+x * y - 1 * 0
 """
 
 from __future__ import annotations
@@ -26,7 +37,9 @@ from dataclasses import KW_ONLY, dataclass
 from functools import cache
 from typing import Any
 
-from ._core import Call, Expr, Function
+from . import real as _real
+from ._core import Call, Expr, Function, Operator
+from .lib import operators as _op
 
 
 @dataclass(frozen=True, repr=False, eq=False)
@@ -76,6 +89,25 @@ def matrix(rows: Iterable[Iterable[Any]], /) -> Call[Expr]:
     return array((len(table), ncols))(*(entry for row in table for entry in row))
 
 
+def identity(n: int, /) -> Call[Expr]:
+    """The ``n`` by ``n`` identity matrix.
+
+    >>> print(identity(2))
+    matrix([[1, 0], [0, 1]])
+    """
+    return matrix([int(i == j) for j in range(n)] for i in range(n))
+
+
+def zeros(shape: int | tuple[int, ...], /) -> Call[Expr]:
+    """An array of zeros.
+
+    >>> print(zeros((2, 1)))
+    matrix([[0], [0]])
+    """
+    shape = (shape,) if isinstance(shape, int) else shape
+    return array(shape)(*[0] * math.prod(shape))
+
+
 def nest[T](shape: tuple[int, ...], entries: Sequence[T], /) -> list[Any]:
     """Row-major ``entries`` as nested lists of the given shape."""
     if len(shape) == 1:
@@ -89,9 +121,30 @@ def to_list(expr: Call[Any], /) -> list[Any]:
 
     >>> from symbolcat import Symbol
     >>> x = Symbol("x")
-    >>> tolist(vector([x, 1]))
+    >>> to_list(vector([x, 1]))
     [Symbol('x'), Literal(1)]
     """
     if not isinstance(expr.func, Array):
         raise TypeError(f"not an array: {expr}")
     return nest(expr.func.shape, expr.args)
+
+
+transpose = Function("transpose", arity=1)
+trace = Function("trace", arity=1)
+det = Function("det", arity=1)
+inv = Function("inv", arity=1)
+norm = Function("norm", arity=1)  # Euclidean for vectors, Frobenius for matrices
+sum = Function("sum", arity=1)  # of all the entries
+cross = Function("cross", arity=2)
+
+# Functions applied entry by entry, broadcasting scalars.
+ENTRYWISE: frozenset[Function] = frozenset(
+    [
+        *(
+            f
+            for f in vars(_op).values()
+            if isinstance(f, Operator) and f not in (_op.matmul, _op.getitem)
+        ),
+        *(f for f in vars(_real).values() if isinstance(f, Function)),
+    ]
+)
