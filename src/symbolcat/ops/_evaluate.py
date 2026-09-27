@@ -14,6 +14,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from .._core import Algebra, Call, Constant, Literal, Symbol, cata, name_of
+from ..linalg import Array, nest
 
 evaluate_algebra = Algebra[Any]("evaluate")
 
@@ -52,6 +53,14 @@ def _(node: Call[Any], *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> 
     return func(*node.args)
 
 
+@evaluate_algebra.register(Array)
+def _(node: Call[Any], *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> Any:
+    """Nested lists of the entries, or ``lib[Array]`` applied to them."""
+    assert isinstance(node.func, Array)
+    rows = nest(node.func.shape, node.args)
+    return lib[Array](rows) if Array in lib else rows
+
+
 def evaluate(
     expr: Any,
     env: Mapping[Symbol, Any] | Mapping[str, Any] | None = None,
@@ -63,6 +72,8 @@ def evaluate(
 
     ``env`` maps symbols (or their names) to values.
     ``lib`` defaults to ``symbolcat.lib.std.IMPL``.
+    Arrays evaluate to nested lists, unless ``lib`` maps ``Array`` to a
+    constructor taking them.
 
     >>> from symbolcat import Symbol, real
     >>> x = Symbol("x")

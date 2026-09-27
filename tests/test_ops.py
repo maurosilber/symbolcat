@@ -7,6 +7,7 @@ from symbolcat import Symbol, real
 from symbolcat.lib import Function
 from symbolcat.lib import operators as op
 from symbolcat.lib.std import IMPL
+from symbolcat.linalg import matrix, to_list, vector
 from symbolcat.ops import (
     count_nodes,
     depth,
@@ -185,6 +186,34 @@ def test_diff_with_respect_to_expression():
     var: Any = 2 * x
     with pytest.raises(TypeError, match="with respect to a Symbol"):
         diff(var, var)
+
+
+# linalg
+
+
+def test_arrays_compare_by_shape_and_entries():
+    assert vector([x, y]) == vector([x, y])
+    assert vector([x, y]) != vector([y, x])
+    assert vector([x, y]) != matrix([[x, y]])
+    assert to_list(matrix([[x, y]])) == [[x, y]]
+
+
+def test_matrix_rows_must_have_the_same_length():
+    with pytest.raises(ValueError, match="same length"):
+        matrix([[x, y], [x]])
+
+
+def test_evaluate_arrays():
+    m = matrix([[x, 1], [0, 2 * x]])
+    assert evaluate(m, {x: 3}) == [[3, 1], [0, 6]]
+    np = pytest.importorskip("numpy")
+    from symbolcat.lib.numpy import IMPL as NUMPY
+
+    assert (evaluate(m, {x: 3}, lib=NUMPY) == np.array([[3, 1], [0, 6]])).all()
+
+
+def test_diff_array_entrywise():
+    assert diff(vector([x**2, y]), x) == vector([2 * x, Literal(0)])
 
 
 def test_math_consistency():

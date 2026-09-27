@@ -9,11 +9,13 @@ import sympy
 
 from .. import real
 from .._core import Symbol, name_of
+from ..linalg import Array
 from . import operators as op
 from ._std import OPERATORS
 
 IMPL = {
     **OPERATORS,
+    Array: sympy.Matrix,
     Symbol: lambda symbol: sympy.Symbol(name_of(symbol)),
     op.eq: sympy.Eq,
     op.ne: sympy.Ne,

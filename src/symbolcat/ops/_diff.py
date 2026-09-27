@@ -18,6 +18,7 @@ from typing import Any
 from .. import real
 from .._core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata
 from ..lib import operators as op
+from ..linalg import Array, matrix, vector
 from ._inspect import free_symbols
 from ._simplify import is_number, simplify_naive
 
@@ -95,6 +96,14 @@ def _(args, dargs):
     return a**b * (db * real.log(a) + b * da / a)
 
 
+@diff_algebra.register(Array)
+def _(node: Call[Dual], *, var: Symbol) -> Dual:
+    """Arrays are differentiated entrywise."""
+    values = tuple(value for value, _ in node.args)
+    derivatives = tuple(d for _, d in node.args)
+    return node.func(*values), node.func(*derivatives)
+
+
 def chain(outer: Callable[[Expr], Expr], /) -> Rule:
     """Rule for f(a), given f'(a)."""
     return lambda args, dargs: outer(args[0]) * dargs[0]
@@ -132,49 +141,52 @@ def diff(expr: Any, var: Symbol, /) -> Expr:
     return simplify_naive(derivative)
 
 
-def gradient(expr: Any, vars: Sequence[Symbol] | None = None, /) -> tuple[Expr, ...]:
-    """Derivatives of ``expr`` with respect to each of ``vars``.
+def gradient(expr: Any, vars: Sequence[Symbol] | None = None, /) -> Call[Expr]:
+    """Vector of derivatives of ``expr`` with respect to each of ``vars``.
 
     ``vars`` defaults to the free symbols of ``expr``.
 
     >>> from symbolcat import Symbol
     >>> x, y = Symbol("x"), Symbol("y")
-    >>> [str(d) for d in gradient(x**2 * y)]
-    ['2 * x * y', 'x ** 2']
+    >>> print(gradient(x**2 * y))
+    vector([2 * x * y, x ** 2])
     """
     if vars is None:
         vars = free_symbols(expr)
-    return tuple(diff(expr, var) for var in vars)
+    return vector(diff(expr, var) for var in vars)
 
 
 def jacobian(
-    exprs: Sequence[Any], vars: Sequence[Symbol] | None = None, /
-) -> tuple[tuple[Expr, ...], ...]:
-    """Derivatives of each of ``exprs`` (rows) with respect to ``vars``
-    (columns).
+    exprs: Sequence[Any] | Call[Expr], vars: Sequence[Symbol] | None = None, /
+) -> Call[Expr]:
+    """Matrix of derivatives of each of ``exprs`` (rows) with respect to
+    ``vars`` (columns).
 
-    ``vars`` defaults to the free symbols of ``exprs``, in order of
-    appearance.
+    ``exprs`` is a sequence or a vector. ``vars`` defaults to the free
+    symbols of ``exprs``, in order of appearance.
 
     >>> from symbolcat import Symbol
     >>> x, y = Symbol("x"), Symbol("y")
-    >>> [[str(d) for d in row] for row in jacobian([x * y, x + y])]
-    [['y', 'x'], ['1', '1']]
+    >>> print(jacobian([x * y, x + y]))
+    matrix([[y, x], [1, 1]])
     """
+    if isinstance(exprs, Call):
+        if not (isinstance(exprs.func, Array) and len(exprs.func.shape) == 1):
+            raise TypeError(f"jacobian: expected a sequence or a vector, got {exprs}")
+        exprs = exprs.args
     if vars is None:
         vars = tuple(dict.fromkeys(s for e in exprs for s in free_symbols(e)))
-    return tuple(gradient(expr, vars) for expr in exprs)
+    return matrix([diff(expr, var) for var in vars] for expr in exprs)
 
 
-def hessian(
-    expr: Any, vars: Sequence[Symbol] | None = None, /
-) -> tuple[tuple[Expr, ...], ...]:
-    """Second derivatives of ``expr`` with respect to each pair of ``vars``.
+def hessian(expr: Any, vars: Sequence[Symbol] | None = None, /) -> Call[Expr]:
+    """Matrix of second derivatives of ``expr`` with respect to each pair of
+    ``vars``.
 
     >>> from symbolcat import Symbol
     >>> x, y = Symbol("x"), Symbol("y")
-    >>> [[str(d) for d in row] for row in hessian(x**2 * y)]
-    [['2 * y', '2 * x'], ['2 * x', '0']]
+    >>> print(hessian(x**2 * y))
+    matrix([[2 * y, 2 * x], [2 * x, 0]])
     """
     if vars is None:
         vars = free_symbols(expr)

@@ -23,6 +23,7 @@ The top level only has what you need to build expressions and act on them:
 - `Symbol`: a symbol; combine symbols with Python operators.
 - `real`: mathematical functions (`real.sin`) and constants
   (`real.constants.pi`).
+- `linalg`: vectors and matrices of expressions.
 - `ops`: operations on expressions (`ops.to_latex`, `ops.evaluate`, ...).
   - `ops.egraph`: simplification with e-graphs (needs `egglog`).
   - `ops.algebras`: the extension API (algebras, `cata`, node types).
@@ -165,6 +166,19 @@ x
 product rule). Its algebra therefore folds every node into a
 `(value, derivative)` pair, the same idea as forward-mode automatic
 differentiation.
+
+`gradient` returns a vector, and `jacobian` and `hessian` return matrices.
+These come from `linalg`, which renders them as matrices in LaTeX and
+evaluates them to nested lists (NumPy arrays, SymPy matrices):
+
+```python
+>>> from symbolcat.ops import hessian
+>>> print(to_latex(hessian(x**2 * y)))
+\begin{pmatrix} 2 \cdot y & 2 \cdot x \\ 2 \cdot x & 0 \end{pmatrix}
+>>> evaluate(hessian(x**2 * y), {x: 1, y: 2})
+[[4, 2], [2, 0]]
+
+```
 
 ### Code generation, series and dimensions
 

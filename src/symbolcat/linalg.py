@@ -1,0 +1,97 @@
+"""
+symbolcat.linalg
+~~~~~~~~~~~~~~~~
+
+Vectors and matrices of expressions.
+
+An array is a ``Call`` of an ``Array`` function, whose arguments are the
+entries in row-major order. There is one ``Array`` per shape, so arrays of
+the same shape and entries compare equal, and every operation that handles
+``Call`` nodes (substitution, simplification, ...) works on the entries.
+
+>>> from symbolcat import Symbol, linalg
+>>> x, y = Symbol("x"), Symbol("y")
+>>> m = linalg.matrix([[x, 1], [0, y]])
+>>> print(m)
+matrix([[x, 1], [0, y]])
+>>> linalg.tolist(m)
+[[Symbol('x'), Literal(1)], [Literal(0), Symbol('y')]]
+"""
+
+from __future__ import annotations
+
+import math
+from collections.abc import Iterable, Sequence
+from dataclasses import KW_ONLY, dataclass
+from functools import cache
+from typing import Any
+
+from ._core import Call, Expr, Function
+
+
+@dataclass(frozen=True, repr=False, eq=False)
+class Array(Function):
+    """The function building an array of a given ``shape`` from its entries.
+
+    Only vectors (one dimension) and matrices (two dimensions) are supported.
+    """
+
+    _: KW_ONLY
+    shape: tuple[int, ...] = ()
+
+
+@cache
+def array(shape: tuple[int, ...], /) -> Array:
+    """The ``Array`` function of a given shape."""
+    if len(shape) not in (1, 2):
+        raise ValueError(f"arrays must have 1 or 2 dimensions, got shape {shape}")
+    name = "vector" if len(shape) == 1 else "matrix"
+    return Array(name, arity=math.prod(shape), shape=shape)
+
+
+def vector(entries: Iterable[Any], /) -> Call[Expr]:
+    """A vector of expressions.
+
+    >>> from symbolcat import Symbol
+    >>> x = Symbol("x")
+    >>> print(vector([x, 2 * x]))
+    vector([x, 2 * x])
+    """
+    entries = tuple(entries)
+    return array((len(entries),))(*entries)
+
+
+def matrix(rows: Iterable[Iterable[Any]], /) -> Call[Expr]:
+    """A matrix of expressions, given as a sequence of rows.
+
+    >>> from symbolcat import Symbol
+    >>> x = Symbol("x")
+    >>> print(matrix([[x, 0], [0, x]]))
+    matrix([[x, 0], [0, x]])
+    """
+    table = [tuple(row) for row in rows]
+    ncols = len(table[0]) if table else 0
+    if any(len(row) != ncols for row in table):
+        raise ValueError("matrix rows must have the same length")
+    return array((len(table), ncols))(*(entry for row in table for entry in row))
+
+
+def nest[T](shape: tuple[int, ...], entries: Sequence[T], /) -> list[Any]:
+    """Row-major ``entries`` as nested lists of the given shape."""
+    if len(shape) == 1:
+        return list(entries)
+    _, ncols = shape
+    return [list(entries[i : i + ncols]) for i in range(0, len(entries), ncols)]
+
+
+def to_list(expr: Call[Any], /) -> list[Any]:
+    """The entries of an array, as (nested) lists.
+
+    >>> from symbolcat import Symbol
+    >>> x = Symbol("x")
+    >>> tolist(vector([x, 1]))
+    [Symbol('x'), Literal(1)]
+    """
+    if not isinstance(expr.func, Array):
+        raise TypeError(f"not an array: {expr}")
+    return nest(expr.func.shape, expr.args)

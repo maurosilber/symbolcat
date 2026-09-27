@@ -3,6 +3,7 @@ from fractions import Fraction
 import pytest
 
 from symbolcat import Symbol, real
+from symbolcat.linalg import matrix, vector
 from symbolcat.ops import (
     coefficients,
     dimensions,
@@ -91,22 +92,31 @@ def test_series_of_a_pole():
 
 
 def test_gradient_default_variables():
-    assert gradient(x**2 * y) == (2 * x * y, x**2)
+    assert gradient(x**2 * y) == vector([2 * x * y, x**2])
 
 
 def test_gradient_explicit_variables():
-    assert gradient(x * y, (y,)) == (x,)
+    assert gradient(x * y, (y,)) == vector([x])
 
 
 def test_jacobian():
-    rows = jacobian([x * y, real.sin(x)], (x, y))
-    assert rows == ((y, x), (real.cos(x), Literal(0)))
+    j = jacobian([x * y, real.sin(x)], (x, y))
+    assert j == matrix([[y, x], [real.cos(x), Literal(0)]])
+
+
+def test_jacobian_of_a_vector():
+    assert jacobian(vector([x * y, y]), (x, y)) == matrix([[y, x], [0, 1]])
+
+
+def test_jacobian_of_a_matrix():
+    with pytest.raises(TypeError, match="sequence or a vector"):
+        jacobian(matrix([[x]]))
 
 
 def test_hessian_is_symmetric():
     h = hessian(x**3 * y + real.exp(x * y))
-    point = {x: 0.3, y: -1.2}
-    assert evaluate(h[0][1], point) == pytest.approx(evaluate(h[1][0], point))
+    (_, h01), (h10, _) = evaluate(h, {x: 0.3, y: -1.2})
+    assert h01 == pytest.approx(h10)
 
 
 # dimensions

@@ -27,6 +27,7 @@ from .._core import (
 )
 from .._core.precedence import POSTFIX, POW
 from ..lib import operators as op
+from ..linalg import Array, nest
 from ._printing import Printed, Side, literal_precedence, needs_parens
 
 GREEK = {
@@ -161,6 +162,19 @@ def _(node: Call[Printed]) -> Printed:
     args = mo(",").join(arg.text for arg in node.args)
     # U+2061 is the invisible "function application" operator
     return Printed(mrow(f"<mi>{name}</mi>", mo("⁡"), paren(mrow(args))))
+
+
+@mathml_algebra.register(Array)
+def _(node: Call[Printed]) -> Printed:
+    assert isinstance(node.func, Array)
+    rows = nest(node.func.shape, [arg.text for arg in node.args])
+    if len(node.func.shape) == 1:  # a column vector
+        rows = [[entry] for entry in rows]
+    table = "".join(
+        "<mtr>" + "".join(f"<mtd>{entry}</mtd>" for entry in row) + "</mtr>"
+        for row in rows
+    )
+    return Printed(paren(f"<mtable>{table}</mtable>"))
 
 
 @mathml_algebra.register(*ENCLOSING)

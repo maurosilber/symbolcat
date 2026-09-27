@@ -2,6 +2,7 @@ import pytest
 
 from symbolcat import Symbol, real
 from symbolcat.lib import operators as op
+from symbolcat.linalg import matrix, vector
 from symbolcat.ops import to_latex, to_str
 
 x, y, z = Symbol("x"), Symbol("y"), Symbol("z")
@@ -69,6 +70,11 @@ def test_to_str_roundtrip():
         (real.constants.inf, r"\infty"),
         (x * 1e-5, r"x \cdot 10^{-5}"),
         (x * 2.5e20, r"x \cdot 2.5 \times 10^{20}"),
+        (vector([x, y**2]), r"\begin{pmatrix} x \\ y^{2} \end{pmatrix}"),
+        (
+            matrix([[x, 1], [0, y]]),
+            r"\begin{pmatrix} x & 1 \\ 0 & y \end{pmatrix}",
+        ),
     ],
 )
 def test_to_latex(expr, expected):
@@ -93,3 +99,8 @@ def test_latex_symbol_names(name, expected):
 
 def test_repr_latex():
     assert (x**2)._repr_latex_() == "$x^{2}$"
+
+
+def test_str_arrays():
+    assert to_str(vector([x, y + 1])) == "vector([x, y + 1])"
+    assert to_str(matrix([[x, 1], [0, y]])) == "matrix([[x, 1], [0, y]])"

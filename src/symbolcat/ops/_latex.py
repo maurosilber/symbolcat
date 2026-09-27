@@ -32,6 +32,7 @@ from .._core import (
 )
 from .._core.precedence import POSTFIX, POW
 from ..lib import operators as op
+from ..linalg import Array, nest
 from ._printing import Printed, Side, literal_precedence, needs_parens
 
 GREEK = frozenset(
@@ -204,6 +205,16 @@ def _(node: Call[Printed]) -> Printed:
     func = node.func
     name = FUNCTION_NAMES.get(func, rf"\operatorname{{{name_of(func)}}}")
     return Printed(name + paren(", ".join(arg.text for arg in node.args)))
+
+
+@latex_algebra.register(Array)
+def _(node: Call[Printed]) -> Printed:
+    assert isinstance(node.func, Array)
+    rows = nest(node.func.shape, [arg.text for arg in node.args])
+    if len(node.func.shape) == 1:  # a column vector
+        rows = [[entry] for entry in rows]
+    body = r" \\ ".join(" & ".join(row) for row in rows)
+    return Printed(rf"\begin{{pmatrix}} {body} \end{{pmatrix}}")
 
 
 @latex_algebra.register(*ENCLOSING)

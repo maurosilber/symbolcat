@@ -11,10 +11,12 @@ import math
 import numpy as np
 
 from .. import real
+from ..linalg import Array
 from ._std import OPERATORS
 
 IMPL = {
     **OPERATORS,
+    Array: np.array,
     real.abs: np.abs,
     real.ceil: np.ceil,
     real.floor: np.floor,

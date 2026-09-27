@@ -28,6 +28,7 @@ from .._core import (
 )
 from .._core.precedence import POSTFIX, UNARY
 from ..lib import operators as op
+from ..linalg import Array, nest
 
 ATOM = 100
 
@@ -77,6 +78,16 @@ def _(node: Literal) -> Printed:
 def _(node: Call[Printed]) -> Printed:
     args = ", ".join(arg.text for arg in node.args)
     return Printed(f"{name_of(node.func)}({args})")
+
+
+@str_algebra.register(Array)
+def _(node: Call[Printed]) -> Printed:
+    assert isinstance(node.func, Array)
+    rows = nest(node.func.shape, [arg.text for arg in node.args])
+    if len(node.func.shape) == 1:
+        return Printed(f"vector([{', '.join(rows)}])")
+    text = ", ".join(f"[{', '.join(row)}]" for row in rows)
+    return Printed(f"matrix([{text}])")
 
 
 @str_algebra.register(Operator)

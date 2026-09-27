@@ -6,6 +6,7 @@ A minimalistic symbolic package, organized around catamorphisms.
 
 - ``Symbol``: create symbols and combine them with Python operators.
 - ``real``: mathematical functions and constants.
+- ``linalg``: vectors and matrices of expressions.
 - ``ops``: operations on expressions (printing, LaTeX, evaluation, ...).
 - ``lib``: defining new functions, and implementation libraries.
 
@@ -20,7 +21,7 @@ x + 3 \\cdot \\sin\\left(y\\right)
 1.0
 """
 
-from . import lib, ops, real
+from . import lib, linalg, ops, real
 from ._core import Symbol
 
-__all__ = ["Symbol", "lib", "ops", "real"]
+__all__ = ["Symbol", "lib", "linalg", "ops", "real"]
