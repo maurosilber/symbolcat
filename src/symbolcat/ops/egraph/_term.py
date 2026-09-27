@@ -1,6 +1,6 @@
 """
-symbolcat.ops.egraph.term
-~~~~~~~~~~~~~~~~~~~~~~~~~
+symbolcat.ops.egraph._term
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The egglog term language that expressions are translated into.
 

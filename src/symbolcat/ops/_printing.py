@@ -1,6 +1,6 @@
 """
-symbolcat.ops.printing
-~~~~~~~~~~~~~~~~~~~~~~
+symbolcat.ops._printing
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Print an expression as Python source.
 
@@ -15,8 +15,9 @@ from dataclasses import dataclass
 from typing import Any
 from typing import Literal as Side
 
-from .. import operators as op
-from ..core import Algebra, Call, Constant, Function, Literal, Operator, Symbol, cata
+from .._core import Algebra, Call, Constant, Function, Literal, Operator, Symbol, cata
+from .._core.precedence import POSTFIX, UNARY
+from ..lib import operators as op
 
 ATOM = 100
 
@@ -42,7 +43,7 @@ def operand(child: Printed, parent: Operator, side: Side["left", "right"]) -> st
 
 def literal_precedence(value: Any) -> int:
     if isinstance(value, (int, float)) and not isinstance(value, bool) and value < 0:
-        return op.UNARY
+        return UNARY
     return ATOM
 
 
@@ -82,7 +83,7 @@ def _(node: Call[Printed]) -> Printed:
 @str_algebra.register(op.getitem)
 def _(node: Call[Printed]) -> Printed:
     obj, key = node.args
-    return Printed(f"{operand(obj, op.getitem, 'left')}[{key.text}]", op.POSTFIX)
+    return Printed(f"{operand(obj, op.getitem, 'left')}[{key.text}]", POSTFIX)
 
 
 def to_str(expr: Any) -> str:

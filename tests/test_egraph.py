@@ -4,10 +4,13 @@ pytest.importorskip("egglog")
 
 from egglog import EGraph
 
-from symbolcat import Constant, Function, Literal, Symbol, evaluate, real
+from symbolcat import Symbol, real
+from symbolcat.lib import Constant, Function
 from symbolcat.lib.std import IMPL
+from symbolcat.ops import evaluate
+from symbolcat.ops.algebras import Literal
 from symbolcat.ops.egraph import optimize, simplify
-from symbolcat.ops.egraph.convert import Table, from_egglog, to_egglog
+from symbolcat.ops.egraph._convert import Table, from_egglog, to_egglog
 
 x, y, z = Symbol("x"), Symbol("y"), Symbol("z")
 f = Function("f", arity=1)

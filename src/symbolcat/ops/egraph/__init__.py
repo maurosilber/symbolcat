@@ -12,12 +12,12 @@ according to a cost model.
 - ``simplify``: the smallest equivalent expression.
 - ``optimize``: the cheapest to evaluate, sharing repeated sub-expressions.
 
-The translation to egglog is one more algebra (``to_egglog``); rules live
-in ``rules`` and cost models in ``cost``.
+The translation to egglog is one more algebra (``_convert.to_egglog``);
+rules live in ``_rules`` and cost models in ``_cost``.
 
 Requires the ``egglog`` package.
 """
 
-from .saturate import optimize, simplify
+from ._saturate import optimize, simplify
 
 __all__ = ["optimize", "simplify"]

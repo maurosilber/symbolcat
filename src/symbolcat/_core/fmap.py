@@ -1,6 +1,6 @@
 """
-symbolcat.core.fmap
-~~~~~~~~~~~~~~~~~~~
+symbolcat._core.fmap
+~~~~~~~~~~~~~~~~~~~~
 
 The functor map: apply a function to the direct children of a node.
 """

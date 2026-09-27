@@ -1,6 +1,6 @@
 """
-symbolcat.ops.simplify
-~~~~~~~~~~~~~~~~~~~~~~
+symbolcat.ops._simplify
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Constant folding and algebraic identities (``x + 0``, ``x * 1``, ...).
 
@@ -15,8 +15,8 @@ from __future__ import annotations
 from numbers import Number
 from typing import Any
 
-from .. import operators as op
-from ..core import Algebra, Call, Expr, Literal, cata
+from .._core import Algebra, Call, Expr, Literal, cata
+from ..lib import operators as op
 from ..lib.std import IMPL
 
 simplify_algebra = Algebra[Expr]("simplify")

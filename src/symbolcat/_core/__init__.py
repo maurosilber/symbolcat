@@ -1,6 +1,6 @@
 """
-symbolcat.core
-~~~~~~~~~~~~~~
+symbolcat._core
+~~~~~~~~~~~~~~~
 
 The expression tree, its functor structure and the catamorphism.
 

@@ -1,6 +1,6 @@
 """
-symbolcat.ops.egraph.cost
-~~~~~~~~~~~~~~~~~~~~~~~~~
+symbolcat.ops.egraph._cost
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Cost models deciding which equivalent expression is extracted.
 
@@ -15,8 +15,8 @@ from typing import Any
 
 from egglog import DagCostModel, EGraph, get_callable_fn
 
-from .convert import CONSTANTS_BACK, FUNCTIONS
-from .term import Num, abs, cos, exp, log, sin, sqrt, tan
+from ._convert import CONSTANTS_BACK, FUNCTIONS
+from ._term import Num, abs, cos, exp, log, sin, sqrt, tan
 
 LEAVES = (Num, Num.float, Num.var, Num.opaque, *CONSTANTS_BACK)
 NUM_FUNCTIONS = frozenset((*LEAVES, Num.apply, *FUNCTIONS.values()))

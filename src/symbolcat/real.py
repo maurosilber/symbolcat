@@ -10,11 +10,12 @@ Mathematical functions and constants, named after Python's ``math`` module.
 2 * cos(x) + pi
 """
 
-from .core import Constant, Function
+from ._core import Constant as _Constant
+from ._core import Function as _Function
 
 
-def _fn(name: str, arity: int = 1) -> Function:
-    return Function(name, arity=arity)
+def _fn(name: str, arity: int = 1) -> _Function:
+    return _Function(name, arity=arity)
 
 
 abs = _fn("abs")
@@ -42,8 +43,8 @@ hypot = _fn("hypot", 2)
 
 
 class constants:
-    e = Constant()
-    pi = Constant()
-    tau = Constant()
-    inf = Constant()
-    nan = Constant()
+    e = _Constant()
+    pi = _Constant()
+    tau = _Constant()
+    inf = _Constant()
+    nan = _Constant()

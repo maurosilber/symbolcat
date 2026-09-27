@@ -1,6 +1,6 @@
 """
-symbolcat.core.algebra
-~~~~~~~~~~~~~~~~~~~~~~
+symbolcat._core.algebra
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Algebras assembled from rules registered per node type or function.
 """
@@ -32,7 +32,8 @@ class Algebra[A]:
     >>> @depth.register(Call)
     ... def _(node):
     ...     return 1 + max(node.args)
-    >>> from symbolcat import Symbol, cata
+    >>> from symbolcat import Symbol
+    >>> from symbolcat.ops.algebras import cata
     >>> x = Symbol("x")
     >>> cata(depth, (x + 1) * 2)
     3

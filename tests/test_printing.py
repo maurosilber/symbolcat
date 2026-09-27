@@ -1,7 +1,8 @@
 import pytest
 
-from symbolcat import Symbol, real, to_latex, to_str
-from symbolcat import operators as op
+from symbolcat import Symbol, real
+from symbolcat.lib import operators as op
+from symbolcat.ops import to_latex, to_str
 
 x, y, z = Symbol("x"), Symbol("y"), Symbol("z")
 

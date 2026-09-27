@@ -1,6 +1,6 @@
 """
-symbolcat.ops.egraph.saturate
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+symbolcat.ops.egraph._saturate
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Simplify and optimize expressions by equality saturation.
 
@@ -15,9 +15,10 @@ from typing import Any, Literal
 
 from egglog import DagCostModel, EGraph, Schedule, back_off, run, seq
 
-from ...core import Expr
-from . import cost, rules
-from .convert import Table, from_egglog, to_egglog
+from ..._core import Expr
+from . import _cost as cost
+from . import _rules as rules
+from ._convert import Table, from_egglog, to_egglog
 
 
 def schedule(iterations: int, match_limit: int = 1000) -> Schedule:

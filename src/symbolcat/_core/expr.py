@@ -1,6 +1,6 @@
 """
-symbolcat.core.expr
-~~~~~~~~~~~~~~~~~~~
+symbolcat._core.expr
+~~~~~~~~~~~~~~~~~~~~
 
 Expression nodes and symbolic functions.
 """
@@ -258,4 +258,4 @@ class Operator(Function):
 
 # Expr's operator overloads need the operator definitions, which in turn
 # need the classes above.
-from .. import operators as _op
+from ..lib import operators as _op

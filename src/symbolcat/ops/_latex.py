@@ -1,6 +1,6 @@
 r"""
-symbolcat.ops.latex
-~~~~~~~~~~~~~~~~~~~
+symbolcat.ops._latex
+~~~~~~~~~~~~~~~~~~~~
 
 Compile an expression to LaTeX.
 
@@ -18,10 +18,11 @@ from __future__ import annotations
 
 from typing import Any
 
-from .. import operators as op
 from .. import real
-from ..core import Algebra, Call, Constant, Function, Literal, Operator, Symbol, cata
-from .printing import Printed, literal_precedence, needs_parens
+from .._core import Algebra, Call, Constant, Function, Literal, Operator, Symbol, cata
+from .._core.precedence import POSTFIX, POW
+from ..lib import operators as op
+from ._printing import Printed, literal_precedence, needs_parens
 
 GREEK = frozenset(
     [
@@ -205,8 +206,8 @@ def _(node: Call[Printed]) -> Printed:
 @latex_algebra.register(real.factorial)
 def _(node: Call[Printed]) -> Printed:
     (arg,) = node.args
-    text = arg.text if arg.precedence >= op.POSTFIX else paren(arg.text)
-    return Printed(f"{text}!", op.POSTFIX)
+    text = arg.text if arg.precedence >= POSTFIX else paren(arg.text)
+    return Printed(f"{text}!", POSTFIX)
 
 
 @latex_algebra.register(Operator)
@@ -237,13 +238,13 @@ def _(node: Call[Printed]) -> Printed:
 @latex_algebra.register(op.pow)
 def _(node: Call[Printed]) -> Printed:
     base, exponent = node.args
-    return Printed(f"{operand(base, op.pow, 'left')}^{{{exponent.text}}}", op.POW)
+    return Printed(f"{operand(base, op.pow, 'left')}^{{{exponent.text}}}", POW)
 
 
 @latex_algebra.register(op.getitem)
 def _(node: Call[Printed]) -> Printed:
     obj, key = node.args
-    return Printed(f"{operand(obj, op.getitem, 'left')}_{{{key.text}}}", op.POSTFIX)
+    return Printed(f"{operand(obj, op.getitem, 'left')}_{{{key.text}}}", POSTFIX)
 
 
 def to_latex(expr: Any) -> str:

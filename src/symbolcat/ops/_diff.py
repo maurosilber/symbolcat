@@ -1,6 +1,6 @@
 """
-symbolcat.ops.diff
-~~~~~~~~~~~~~~~~~~
+symbolcat.ops._diff
+~~~~~~~~~~~~~~~~~~~
 
 Symbolic differentiation.
 
@@ -15,10 +15,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from .. import operators as op
 from .. import real
-from ..core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata
-from .simplify import is_number, simplify
+from .._core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata
+from ..lib import operators as op
+from ._simplify import is_number, simplify
 
 type Dual = tuple[Expr, Expr]
 type Rule = Callable[[tuple[Expr, ...], tuple[Expr, ...]], Expr]

@@ -1,6 +1,6 @@
 """
-symbolcat.ops.egraph.convert
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+symbolcat.ops.egraph._convert
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Translate between symbolcat expressions and egglog terms.
 
@@ -18,11 +18,11 @@ from typing import Any
 
 from egglog import BigRat, Vec, get_callable_args, get_callable_fn, get_literal_value
 
-from ... import operators as op
 from ... import real
-from ...core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata
-from . import term
-from .term import Num
+from ..._core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata
+from ...lib import operators as op
+from . import _term as term
+from ._term import Num
 
 # symbolcat functions with a dedicated egglog constructor
 FUNCTIONS: dict[Function, Any] = {

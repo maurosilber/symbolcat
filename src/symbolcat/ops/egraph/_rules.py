@@ -1,6 +1,6 @@
 """
-symbolcat.ops.egraph.rules
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+symbolcat.ops.egraph._rules
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Rewrite rules over ``Num`` terms.
 
@@ -25,7 +25,7 @@ from __future__ import annotations
 
 from egglog import BigInt, BigRat, birewrite, eq, f64, ne, rewrite, ruleset, vars_
 
-from .term import (
+from ._term import (
     Num,
     abs,
     acos,

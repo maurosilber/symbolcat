@@ -1,6 +1,6 @@
 """
-symbolcat.core.children
-~~~~~~~~~~~~~~~~~~~~~~~
+symbolcat._core.children
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 The direct children of a node.
 """

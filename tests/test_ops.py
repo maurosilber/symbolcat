@@ -2,21 +2,20 @@ import math
 
 import pytest
 
-from symbolcat import (
-    Function,
-    Literal,
-    Symbol,
+from symbolcat import Symbol, real
+from symbolcat.lib import Function
+from symbolcat.lib import operators as op
+from symbolcat.lib.std import IMPL
+from symbolcat.ops import (
     count_nodes,
     depth,
     diff,
     evaluate,
     free_symbols,
-    real,
     simplify,
     substitute,
 )
-from symbolcat import operators as op
-from symbolcat.lib.std import IMPL
+from symbolcat.ops.algebras import Literal
 
 x, y = Symbol("x"), Symbol("y")
 

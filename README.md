@@ -16,13 +16,30 @@ x + 3 * sin(y)
 
 ```
 
+## Package layout
+
+The top level only has what you need to build expressions and act on them:
+
+- `Symbol`: a symbol; combine symbols with Python operators.
+- `real`: mathematical functions (`real.sin`) and constants
+  (`real.constants.pi`).
+- `ops`: operations on expressions (`ops.to_latex`, `ops.evaluate`, ...).
+  - `ops.egraph`: simplification with e-graphs (needs `egglog`).
+  - `ops.algebras`: the extension API (algebras, `cata`, node types).
+- `lib`: `Function` and `Constant` to define new ones, the Python-syntax
+  `operators`, and the backends for `ops.evaluate` (`lib.std`, `lib.numpy`,
+  `lib.sympy`).
+
+Everything else lives in private (underscore) modules, so autocompletion
+only shows the public names.
+
 ## Organization: one traversal, many algebras
 
 All of these operations are written as
 [catamorphisms](https://lab.abilian.com/Tech/Python/OOP/The%20Zen%20of%20Polymorphism%20-%204%20Ways%20to%20Write%20Cleaner%20Python/#approach-4-the-ultimate-decoupling-with-catamorphism),
 also called folds. The code is split into three parts:
 
-1. **The data** (`symbolcat.core`). There are four node types: the leaves
+1. **The data** (the private `symbolcat._core`). There are four node types: the leaves
    `Symbol` (user-defined, `x`), `Constant` (library-defined, `real.constants.pi`) and
    `Literal` (`2`), plus `Call(func, args)`. Two `singledispatch` functions
    describe their shape from the outside: `children` lists a node's direct
@@ -33,8 +50,10 @@ also called folds. The code is split into three parts:
 1. **The algebras** (`symbolcat.ops`). Each operation is just a rule for
    collapsing a single layer. None of them contain a recursive call.
 
+Everything needed to write algebras is in `symbolcat.ops.algebras`.
+
 ```python
->>> from symbolcat import cata, children
+>>> from symbolcat.ops.algebras import cata, children
 >>> count = lambda node: 1 + sum(children(node))
 >>> cata(count, x * y + 1)
 5
@@ -45,7 +64,7 @@ Most operations need one rule per node type or function. The `Algebra` class
 collects those rules in a registry:
 
 ```python
->>> from symbolcat import Algebra, Call, Expr
+>>> from symbolcat.ops.algebras import Algebra, Call, Expr
 >>> depth = Algebra("depth")
 >>> @depth.register(Expr)  # any leaf
 ... def _(node):
@@ -80,7 +99,7 @@ most specific one wins:
 ### LaTeX
 
 ```python
->>> from symbolcat import to_latex
+>>> from symbolcat.ops import to_latex
 >>> alpha_1 = Symbol("alpha_1")
 >>> print(to_latex(real.sqrt(x**2 + 1) / (alpha_1 * real.sin(x))))
 \frac{\sqrt{x^{2} + 1}}{\alpha_{1} \cdot \sin\left(x\right)}
@@ -96,7 +115,7 @@ child arrives as text *plus its precedence*. Expressions also define
 ### Evaluation with different backends
 
 ```python
->>> from symbolcat import evaluate
+>>> from symbolcat.ops import evaluate
 >>> evaluate(expr, {x: 1, y: 0})
 1.0
 >>> from symbolcat.lib import sympy as libsympy  # doctest: +SKIP
@@ -111,7 +130,7 @@ is passed to it as context. User-defined functions just need an entry in the
 mapping:
 
 ```python
->>> from symbolcat import Function
+>>> from symbolcat.lib import Function
 >>> from symbolcat.lib.std import IMPL
 >>> f = Function("f", arity=1)
 >>> evaluate(f(x) + 1, {x: -3}, lib={**IMPL, f: lambda v: 2 * abs(v)})
@@ -122,7 +141,7 @@ mapping:
 ### Substitution, simplification and differentiation
 
 ```python
->>> from symbolcat import substitute, simplify, diff
+>>> from symbolcat.ops import diff, simplify, substitute
 >>> print(substitute(x + 2 * y, {x: y, y: x}))
 y + 2 * x
 >>> print(simplify(0 * x + 1 * x ** (3 - 2)))
@@ -165,7 +184,7 @@ sin(x) + sin(x) * sin(x)
 
 ```
 
-The translation into egglog is one more algebra (`egraph.convert`). Functions
+The translation into egglog is one more algebra. Functions
 without rewrite rules are kept as opaque calls, so any expression survives
 the round trip.
 
@@ -174,7 +193,7 @@ the round trip.
 A new function only needs rules in the algebras that should support it:
 
 ```python
->>> from symbolcat.ops import latex_algebra, Printed
+>>> from symbolcat.ops.algebras import Printed, latex_algebra
 >>> sinc = Function("sinc", arity=1)
 >>> @latex_algebra.register(sinc)
 ... def _(node):
@@ -184,4 +203,4 @@ A new function only needs rules in the algebras that should support it:
 
 ```
 
-A new operation is a new algebra. Nothing in `core` has to change.
+A new operation is a new algebra. Nothing in the core has to change.

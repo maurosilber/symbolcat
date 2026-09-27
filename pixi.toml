@@ -14,6 +14,7 @@ py314 = ["py314", "test"]
 
 [dependencies]
 symbolcat = { path = "." }
+ipykernel = "*"
 
 [feature]
 py312.dependencies = { python = "3.12.*" }

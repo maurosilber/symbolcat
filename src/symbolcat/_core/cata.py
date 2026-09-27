@@ -1,6 +1,6 @@
 """
-symbolcat.core.cata
-~~~~~~~~~~~~~~~~~~~
+symbolcat._core.cata
+~~~~~~~~~~~~~~~~~~~~
 
 The catamorphism: fold an expression bottom-up with an algebra.
 """

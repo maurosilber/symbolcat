@@ -1,6 +1,6 @@
 """
-symbolcat.ops.evaluate
-~~~~~~~~~~~~~~~~~~~~~~
+symbolcat.ops._evaluate
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Evaluate an expression with an implementation library.
 
@@ -13,7 +13,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ..core import Algebra, Call, Constant, Literal, Symbol, cata
+from .._core import Algebra, Call, Constant, Literal, Symbol, cata
 
 evaluate_algebra = Algebra[Any]("evaluate")
 

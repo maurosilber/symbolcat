@@ -2,20 +2,19 @@ import sys
 
 import pytest
 
-from symbolcat import (
+from symbolcat import Symbol, real
+from symbolcat.lib import operators as op
+from symbolcat.ops.algebras import (
     Algebra,
     Call,
     Constant,
     Function,
     Literal,
     Operator,
-    Symbol,
     cata,
     children,
     fmap,
-    real,
 )
-from symbolcat import operators as op
 
 x, y = Symbol("x"), Symbol("y")
 

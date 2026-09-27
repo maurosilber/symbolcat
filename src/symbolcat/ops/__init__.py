@@ -2,41 +2,33 @@
 symbolcat.ops
 ~~~~~~~~~~~~~
 
-Operations on expressions. Each one is an algebra folded with ``cata``.
+Operations on expressions. Each one is an algebra folded with a catamorphism.
 
-The algebras are exported too, so they can be extended with new rules
-(``latex_algebra.register(my_function)``) or copied and customized
-(``latex_algebra.copy("my_latex")``).
+Two subpackages are imported on demand:
 
-``egraph`` (simplification by equality saturation) needs the optional
-``egglog`` package, so it is not imported here:
-``from symbolcat.ops.egraph import simplify, optimize``.
+- ``symbolcat.ops.algebras``: the algebras behind these operations and the
+  tools to write new ones (``cata``, ``Algebra``, node types), to add rules
+  for new functions or define new operations.
+- ``symbolcat.ops.egraph``: simplification by equality saturation. Requires
+  the optional ``egglog`` package.
 """
 
-from .diff import diff, diff_algebra
-from .evaluate import evaluate, evaluate_algebra
-from .inspect import count_nodes, depth, free_symbols, free_symbols_algebra
-from .latex import latex_algebra, to_latex
-from .printing import Printed, str_algebra, to_str
-from .simplify import simplify, simplify_algebra
-from .substitute import substitute, substitute_algebra
+from ._diff import diff
+from ._evaluate import evaluate
+from ._inspect import count_nodes, depth, free_symbols
+from ._latex import to_latex
+from ._printing import to_str
+from ._simplify import simplify
+from ._substitute import substitute
 
 __all__ = [
-    "Printed",
     "count_nodes",
     "depth",
     "diff",
-    "diff_algebra",
     "evaluate",
-    "evaluate_algebra",
     "free_symbols",
-    "free_symbols_algebra",
-    "latex_algebra",
     "simplify",
-    "simplify_algebra",
-    "str_algebra",
     "substitute",
-    "substitute_algebra",
     "to_latex",
     "to_str",
 ]
