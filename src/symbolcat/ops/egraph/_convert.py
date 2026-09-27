@@ -19,7 +19,17 @@ from typing import Any
 from egglog import BigRat, Vec, get_callable_args, get_callable_fn, get_literal_value
 
 from ... import real
-from ..._core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata
+from ..._core import (
+    Algebra,
+    Call,
+    Constant,
+    Expr,
+    Function,
+    Literal,
+    Symbol,
+    cata,
+    name_of,
+)
 from ...lib import operators as op
 from . import _term as term
 from ._term import Num
@@ -80,7 +90,7 @@ to_egglog_algebra = Algebra[Num]("to_egglog")
 
 @to_egglog_algebra.register(Symbol)
 def _(node: Symbol, *, table: Table) -> Num:
-    return Num.var(node.name)
+    return Num.var(name_of(node))
 
 
 @to_egglog_algebra.register(Constant)

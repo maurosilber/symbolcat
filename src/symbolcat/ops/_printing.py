@@ -15,7 +15,17 @@ from dataclasses import dataclass
 from typing import Any
 from typing import Literal as Side
 
-from .._core import Algebra, Call, Constant, Function, Literal, Operator, Symbol, cata
+from .._core import (
+    Algebra,
+    Call,
+    Constant,
+    Function,
+    Literal,
+    Operator,
+    Symbol,
+    cata,
+    name_of,
+)
 from .._core.precedence import POSTFIX, UNARY
 from ..lib import operators as op
 
@@ -52,7 +62,7 @@ str_algebra = Algebra[Printed]("str")
 
 @str_algebra.register(Symbol, Constant)
 def _(node: Symbol | Constant) -> Printed:
-    return Printed(node.name)
+    return Printed(name_of(node))
 
 
 @str_algebra.register(Literal)
@@ -63,7 +73,7 @@ def _(node: Literal) -> Printed:
 @str_algebra.register(Function)
 def _(node: Call[Printed]) -> Printed:
     args = ", ".join(arg.text for arg in node.args)
-    return Printed(f"{node.func.name}({args})")
+    return Printed(f"{name_of(node.func)}({args})")
 
 
 @str_algebra.register(Operator)

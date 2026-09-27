@@ -23,7 +23,17 @@ an algebra.
 from .algebra import Algebra
 from .cata import cata
 from .children import children
-from .expr import Call, Constant, Expr, Function, Literal, Operator, Symbol, as_expr
+from .expr import (
+    Call,
+    Constant,
+    Expr,
+    Function,
+    Literal,
+    Operator,
+    Symbol,
+    as_expr,
+    name_of,
+)
 from .fmap import fmap
 
 __all__ = [
@@ -39,4 +49,5 @@ __all__ = [
     "cata",
     "children",
     "fmap",
+    "name_of",
 ]

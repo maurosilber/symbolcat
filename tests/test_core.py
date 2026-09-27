@@ -4,6 +4,7 @@ import pytest
 
 from symbolcat import Symbol, real
 from symbolcat.lib import operators as op
+from symbolcat.ops import evaluate, to_latex
 from symbolcat.ops.algebras import (
     Algebra,
     Call,
@@ -46,6 +47,38 @@ def test_constants_compare_by_identity():
     assert real.constants.pi == real.constants.pi
     assert real.constants.pi != Constant("pi")
     assert real.constants.pi != Symbol("pi")
+
+
+def test_names_from_class_body():
+    class Model:
+        x = Symbol()
+        k = Constant()
+        f = Function(arity=1)
+        g = Function("gee")
+        y = f(x) + k  # built before the names are assigned
+
+    assert (Model.x.name, Model.k.name, Model.f.name) == ("x", "k", "f")
+    assert Model.g.name == "gee"  # explicit names are kept
+    assert str(Model.y) == "f(x) + k"
+
+
+@pytest.mark.parametrize(
+    "use",
+    [
+        lambda: str(Symbol()),
+        lambda: str(Function(arity=1)(Symbol("x"))),
+        lambda: to_latex(Constant()),
+        lambda: evaluate(Symbol(), {}),
+    ],
+)
+def test_unnamed_objects_fail_clearly(use):
+    with pytest.raises(ValueError, match="has no name"):
+        use()
+
+
+def test_unnamed_objects_have_a_repr():
+    assert repr(Symbol()) == "Symbol()"
+    assert repr(Function()(Symbol("x"))) == "Call(<unnamed>, (Symbol('x'),))"
 
 
 def test_functions_compare_by_identity():

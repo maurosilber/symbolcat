@@ -13,13 +13,14 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from .._core import Algebra, Call, Constant, Literal, Symbol, cata
+from .._core import Algebra, Call, Constant, Literal, Symbol, cata, name_of
 
 evaluate_algebra = Algebra[Any]("evaluate")
 
 
 @evaluate_algebra.register(Symbol)
 def _(node: Symbol, *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> Any:
+    name_of(node)  # unnamed symbols would all compare equal
     if node in env:
         return env[node]
     if Symbol in lib:
@@ -32,7 +33,7 @@ def _(node: Constant, *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> A
     try:
         return lib[node]
     except KeyError:
-        raise NotImplementedError(f"No value for {node.name!r}") from None
+        raise NotImplementedError(f"No value for {name_of(node)!r}") from None
 
 
 @evaluate_algebra.register(Literal)
@@ -45,7 +46,9 @@ def _(node: Call[Any], *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> 
     try:
         func = lib[node.func]
     except KeyError:
-        raise NotImplementedError(f"No implementation for {node.func.name!r}") from None
+        raise NotImplementedError(
+            f"No implementation for {name_of(node.func)!r}"
+        ) from None
     return func(*node.args)
 
 

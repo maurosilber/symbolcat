@@ -19,7 +19,17 @@ from __future__ import annotations
 from typing import Any
 
 from .. import real
-from .._core import Algebra, Call, Constant, Function, Literal, Operator, Symbol, cata
+from .._core import (
+    Algebra,
+    Call,
+    Constant,
+    Function,
+    Literal,
+    Operator,
+    Symbol,
+    cata,
+    name_of,
+)
 from .._core.precedence import POSTFIX, POW
 from ..lib import operators as op
 from ._printing import Printed, literal_precedence, needs_parens
@@ -176,12 +186,12 @@ latex_algebra = Algebra[Printed]("latex")
 
 @latex_algebra.register(Symbol)
 def _(node: Symbol) -> Printed:
-    return Printed(latex_name(node.name))
+    return Printed(latex_name(name_of(node)))
 
 
 @latex_algebra.register(Constant)
 def _(node: Constant) -> Printed:
-    return Printed(CONSTANTS.get(node) or latex_name(node.name))
+    return Printed(CONSTANTS.get(node) or latex_name(name_of(node)))
 
 
 @latex_algebra.register(Literal)
@@ -192,7 +202,7 @@ def _(node: Literal) -> Printed:
 @latex_algebra.register(Function)
 def _(node: Call[Printed]) -> Printed:
     func = node.func
-    name = FUNCTION_NAMES.get(func, rf"\operatorname{{{func.name}}}")
+    name = FUNCTION_NAMES.get(func, rf"\operatorname{{{name_of(func)}}}")
     return Printed(name + paren(", ".join(arg.text for arg in node.args)))
 
 

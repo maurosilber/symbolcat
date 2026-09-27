@@ -139,8 +139,60 @@ class Expr:
         return _op.invert(self)
 
 
+class _Named:
+    """Mixin for objects whose name can be omitted in the constructor.
+
+    Assigned in a class body, the object takes the attribute name. The name
+    is only required where it is used (printing, evaluation, ...), so an
+    expression can refer to it before the class body finishes:
+
+    >>> class Model:
+    ...     x = Symbol()
+    ...     y = x + 1
+    >>> print(Model.y)
+    x + 1
+    """
+
+    __slots__ = ()
+    name: str
+
+    def __set_name__(self, owner: type, name: str) -> None:
+        if not self.name:
+            object.__setattr__(self, "name", name)
+
+    def __repr__(self) -> str:
+        return (
+            f"{type(self).__name__}({self.name!r})"
+            if self.name
+            else f"{type(self).__name__}()"
+        )
+
+
+def name_of(obj: Symbol | Constant | Function) -> str:
+    """The name of ``obj``, or a clear error if it never got one.
+
+    >>> name_of(Symbol("x"))
+    'x'
+    >>> name_of(Symbol())
+    Traceback (most recent call last):
+    ...
+    ValueError: Symbol has no name: pass one to the constructor, or assign it in a class body
+    """
+    if not obj.name:
+        raise ValueError(
+            f"{type(obj).__name__} has no name: pass one to the constructor, "
+            "or assign it in a class body"
+        )
+    return obj.name
+
+
+def _label(obj: Symbol | Constant | Function) -> str:
+    """The name for messages, which must not fail on unnamed objects."""
+    return obj.name or "<unnamed>"
+
+
 @dataclass(frozen=True, repr=False)
-class Symbol(Expr):
+class Symbol(_Named, Expr):
     """A user-defined named leaf. Compares by name.
 
     The name can be omitted when the symbol is assigned in a class body,
@@ -155,16 +207,9 @@ class Symbol(Expr):
 
     name: str = ""
 
-    def __repr__(self) -> str:
-        return f"Symbol({self.name!r})"
-
-    def __set_name__(self, owner: type, name: str) -> None:
-        if not self.name:
-            object.__setattr__(self, "name", name)
-
 
 @dataclass(frozen=True, repr=False, eq=False)
-class Constant(Expr):
+class Constant(_Named, Expr):
     """A library-defined named leaf, such as ``real.constants.pi``.
 
     Like ``Function``, constants compare by identity, so they never collide
@@ -173,13 +218,6 @@ class Constant(Expr):
     """
 
     name: str = ""
-
-    def __repr__(self) -> str:
-        return f"Constant({self.name!r})"
-
-    def __set_name__(self, owner: type, name: str) -> None:
-        if not self.name:
-            object.__setattr__(self, "name", name)
 
 
 @dataclass(frozen=True, repr=False, eq=False)
@@ -214,7 +252,7 @@ class Call[T](Expr):
     args: tuple[T, ...]
 
     def __repr__(self) -> str:
-        return f"Call({self.func.name}, {self.args!r})"
+        return f"Call({_label(self.func)}, {self.args!r})"
 
 
 def as_expr(value: Any) -> Expr:
@@ -224,26 +262,32 @@ def as_expr(value: Any) -> Expr:
     return Literal(value)
 
 
-@dataclass(frozen=True, eq=False)
-class Function:
+@dataclass(frozen=True, repr=False, eq=False)
+class Function(_Named):
     """A symbolic function. Calling it builds a ``Call`` node.
 
     Functions compare by identity, so they can be used as registry keys
-    by algebras and implementation libraries.
+    by algebras and implementation libraries. As with ``Symbol``, the name
+    can be omitted when assigned in a class body:
+
+    >>> class Model:
+    ...     f = Function(arity=1)
+    >>> Model.f
+    Function('f')
     """
 
-    name: str
+    name: str = ""
     arity: int | None = None
 
     def __call__(self, *args: Any) -> Call[Expr]:
         if self.arity is not None and len(args) != self.arity:
             raise TypeError(
-                f"{self.name} expected {self.arity} arguments, got {len(args)}"
+                f"{_label(self)} expected {self.arity} arguments, got {len(args)}"
             )
         return Call(self, tuple(map(as_expr, args)))
 
 
-@dataclass(frozen=True, eq=False)
+@dataclass(frozen=True, repr=False, eq=False)
 class Operator(Function):
     """A function written in infix/prefix notation.
 

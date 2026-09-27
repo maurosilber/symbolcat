@@ -44,6 +44,7 @@ from .._core import (
     cata,
     children,
     fmap,
+    name_of,
 )
 from ._diff import diff_algebra
 from ._evaluate import evaluate_algebra
@@ -71,6 +72,7 @@ __all__ = [
     "fmap",
     "free_symbols_algebra",
     "latex_algebra",
+    "name_of",
     "simplify_algebra",
     "str_algebra",
     "substitute_algebra",

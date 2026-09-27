@@ -8,13 +8,13 @@ SymPy as implementation. Free symbols become ``sympy.Symbol``.
 import sympy
 
 from .. import real
-from .._core import Symbol
+from .._core import Symbol, name_of
 from . import operators as op
 from ._std import OPERATORS
 
 IMPL = {
     **OPERATORS,
-    Symbol: lambda symbol: sympy.Symbol(symbol.name),
+    Symbol: lambda symbol: sympy.Symbol(name_of(symbol)),
     op.eq: sympy.Eq,
     op.ne: sympy.Ne,
     real.abs: sympy.Abs,

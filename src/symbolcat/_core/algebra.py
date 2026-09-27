@@ -11,7 +11,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from .expr import Call, Expr, Function
+from .expr import Call, Expr, Function, _label
 
 
 @dataclass
@@ -73,7 +73,7 @@ class Algebra[A]:
                 return handler
         if (handler := _lookup_mro(self._by_node, type(node))) is not None:
             return handler
-        what = node.func.name if isinstance(node, Call) else type(node).__name__
+        what = _label(node.func) if isinstance(node, Call) else type(node).__name__
         raise NotImplementedError(f"{self.name}: no rule for {what}")
 
     def __call__(self, node: Expr, **ctx: Any) -> A:
