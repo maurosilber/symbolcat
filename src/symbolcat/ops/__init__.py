@@ -7,6 +7,10 @@ Operations on expressions. Each one is an algebra folded with ``cata``.
 The algebras are exported too, so they can be extended with new rules
 (``latex_algebra.register(my_function)``) or copied and customized
 (``latex_algebra.copy("my_latex")``).
+
+``egraph`` (simplification by equality saturation) needs the optional
+``egglog`` package, so it is not imported here:
+``from symbolcat.ops.egraph import simplify, optimize``.
 """
 
 from .diff import diff, diff_algebra

@@ -43,4 +43,5 @@ dependencies = {
   numpy = "*",
   sympy = "*",
 }
+pypi-dependencies = { egglog = "*" }
 tasks = { test = "pytest --doctest-modules -n auto" }

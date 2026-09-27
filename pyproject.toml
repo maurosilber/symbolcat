@@ -19,6 +19,9 @@ changelog = "https://github.com/dyscolab/symbolcat/blob/main/CHANGES"
 homepage = "https://github.com/dyscolab/symbolcat"
 issues = "https://github.com/dyscolab/symbolcat/issues"
 
+[project.optional-dependencies]
+egraph = ["egglog"]
+
 [build-system]
 requires = ["uv_build>=0.12"]
 build-backend = "uv_build"

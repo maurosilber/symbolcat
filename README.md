@@ -137,6 +137,38 @@ product rule). Its algebra therefore folds every node into a
 `(value, derivative)` pair, the same idea as forward-mode automatic
 differentiation.
 
+### E-graphs
+
+`symbolcat.ops.egraph` simplifies and optimizes expressions with
+[egglog](https://github.com/egraphs-good/egglog-python) (install the `egraph`
+extra). Unlike `simplify`, which makes one bottom-up pass of local rules,
+equality saturation keeps many equivalent forms at once (commuted, factored,
+expanded, ...) and extracts the best one according to a cost model.
+
+```python
+>>> from symbolcat.ops import egraph
+>>> z = Symbol("z")
+>>> print(egraph.simplify(x * y + x * z))
+x * (y + z)
+>>> print(egraph.simplify((x + 1) ** 2 - x**2 - 2 * x))
+1
+
+```
+
+`egraph.optimize` picks the cheapest expression to evaluate instead of the
+smallest one, and returns repeated sub-expressions as the same object, so
+`cata`, and therefore `evaluate`, computes them only once:
+
+```python
+>>> print(egraph.optimize(real.sin(x) ** 2 + real.sin(x)))
+sin(x) + sin(x) * sin(x)
+
+```
+
+The translation into egglog is one more algebra (`egraph.convert`). Functions
+without rewrite rules are kept as opaque calls, so any expression survives
+the round trip.
+
 ## Extending
 
 A new function only needs rules in the algebras that should support it:
