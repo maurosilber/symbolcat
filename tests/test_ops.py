@@ -1,4 +1,5 @@
 import math
+from typing import Any
 
 import pytest
 
@@ -178,6 +179,12 @@ def test_diff_higher_order():
 def test_diff_unknown_function():
     with pytest.raises(NotImplementedError, match="diff: no rule for erf"):
         diff(real.erf(x), x)
+
+
+def test_diff_with_respect_to_expression():
+    var: Any = 2 * x
+    with pytest.raises(TypeError, match="with respect to a Symbol"):
+        diff(var, var)
 
 
 def test_math_consistency():

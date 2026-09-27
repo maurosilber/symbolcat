@@ -124,6 +124,10 @@ def diff(expr: Any, var: Symbol, /) -> Expr:
     >>> print(diff(real.sin(x) * x, x))
     cos(x) * x + sin(x)
     """
+    if not isinstance(var, Symbol):
+        raise TypeError(
+            f"diff: can only differentiate with respect to a Symbol, not {var}"
+        )
     _, derivative = cata(diff_algebra, expr, var=var)
     return simplify_naive(derivative)
 
