@@ -31,7 +31,7 @@ def _(node: Call[Expr], *, mapping: Mapping[Any, Any]) -> Expr:
     return as_expr(mapping.get(node, node))
 
 
-def substitute(expr: Any, mapping: Mapping[Any, Any]) -> Expr:
+def substitute(expr: Any, mapping: Mapping[Any, Any], /) -> Expr:
     """Replace symbols, sub-expressions or functions.
 
     Replacement is simultaneous, so symbols can be swapped.

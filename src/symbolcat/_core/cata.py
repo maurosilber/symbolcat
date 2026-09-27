@@ -15,7 +15,7 @@ from .expr import as_expr
 from .fmap import fmap
 
 
-def cata[A](algebra: Callable[..., A], expr: Any, **ctx: Any) -> A:
+def cata[A](algebra: Callable[..., A], expr: Any, /, **ctx: Any) -> A:
     """Fold ``expr`` bottom-up with ``algebra``.
 
     ``algebra`` receives one layer at a time: a node whose children have

@@ -14,7 +14,7 @@ from .expr import Call, Expr
 
 
 @singledispatch
-def children(node: Any) -> tuple[Any, ...]:
+def children(node: Any, /) -> tuple[Any, ...]:
     """The direct children of a node.
 
     >>> from symbolcat import Symbol

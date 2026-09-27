@@ -29,7 +29,7 @@ from ._convert import Table, from_egglog, to_egglog
 from ._term import Num, is_integer, is_negative, is_nonnegative, is_nonzero, is_positive
 
 
-def shrink(passes: int = 50) -> Schedule:
+def shrink(*, passes: int = 50) -> Schedule:
     """The shrinking rules, until nothing changes or for ``passes`` passes.
 
     When the input is undefined, the rules can prove two different numbers
@@ -41,7 +41,7 @@ def shrink(passes: int = 50) -> Schedule:
     return seq(*(run(r, stop) for r in rules.SHRINK)) * passes
 
 
-def grow(match_limit: int = 1000) -> Schedule:
+def grow(*, match_limit: int = 1000) -> Schedule:
     """One pass of the growing rules.
 
     Growing rules run under a back-off scheduler: a rule that matches more
@@ -56,11 +56,11 @@ def grow(match_limit: int = 1000) -> Schedule:
     return seq(*(run(r, scheduler=scheduler) for r in rules.GROW))
 
 
-def size(egraph: EGraph) -> int:
+def size(egraph: EGraph, /) -> int:
     return sum(n for _, n in egraph.all_function_sizes())
 
 
-def contradiction(egraph: EGraph) -> bool:
+def contradiction(egraph: EGraph, /) -> bool:
     """Whether the rules proved two different numbers equal, which means
     the input is undefined (a division by zero, a square root of a negative
     number, ...)."""
@@ -84,7 +84,7 @@ class Search:
     root: Num
     table: Table
 
-    def equivalent(self, other: Any) -> bool:
+    def equivalent(self, other: Any, /) -> bool:
         """Whether the search proved ``other`` equal to the expression.
 
         Only the shrinking rules run on ``other`` itself (so that ``2 * x ** 0``
@@ -96,6 +96,7 @@ class Search:
 
     def extract(
         self,
+        *,
         cost_model: DagCostModel[Any] | None,
         extractor: Literal["tree", "greedy-dag"],
     ) -> Expr:
@@ -116,6 +117,7 @@ _names = count()
 
 def search(
     expr: Any,
+    /,
     *,
     assume: Iterable[Assumption] = (),
     iterations: int,
@@ -151,7 +153,7 @@ def search(
         egraph.run(shrinking)
         if not report.updated or size(egraph) > max_nodes:
             break
-    growing = grow(match_limit)
+    growing = grow(match_limit=match_limit)
     for _ in range(iterations):
         if contradiction(egraph):
             return None
@@ -168,6 +170,7 @@ def search(
 
 def saturate(
     expr: Any,
+    /,
     *,
     assume: Iterable[Assumption],
     iterations: int,
@@ -195,7 +198,7 @@ def saturate(
             )
             if found is None:
                 return expr
-            return found.extract(cost_model, extractor)
+            return found.extract(cost_model=cost_model, extractor=extractor)
         finally:
             egraph.pop()
 
@@ -219,6 +222,8 @@ def _shared() -> EGraph:
 
 def simplify(
     expr: Any,
+    /,
+    *,
     assume: Iterable[Assumption] = (),
     iterations: int = 8,
     max_nodes: int = 5_000,
@@ -259,6 +264,8 @@ def simplify(
 
 def optimize(
     expr: Any,
+    /,
+    *,
     assume: Iterable[Assumption] = (),
     iterations: int = 8,
     max_nodes: int = 5_000,

@@ -303,7 +303,9 @@ def test_max_nodes_stops_early():
     expr = (x + y + z) ** 4 - real.sin(x + y) ** 2
     result = simplify(expr, max_nodes=1)
     env = {x: 0.3, y: -1.7, z: 0.9}
-    assert evaluate(result, env, IMPL) == pytest.approx(evaluate(expr, env, IMPL))
+    assert evaluate(result, env, lib=IMPL) == pytest.approx(
+        evaluate(expr, env, lib=IMPL)
+    )
 
 
 @pytest.mark.parametrize(
@@ -364,8 +366,8 @@ def test_optimize_avoids_expensive_operations():
 @pytest.mark.parametrize("env", [{x: 0.3, y: -1.7}, {x: -0.8, y: 0.4}])
 def test_equivalent_values(expr, transform, env):
     """Rules must not change values, including at negative points."""
-    assert evaluate(transform(expr), env, IMPL) == pytest.approx(
-        evaluate(expr, env, IMPL)
+    assert evaluate(transform(expr), env, lib=IMPL) == pytest.approx(
+        evaluate(expr, env, lib=IMPL)
     )
 
 
@@ -422,7 +424,7 @@ def _value(expr, env):
     import math
 
     try:
-        v = evaluate(expr, env, IMPL)
+        v = evaluate(expr, env, lib=IMPL)
     except (ValueError, ZeroDivisionError, OverflowError, TypeError):
         return None
     return v if isinstance(v, float | int) and math.isfinite(v) else None

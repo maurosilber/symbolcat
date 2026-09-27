@@ -39,26 +39,26 @@ class Assumption:
     expr: Expr
 
 
-def positive(expr: Any) -> Assumption:
+def positive(expr: Any, /) -> Assumption:
     """Assume ``expr > 0``."""
     return Assumption("positive", as_expr(expr))
 
 
-def nonnegative(expr: Any) -> Assumption:
+def nonnegative(expr: Any, /) -> Assumption:
     """Assume ``expr >= 0``."""
     return Assumption("nonnegative", as_expr(expr))
 
 
-def negative(expr: Any) -> Assumption:
+def negative(expr: Any, /) -> Assumption:
     """Assume ``expr < 0``."""
     return Assumption("negative", as_expr(expr))
 
 
-def nonzero(expr: Any) -> Assumption:
+def nonzero(expr: Any, /) -> Assumption:
     """Assume ``expr != 0``."""
     return Assumption("nonzero", as_expr(expr))
 
 
-def integer(expr: Any) -> Assumption:
+def integer(expr: Any, /) -> Assumption:
     """Assume ``expr`` is an integer."""
     return Assumption("integer", as_expr(expr))

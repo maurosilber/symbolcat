@@ -74,7 +74,7 @@ class Table:
     items: list[Any] = field(default_factory=list)
     _index: dict[int, int] = field(default_factory=dict)
 
-    def index(self, obj: Any) -> int:
+    def index(self, obj: Any, /) -> int:
         key = id(obj)
         if key not in self._index:
             self._index[key] = len(self.items)
@@ -117,24 +117,24 @@ def _(node: Call[Num], *, table: Table) -> Num:
     return Num.apply(table.index(node.func), Vec(*node.args))
 
 
-def to_egglog(expr: Any, table: Table) -> Num:
+def to_egglog(expr: Any, table: Table, /) -> Num:
     """Translate an expression, storing untranslatable parts in ``table``."""
     return cata(to_egglog_algebra, expr, table=table)
 
 
-def from_rational(value: Fraction) -> Expr:
+def from_rational(value: Fraction, /) -> Expr:
     if value.denominator == 1:
         return Literal(value.numerator)
     return op.truediv(value.numerator, value.denominator)
 
 
-def from_egglog(num: Num, table: Table) -> Expr:
+def from_egglog(num: Num, table: Table, /) -> Expr:
     """Translate an extracted egglog term back into an expression."""
     memo: dict[Num, Expr] = {}
 
     # Typed accessors give the ``*Like`` argument types; extracted terms
     # always hold the egglog types, hence the casts.
-    def convert(num: Num) -> Expr:
+    def convert(num: Num, /) -> Expr:
         if num in memo:
             return memo[num]
         fn = get_callable_fn(num)

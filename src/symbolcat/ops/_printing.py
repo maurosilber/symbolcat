@@ -41,20 +41,20 @@ class Printed:
 type Side = LiteralType["left", "right"]
 
 
-def needs_parens(child: Printed, parent: Operator, side: Side) -> bool:
+def needs_parens(child: Printed, parent: Operator, side: Side, /) -> bool:
     if child.precedence != parent.precedence:
         return child.precedence < parent.precedence
     # Same precedence: only the side matching the associativity is free.
     return parent.assoc != side
 
 
-def operand(child: Printed, parent: Operator, side: Side) -> str:
+def operand(child: Printed, parent: Operator, side: Side, /) -> str:
     if needs_parens(child, parent, side):
         return f"({child.text})"
     return child.text
 
 
-def literal_precedence(value: Any) -> int:
+def literal_precedence(value: Any, /) -> int:
     if isinstance(value, (int, float)) and not isinstance(value, bool) and value < 0:
         return UNARY
     return ATOM
@@ -100,7 +100,7 @@ def _(node: Call[Printed]) -> Printed:
     return Printed(f"{operand(obj, op.getitem, 'left')}[{key.text}]", POSTFIX)
 
 
-def to_str(expr: Any) -> str:
+def to_str(expr: Any, /) -> str:
     """Python source for an expression.
 
     >>> from symbolcat import Symbol

@@ -94,7 +94,7 @@ def _(args, dargs):
     return a**b * (db * real.log(a) + b * da / a)
 
 
-def chain(outer: Callable[[Expr], Expr]) -> Rule:
+def chain(outer: Callable[[Expr], Expr], /) -> Rule:
     """Rule for f(a), given f'(a)."""
     return lambda args, dargs: outer(args[0]) * dargs[0]
 
@@ -113,7 +113,7 @@ rule(real.cosh)(chain(real.sinh))
 rule(real.tanh)(chain(lambda a: 1 - real.tanh(a) ** 2))
 
 
-def diff(expr: Any, var: Symbol) -> Expr:
+def diff(expr: Any, var: Symbol, /) -> Expr:
     """Derivative of ``expr`` with respect to ``var``.
 
     >>> from symbolcat import Symbol, real

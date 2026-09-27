@@ -40,9 +40,9 @@ class Algebra[A]:
     """
 
     name: str
-    _by_func: dict[Function, Callable[..., A]] = field(default_factory=dict)
-    _by_kind: dict[type, Callable[..., A]] = field(default_factory=dict)
-    _by_node: dict[type, Callable[..., A]] = field(default_factory=dict)
+    _by_func: dict[Function, Callable[..., A]] = field(default_factory=dict, init=False)
+    _by_kind: dict[type, Callable[..., A]] = field(default_factory=dict, init=False)
+    _by_node: dict[type, Callable[..., A]] = field(default_factory=dict, init=False)
 
     def register(self, *keys: Function | type) -> Callable[[Callable[..., A]], Any]:
         def decorator(handler: Callable[..., A]) -> Callable[..., A]:
@@ -59,13 +59,15 @@ class Algebra[A]:
 
         return decorator
 
-    def copy(self, name: str) -> Algebra[A]:
+    def copy(self, name: str, /) -> Algebra[A]:
         """A new algebra that starts with the same handlers."""
-        return Algebra(
-            name, dict(self._by_func), dict(self._by_kind), dict(self._by_node)
-        )
+        new = Algebra[A](name)
+        new._by_func.update(self._by_func)
+        new._by_kind.update(self._by_kind)
+        new._by_node.update(self._by_node)
+        return new
 
-    def handler_for(self, node: Expr) -> Callable[..., A]:
+    def handler_for(self, node: Expr, /) -> Callable[..., A]:
         if isinstance(node, Call):
             if (handler := self._by_func.get(node.func)) is not None:
                 return handler
@@ -80,7 +82,7 @@ class Algebra[A]:
         return self.handler_for(node)(node, **ctx)
 
 
-def _lookup_mro[V](registry: dict[type, V], cls: type) -> V | None:
+def _lookup_mro[V](registry: dict[type, V], cls: type, /) -> V | None:
     for base in cls.__mro__:
         if base in registry:
             return registry[base]

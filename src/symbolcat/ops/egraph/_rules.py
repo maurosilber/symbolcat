@@ -75,22 +75,22 @@ from ._term import (
 type Rules = Iterator[RewriteOrRule]
 
 
-def rat(numerator: int, denominator: int = 1) -> Num:
+def rat(numerator: int, denominator: int = 1, /) -> Num:
     return Num(BigRat(numerator, denominator))
 
 
 ZERO, ONE, TWO, MINUS_ONE, HALF = rat(0), rat(1), rat(2), rat(-1), rat(1, 2)
 
 
-def integer(r: BigRat) -> Fact:
+def integer(r: BigRat, /) -> Fact:
     return eq(r.denom).to(BigInt(1))
 
 
-def nonzero(r: BigRat) -> Unit:
+def nonzero(r: BigRat, /) -> Unit:
     return ne(r).to(BigRat(0, 1))
 
 
-def replace(lhs: Num) -> _RewriteBuilder[Num]:
+def replace(lhs: Num, /) -> _RewriteBuilder[Num]:
     """Rewrite and hide the left-hand side from matching and extraction.
 
     For rules whose right-hand side is always better (constant folding,
@@ -101,7 +101,7 @@ def replace(lhs: Num) -> _RewriteBuilder[Num]:
     return rewrite(lhs, subsume=True)
 
 
-def small(r: BigRat, bound: int = 16) -> tuple[Unit, Unit]:
+def small(r: BigRat, /, *, bound: int = 16) -> tuple[Unit, Unit]:
     """Conditions for a literal exponent ``r`` to be within ``bound``."""
     return r <= BigRat(bound, 1), r >= BigRat(-bound, 1)
 
@@ -267,7 +267,9 @@ def fold(p: BigRat, q: BigRat, f: f64, g: f64) -> Rules:
     yield replace(Num(p) / Num(q)).to(Num(p / q), nonzero(q))
     yield rewrite(-Num(p)).to(Num(-p))  # visible: x + -2 becomes x - 2 through -(2)
     # small integer powers only; 0 ** negative is left alone
-    yield rewrite(Num(p) ** Num(q)).to(Num(p**q), integer(q), nonzero(p), *small(q, 64))
+    yield rewrite(Num(p) ** Num(q)).to(
+        Num(p**q), integer(q), nonzero(p), *small(q, bound=64)
+    )
     yield replace(Num.float(f) + Num.float(g)).to(Num.float(f + g))
     yield replace(Num.float(f) - Num.float(g)).to(Num.float(f - g))
     yield replace(Num.float(f) * Num.float(g)).to(Num.float(f * g))
@@ -557,7 +559,7 @@ def exponential(a: Num, b: Num, p: BigRat) -> Rules:
     yield rewrite(log(a ** Num(p))).to(Num(p) * log(a), ne(half_p.denom).to(BigInt(1)))
 
 
-def _root(n: int) -> Num:
+def _root(n: int, /) -> Num:
     return sqrt(rat(n))
 
 

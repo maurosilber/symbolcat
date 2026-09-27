@@ -21,7 +21,7 @@ from ..lib.std import IMPL
 simplify_algebra = Algebra[Expr]("simplify")
 
 
-def is_number(expr: Expr, value: Any) -> bool:
+def is_number(expr: Expr, value: Any, /) -> bool:
     return (
         isinstance(expr, Literal)
         and isinstance(expr.value, int | float | complex)
@@ -31,7 +31,7 @@ def is_number(expr: Expr, value: Any) -> bool:
 
 
 @simplify_algebra.register(Expr)
-def fold(node: Expr) -> Expr:
+def fold(node: Expr, /) -> Expr:
     """Evaluate calls whose arguments are all numeric literals."""
     if not isinstance(node, Call) or node.func not in IMPL:
         return node
@@ -117,7 +117,7 @@ def _(node: Call[Expr]) -> Expr:
     return node.args[0]
 
 
-def simplify_naive(expr: Any) -> Expr:
+def simplify_naive(expr: Any, /) -> Expr:
     """Fold constants and remove trivial operations.
 
     >>> from symbolcat import Symbol

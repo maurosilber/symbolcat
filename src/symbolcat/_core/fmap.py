@@ -15,7 +15,7 @@ from .expr import Call, Expr
 
 
 @singledispatch
-def fmap(node: Any, f: Callable[[Any], Any]) -> Any:
+def fmap(node: Any, f: Callable[[Any], Any], /) -> Any:
     """Apply ``f`` to the direct children, keeping the node shape.
 
     >>> from symbolcat import Symbol

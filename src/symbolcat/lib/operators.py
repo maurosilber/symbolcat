@@ -16,7 +16,9 @@ from .._core import precedence as _p
 from .._core.expr import Operator as _Operator
 
 
-def _binary(name: str, symbol: str, precedence: int, assoc: str = "left") -> _Operator:
+def _binary(
+    name: str, symbol: str, precedence: int, /, *, assoc: str = "left"
+) -> _Operator:
     return _Operator(
         name,
         arity=2,
@@ -26,7 +28,7 @@ def _binary(name: str, symbol: str, precedence: int, assoc: str = "left") -> _Op
     )
 
 
-def _unary(name: str, symbol: str) -> _Operator:
+def _unary(name: str, symbol: str, /) -> _Operator:
     return _Operator(name, arity=1, fmt=f"{symbol}{{}}", precedence=_p.UNARY)
 
 

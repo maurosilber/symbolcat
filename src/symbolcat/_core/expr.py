@@ -7,7 +7,7 @@ Expression nodes and symbolic functions.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import KW_ONLY, dataclass, field
 from typing import TYPE_CHECKING, Any
 
 
@@ -172,7 +172,7 @@ class _Named:
         )
 
 
-def name_of(obj: Symbol | Constant | Function) -> str:
+def name_of(obj: Symbol | Constant | Function, /) -> str:
     """The name of ``obj``, or a clear error if it never got one.
 
     >>> name_of(Symbol("x"))
@@ -190,7 +190,7 @@ def name_of(obj: Symbol | Constant | Function) -> str:
     return obj.name
 
 
-def _label(obj: Symbol | Constant | Function) -> str:
+def _label(obj: Symbol | Constant | Function, /) -> str:
     """The name for messages, which must not fail on unnamed objects."""
     return obj.name or "<unnamed>"
 
@@ -259,7 +259,7 @@ class Call[T](Expr):
         return f"Call({_label(self.func)}, {self.args!r})"
 
 
-def as_expr(value: Any) -> Expr:
+def as_expr(value: Any, /) -> Expr:
     """Wrap plain Python values into a ``Literal``."""
     if isinstance(value, Expr):
         return value
@@ -281,7 +281,7 @@ class Function(_Named):
     """
 
     name: str = ""
-    arity: int | None = None
+    arity: int | None = field(default=None, kw_only=True)
 
     def __call__(self, *args: Any) -> Call[Expr]:
         if self.arity is not None and len(args) != self.arity:
@@ -299,6 +299,7 @@ class Operator(Function):
     (higher binds tighter) and ``assoc`` is ``"left"`` or ``"right"``.
     """
 
+    _: KW_ONLY
     fmt: str = ""
     precedence: int = 0
     assoc: str = "left"

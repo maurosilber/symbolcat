@@ -33,7 +33,7 @@ def _(node: Call[dict[Symbol, None]]) -> dict[Symbol, None]:
     return out
 
 
-def free_symbols(expr: Any) -> tuple[Symbol, ...]:
+def free_symbols(expr: Any, /) -> tuple[Symbol, ...]:
     """User symbols in ``expr``, in order of first appearance.
 
     Library constants (``real.constants.pi``) are not free.
@@ -46,7 +46,7 @@ def free_symbols(expr: Any) -> tuple[Symbol, ...]:
     return tuple(cata(free_symbols_algebra, expr))
 
 
-def count_nodes(expr: Any) -> int:
+def count_nodes(expr: Any, /) -> int:
     """Number of nodes in the tree. The algebra needs no registry.
 
     >>> from symbolcat import Symbol
@@ -57,7 +57,7 @@ def count_nodes(expr: Any) -> int:
     return cata(lambda node: 1 + sum(children(node)), expr)
 
 
-def depth(expr: Any) -> int:
+def depth(expr: Any, /) -> int:
     """Length of the longest path from the root to a leaf.
 
     >>> from symbolcat import Symbol

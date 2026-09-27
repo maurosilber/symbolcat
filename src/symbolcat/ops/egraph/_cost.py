@@ -22,10 +22,10 @@ LEAVES = (Num, Num.float, Num.var, Num.opaque, *CONSTANTS_BACK)
 NUM_FUNCTIONS = frozenset((*LEAVES, Num.apply, *FUNCTIONS.values()))
 
 
-def node_cost(costs: dict[Any, int], default: int) -> DagCostModel[Any]:
+def node_cost(costs: dict[Any, int], /, *, default: int) -> DagCostModel[Any]:
     """Additive cost model with a cost per ``Num`` constructor."""
 
-    def marginal_cost(egraph: EGraph, expr: Any) -> int:
+    def marginal_cost(egraph: EGraph, expr: Any, /) -> int:
         fn = get_callable_fn(expr)
         if fn is None or fn not in NUM_FUNCTIONS:
             return 0

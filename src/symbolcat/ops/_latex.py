@@ -138,15 +138,15 @@ CONSTANTS = {
 }
 
 
-def paren(text: str) -> str:
+def paren(text: str, /) -> str:
     return rf"\left({text}\right)"
 
 
-def operand(child: Printed, parent: Operator, side: Side) -> str:
+def operand(child: Printed, parent: Operator, side: Side, /) -> str:
     return paren(child.text) if needs_parens(child, parent, side) else child.text
 
 
-def latex_name(name: str) -> str:
+def latex_name(name: str, /) -> str:
     r"""Format a symbol name, with greek letters and nested subscripts.
 
     >>> print(latex_name("alpha_i_j"))
@@ -164,7 +164,7 @@ def latex_name(name: str) -> str:
     return base
 
 
-def latex_number(value: Any) -> str:
+def latex_number(value: Any, /) -> str:
     if isinstance(value, bool):
         return rf"\mathrm{{{value}}}"
     if isinstance(value, float):
@@ -258,7 +258,7 @@ def _(node: Call[Printed]) -> Printed:
     return Printed(f"{operand(obj, op.getitem, 'left')}_{{{key.text}}}", POSTFIX)
 
 
-def to_latex(expr: Any) -> str:
+def to_latex(expr: Any, /) -> str:
     r"""LaTeX source for an expression.
 
     >>> from symbolcat import Symbol

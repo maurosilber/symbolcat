@@ -14,7 +14,7 @@ from ._core import Constant as _Constant
 from ._core import Function as _Function
 
 
-def _fn(name: str, arity: int = 1) -> _Function:
+def _fn(name: str, /, *, arity: int = 1) -> _Function:
     return _Function(name, arity=arity)
 
 
@@ -32,14 +32,14 @@ tan = _fn("tan")
 asin = _fn("asin")
 acos = _fn("acos")
 atan = _fn("atan")
-atan2 = _fn("atan2", 2)
+atan2 = _fn("atan2", arity=2)
 sinh = _fn("sinh")
 cosh = _fn("cosh")
 tanh = _fn("tanh")
 erf = _fn("erf")
 gamma = _fn("gamma")
 factorial = _fn("factorial")
-hypot = _fn("hypot", 2)
+hypot = _fn("hypot", arity=2)
 
 
 class constants:

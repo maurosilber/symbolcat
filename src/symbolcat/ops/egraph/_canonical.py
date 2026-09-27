@@ -30,20 +30,20 @@ def _(node: Expr) -> Expr:
     return node
 
 
-def factors(expr: Expr) -> list[Expr]:
+def factors(expr: Expr, /) -> list[Expr]:
     if isinstance(expr, Call) and expr.func is op.mul:
         return [f for arg in expr.args for f in factors(arg)]
     return [expr]
 
 
-def is_number(expr: Expr) -> bool:
+def is_number(expr: Expr, /) -> bool:
     """A literal, or a fraction of literals (how rationals come back)."""
     if isinstance(expr, Call) and expr.func is op.truediv:
         return all(isinstance(arg, Literal) for arg in expr.args)
     return isinstance(expr, Literal)
 
 
-def rank(expr: Expr) -> tuple[int, str]:
+def rank(expr: Expr, /) -> tuple[int, str]:
     if is_number(expr):
         return 0, ""
     if isinstance(expr, Constant):
@@ -73,7 +73,7 @@ def _(node: Call[Expr]) -> Expr:
     return result if denominator is None else op.truediv(result, denominator)
 
 
-def canonical(expr: Any) -> Expr:
+def canonical(expr: Any, /) -> Expr:
     """Flatten and sort products.
 
     >>> from symbolcat import Symbol, real
