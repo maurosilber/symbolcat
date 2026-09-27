@@ -14,9 +14,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from fractions import Fraction
-from typing import Any
+from typing import Any, cast
 
-from egglog import BigRat, Vec, get_callable_args, get_callable_fn, get_literal_value
+from egglog import BigRat, String, Vec, f64, get_callable_args, get_callable_fn, i64
 
 from ... import real
 from ..._core import (
@@ -132,30 +132,28 @@ def from_egglog(num: Num, table: Table) -> Expr:
     """Translate an extracted egglog term back into an expression."""
     memo: dict[Num, Expr] = {}
 
+    # Typed accessors give the ``*Like`` argument types; extracted terms
+    # always hold the egglog types, hence the casts.
     def convert(num: Num) -> Expr:
         if num in memo:
             return memo[num]
         fn = get_callable_fn(num)
-        args = get_callable_args(num) or ()
+        result: Expr
         if fn in CONSTANTS_BACK:
             result = CONSTANTS_BACK[fn]
-        elif fn == Num:
-            (rational,) = args
-            result = from_rational(rational.value)
-        elif fn == Num.float:
-            (value,) = args
-            result = Literal(value.value)
-        elif fn == Num.var:
-            (name,) = args
-            result = Symbol(get_literal_value(name))
-        elif fn == Num.opaque:
-            (index,) = args
-            result = table[get_literal_value(index)]
-        elif fn == Num.apply:
-            index, vec = args
-            func = table[get_literal_value(index)]
-            result = func(*map(convert, get_callable_args(vec) or ()))
+        elif (rational := get_callable_args(num, Num)) is not None:
+            result = from_rational(cast("BigRat", rational[0]).value)
+        elif (floating := get_callable_args(num, Num.float)) is not None:
+            result = Literal(cast("f64", floating[0]).value)
+        elif (name := get_callable_args(num, Num.var)) is not None:
+            result = Symbol(cast("String", name[0]).value)
+        elif (index := get_callable_args(num, Num.opaque)) is not None:
+            result = table[cast("i64", index[0]).value]
+        elif (call := get_callable_args(num, Num.apply)) is not None:
+            func = table[cast("i64", call[0]).value]
+            result = func(*map(convert, call[1].value))
         else:
+            args = cast("tuple[Num, ...]", get_callable_args(num))
             result = FUNCTIONS_BACK[fn](*map(convert, args))
         memo[num] = result
         return result

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any
-from typing import Literal as Side
+from typing import Literal as LiteralType
 
 from .._core import (
     Algebra,
@@ -38,14 +38,17 @@ class Printed:
     precedence: int = ATOM
 
 
-def needs_parens(child: Printed, parent: Operator, side: Side["left", "right"]) -> bool:
+type Side = LiteralType["left", "right"]
+
+
+def needs_parens(child: Printed, parent: Operator, side: Side) -> bool:
     if child.precedence != parent.precedence:
         return child.precedence < parent.precedence
     # Same precedence: only the side matching the associativity is free.
     return parent.assoc != side
 
 
-def operand(child: Printed, parent: Operator, side: Side["left", "right"]) -> str:
+def operand(child: Printed, parent: Operator, side: Side) -> str:
     if needs_parens(child, parent, side):
         return f"({child.text})"
     return child.text
@@ -78,7 +81,8 @@ def _(node: Call[Printed]) -> Printed:
 
 @str_algebra.register(Operator)
 def _(node: Call[Printed]) -> Printed:
-    func: Operator = node.func  # type: ignore[assignment]
+    func = node.func
+    assert isinstance(func, Operator)
     if len(node.args) == 1:
         (arg,) = node.args
         text = func.fmt.format(operand(arg, func, "right"))

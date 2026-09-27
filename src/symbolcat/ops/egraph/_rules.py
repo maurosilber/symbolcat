@@ -36,6 +36,7 @@ from egglog import (
     Fact,
     RewriteOrRule,
     String,
+    Unit,
     birewrite,
     eq,
     f64,
@@ -85,7 +86,7 @@ def integer(r: BigRat) -> Fact:
     return eq(r.denom).to(BigInt(1))
 
 
-def nonzero(r: BigRat) -> Fact:
+def nonzero(r: BigRat) -> Unit:
     return ne(r).to(BigRat(0, 1))
 
 
@@ -100,7 +101,7 @@ def replace(lhs: Num) -> _RewriteBuilder[Num]:
     return rewrite(lhs, subsume=True)
 
 
-def small(r: BigRat, bound: int = 16) -> tuple[Fact, Fact]:
+def small(r: BigRat, bound: int = 16) -> tuple[Unit, Unit]:
     """Conditions for a literal exponent ``r`` to be within ``bound``."""
     return r <= BigRat(bound, 1), r >= BigRat(-bound, 1)
 

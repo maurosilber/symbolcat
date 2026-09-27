@@ -129,7 +129,8 @@ def test_simplify(expr, expected):
 
 
 def test_simplify_does_not_fold_errors():
-    assert simplify_naive(Literal(1) / 0) == Literal(1) / 0
+    undefined = Literal(1) / 0  # pyrefly: ignore[division-by-zero]
+    assert simplify_naive(undefined) == undefined
 
 
 # diff

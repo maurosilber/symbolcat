@@ -49,3 +49,29 @@ name = "Lint Python files with ruff"
 language = "system"
 entry = "pixi run ruff check --force-exclude --fix"
 types = ["python"]
+
+# Type checkers see the whole project (types flow across files), so they get
+# no file names; they run when any Python file changed.
+[[repos.hooks]]
+id = "ty"
+name = "Type check with ty"
+language = "system"
+entry = "pixi run ty check"
+types = ["python"]
+pass_filenames = false
+
+[[repos.hooks]]
+id = "pyrefly"
+name = "Type check with pyrefly"
+language = "system"
+entry = "pixi run pyrefly check"
+types = ["python"]
+pass_filenames = false
+
+[[repos.hooks]]
+id = "zuban"
+name = "Type check with zuban"
+language = "system"
+entry = "pixi run zuban check"
+types = ["python"]
+pass_filenames = false

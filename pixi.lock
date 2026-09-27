@@ -59,6 +59,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/openssl-3.6.4-h781a0a9_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/prek-0.5.3-hf19af3b_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/psutil-7.2.2-py312h1b36aeb_3.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/pyrefly-1.3.1-hf19af3b_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/python-3.12.14-h5f976f7_3_cpython.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/pyzmq-27.2.0-py312h8a5ba0d_2.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/readline-8.3-hd6e31c0_1.conda
@@ -66,6 +67,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/linux-64/tk-8.6.13-noxft_h1df4ec4_4.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/tombi-1.5.5-hf19af3b_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/tornado-6.5.10-py312h5cc1888_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/linux-64/ty-0.0.84-h39d0f39_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/uv-0.12.19-h841d291_0.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/wcwidth-0.9.1-py311h34ddc6a_1.conda
       - conda: https://conda.anaconda.org/conda-forge/linux-64/zeromq-4.3.5-h901266b_12.conda
@@ -128,6 +130,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/bf/3c/2d5297d82286f6f3d92770289fd439956b201c0a4fc7e72efb9b2293758e/pytokens-0.4.1-cp312-cp312-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
       - pypi: https://files.pythonhosted.org/packages/c3/55/298e9b3b864a198234997e87a1471c1b17d7f3546ace6d18fb5cf1ce24b2/ipywidgets-8.1.9-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/f1/d9/7fb5aa316bc299258e68c73ba3bddbc499654a07f151cba08f6153988714/pathspec-1.1.1-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/f6/4e/fa2148a3bac24788bda3a83c58167ae86e88b87a141911140953914d6447/zuban-0.10.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
       osx-arm64:
       - conda: https://conda.anaconda.org/conda-forge/noarch/_python_abi3_support-1.0-hd8ed1ab_3.conda
       - conda: https://conda.anaconda.org/conda-forge/noarch/appnope-1.0.0-pyhcf101f3_0.conda
@@ -204,6 +207,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/openssl-3.6.4-h55eecbc_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/prek-0.5.3-hc2d82ec_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/psutil-7.2.2-py312hbd136b4_3.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/pyrefly-1.3.1-hc2d82ec_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/python-3.12.14-hd05a0c4_3_cpython.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/pyzmq-27.2.0-py312hdfb5542_2.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/readline-8.3-h8b90a29_1.conda
@@ -211,6 +215,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/tk-8.6.13-hbeba79b_4.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/tombi-1.5.5-hc2d82ec_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/tornado-6.5.10-py312ha053593_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/osx-arm64/ty-0.0.84-h9d00c72_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/uv-0.12.19-h3207ac5_0.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/wcwidth-0.9.1-py311hb4dbc6a_1.conda
       - conda: https://conda.anaconda.org/conda-forge/osx-arm64/zeromq-4.3.5-h6eb0046_12.conda
@@ -220,6 +225,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/34/95/40e17e20046b7bc820d29d09ae84ec157ec8dd6e6f6cd722626292c31b2e/widgetsnbextension-4.0.16-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/41/5d/e44573011401fb82e9d51e97f1290ceb377800fb4eed650b96f4753b499c/pytokens-0.4.1-cp312-cp312-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/44/b9/040d1a1c7836922828e6480cd2366bb8fe0ebf75b413d2bb51a9b0e7f78f/opentelemetry_api-1.45.0-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/45/6b/726e27df1b5243fda6f2206147c6566a7e17e5ff64f8fec51c01e32d69c3/zuban-0.10.0-py3-none-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/58/50/6c0d534c5f134586a8e1ba4e330569e32f057e33372ae556463212fb4cd3/click-8.5.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/5c/78/dfda45dd3a3d29f1917f5143127d60f53b4015c7aa6ec9e54cf87a978b44/psygnal-0.16.1-cp312-cp312-macosx_11_0_arm64.whl
       - pypi: https://files.pythonhosted.org/packages/79/7b/2c79738432f5c924bef5071f933bcc9efd0473bac3b4aa584a6f7c1c8df8/mypy_extensions-1.1.0-py3-none-any.whl
@@ -297,6 +303,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/win-64/openssl-3.6.4-hf411b9b_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/prek-0.5.3-h18a1a76_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/psutil-7.2.2-py312he5662c2_3.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/pyrefly-1.3.1-h18a1a76_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/python-3.12.14-hb12b558_3_cpython.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/pywin32-312-py312h95189c4_2.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/pyzmq-27.2.0-py312h343a6d4_2.conda
@@ -305,6 +312,7 @@ environments:
       - conda: https://conda.anaconda.org/conda-forge/win-64/tk-8.6.13-h967ab96_4.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/tombi-1.5.5-h18a1a76_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/tornado-6.5.10-py312he06e257_0.conda
+      - conda: https://conda.anaconda.org/conda-forge/win-64/ty-0.0.84-h2852063_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/ucrt-10.0.26100.0-h57928b3_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/uv-0.12.19-h8a923dc_0.conda
       - conda: https://conda.anaconda.org/conda-forge/win-64/vc-14.5-ha367084_41.conda
@@ -319,6 +327,7 @@ environments:
       - pypi: https://files.pythonhosted.org/packages/34/95/40e17e20046b7bc820d29d09ae84ec157ec8dd6e6f6cd722626292c31b2e/widgetsnbextension-4.0.16-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/3d/d9/9d8479d5834a491d0188bd387e81b2103ec150640b345417e5efa9e377e8/egglog-14.0.0-cp312-cp312-win_amd64.whl
       - pypi: https://files.pythonhosted.org/packages/44/b9/040d1a1c7836922828e6480cd2366bb8fe0ebf75b413d2bb51a9b0e7f78f/opentelemetry_api-1.45.0-py3-none-any.whl
+      - pypi: https://files.pythonhosted.org/packages/58/42/fb3c2c3a039a91608527a70beeddf1d183abdc8697bd124df8797676cefa/zuban-0.10.0-py3-none-win_amd64.whl
       - pypi: https://files.pythonhosted.org/packages/58/50/6c0d534c5f134586a8e1ba4e330569e32f057e33372ae556463212fb4cd3/click-8.5.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/79/7b/2c79738432f5c924bef5071f933bcc9efd0473bac3b4aa584a6f7c1c8df8/mypy_extensions-1.1.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/88/39/799be3f2f0f38cc727ee3b4f1445fe6d5e4133064ec2e4115069418a5bb6/cloudpickle-3.1.2-py3-none-any.whl
@@ -1639,6 +1648,20 @@ packages:
   run_exports: {}
   size: 231451
   timestamp: 1789682034946
+- conda: https://conda.anaconda.org/conda-forge/linux-64/pyrefly-1.3.1-hf19af3b_0.conda
+  sha256: 8716e70e78c5a071e04624081b1290c11ae5ae2941f155fed67c8d891694da03
+  md5: 3b4b1f57193e4b241245a80227d11b79
+  depends:
+  - __glibc >=2.17,<3.0.a0
+  - libgcc >=15
+  constrains:
+  - __glibc >=2.17
+  license: MIT
+  license_family: MIT
+  purls: []
+  run_exports: {}
+  size: 12698314
+  timestamp: 1789963015651
 - conda: https://conda.anaconda.org/conda-forge/linux-64/python-3.12.14-h5f976f7_3_cpython.conda
   build_number: 3
   sha256: 14c579b1016da04e4c9f1c5c857272d83ec447317d8c4074a07d59de3cef70ef
@@ -1866,6 +1889,21 @@ packages:
   run_exports: {}
   size: 950218
   timestamp: 1789911064461
+- conda: https://conda.anaconda.org/conda-forge/linux-64/ty-0.0.84-h39d0f39_0.conda
+  sha256: 8139ce764ca575bff4b6415ce439aa17c2b787a716bc0f6da9fce729a4160d25
+  md5: 1edd71565e8568cc4e87d781e09b7946
+  depends:
+  - __glibc >=2.17,<3.0.a0
+  - libgcc >=15
+  constrains:
+  - __glibc >=2.17
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/ty?source=compressed-mapping
+  run_exports: {}
+  size: 12702873
+  timestamp: 1790279519180
 - conda: https://conda.anaconda.org/conda-forge/linux-64/uv-0.12.19-h841d291_0.conda
   sha256: 032a2c37546d3d8e47cfd74ae46d988f9a6befcf770b8f2e130eddcdafb827e9
   md5: 93d8d9ff6519484b67fd21038a562091
@@ -3369,6 +3407,19 @@ packages:
   run_exports: {}
   size: 242734
   timestamp: 1789682096175
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/pyrefly-1.3.1-hc2d82ec_0.conda
+  sha256: 2275d3fed100b7fbf8c9742ad921a7c4a832dc6f20cfb8c36fca5feb12ac52c5
+  md5: 79c707bd77afed620a6ad77001ee45d0
+  depends:
+  - __osx >=11.0
+  constrains:
+  - __osx >=11.0
+  license: MIT
+  license_family: MIT
+  purls: []
+  run_exports: {}
+  size: 11862779
+  timestamp: 1789963017193
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/python-3.12.14-hd05a0c4_3_cpython.conda
   build_number: 3
   sha256: fee8a2dd8a6ee98d430625d4c0f705e86c1154b1eeae5e10004c3c4d7d536eba
@@ -3574,6 +3625,20 @@ packages:
   run_exports: {}
   size: 952431
   timestamp: 1789911042938
+- conda: https://conda.anaconda.org/conda-forge/osx-arm64/ty-0.0.84-h9d00c72_0.conda
+  sha256: 7d4b587d98f3e8a07669255f265039f8e8ee45f249c9aa9d0d7d063da1cfe2ee
+  md5: 1c5cc0fe1332b7604439a7956b0fd7bf
+  depends:
+  - __osx >=11.0
+  constrains:
+  - __osx >=11.0
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/ty?source=compressed-mapping
+  run_exports: {}
+  size: 11465749
+  timestamp: 1790279522592
 - conda: https://conda.anaconda.org/conda-forge/osx-arm64/uv-0.12.19-h3207ac5_0.conda
   sha256: f4053a7091d123e36150bdf3c7dfc0518cf36f616cfd0b18bc3948da42621713
   md5: f638a3895992505088aee5dcd32acd10
@@ -4204,6 +4269,19 @@ packages:
   run_exports: {}
   size: 250040
   timestamp: 1789682043197
+- conda: https://conda.anaconda.org/conda-forge/win-64/pyrefly-1.3.1-h18a1a76_0.conda
+  sha256: c4797fbf9555d75b91d9434cd9d2537354916aeb2f73538a8492dbdc97d18fcf
+  md5: ac2914857d2db3edf6c97e731fa32f03
+  depends:
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  - ucrt >=10.0.20348.0
+  license: MIT
+  license_family: MIT
+  purls: []
+  run_exports: {}
+  size: 13095801
+  timestamp: 1789963005600
 - conda: https://conda.anaconda.org/conda-forge/win-64/python-3.12.14-hb12b558_3_cpython.conda
   build_number: 3
   sha256: 8f2eb57564fa7b7d8c5deb689939cfe16b8a4179ff2a81423ca38242371f249c
@@ -4465,6 +4543,20 @@ packages:
   run_exports: {}
   size: 954730
   timestamp: 1789911140961
+- conda: https://conda.anaconda.org/conda-forge/win-64/ty-0.0.84-h2852063_0.conda
+  sha256: 4d8290db9be4616d90581fa17ab979fa123756545c201ecb4923afd9941e5980
+  md5: f83aeee70528a1a5b13d2df7b1720655
+  depends:
+  - vc >=14.3,<15
+  - vc14_runtime >=14.44.35208
+  - ucrt >=10.0.20348.0
+  license: MIT
+  license_family: MIT
+  purls:
+  - pkg:pypi/ty?source=compressed-mapping
+  run_exports: {}
+  size: 12300623
+  timestamp: 1790279521307
 - conda: https://conda.anaconda.org/conda-forge/win-64/ucrt-10.0.26100.0-h57928b3_0.conda
   sha256: 3005729dce6f3d3f5ec91dfc49fc75a0095f9cd23bab49efb899657297ac91a5
   md5: 71b24316859acd00bdb8b38f5e2ce328
@@ -4972,6 +5064,11 @@ packages:
   - pytest-benchmark ; extra == 'test'
   - pytest-xdist ; extra == 'test'
   requires_python: '>=3.12'
+- pypi: https://files.pythonhosted.org/packages/45/6b/726e27df1b5243fda6f2206147c6566a7e17e5ff64f8fec51c01e32d69c3/zuban-0.10.0-py3-none-macosx_11_0_arm64.whl
+  name: zuban
+  version: 0.10.0
+  sha256: c81631c3e6ba5e3455d3953588c89612d8d0995be28909824df44fa997af7e40
+  requires_python: '>=3.7'
 - pypi: https://files.pythonhosted.org/packages/49/ad/b4e0d9365ba8ac34f6bbab62a4b1b2dd5d618fac3fa1b8db968c844201b5/black-26.5.1-cp313-cp313-win_amd64.whl
   name: black
   version: 26.5.1
@@ -4992,6 +5089,11 @@ packages:
   - uvloop>=0.15.2 ; sys_platform != 'win32' and extra == 'uvloop'
   - winloop>=0.5.0 ; sys_platform == 'win32' and extra == 'uvloop'
   requires_python: '>=3.10'
+- pypi: https://files.pythonhosted.org/packages/58/42/fb3c2c3a039a91608527a70beeddf1d183abdc8697bd124df8797676cefa/zuban-0.10.0-py3-none-win_amd64.whl
+  name: zuban
+  version: 0.10.0
+  sha256: de928ef243a3547fa747321fb6aad4a07657827e72c23c7905dbeab4697f8337
+  requires_python: '>=3.7'
 - pypi: https://files.pythonhosted.org/packages/58/50/6c0d534c5f134586a8e1ba4e330569e32f057e33372ae556463212fb4cd3/click-8.5.0-py3-none-any.whl
   name: click
   version: 8.5.0
@@ -5556,6 +5658,11 @@ packages:
   - typing-extensions>=4 ; extra == 'optional'
   - google-re2>=1.1 ; extra == 're2'
   requires_python: '>=3.9'
+- pypi: https://files.pythonhosted.org/packages/f6/4e/fa2148a3bac24788bda3a83c58167ae86e88b87a141911140953914d6447/zuban-0.10.0-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl
+  name: zuban
+  version: 0.10.0
+  sha256: ae1fb50593f129a5df4dc0b06f25124345f8d527623545e1a79ffb451a78e131
+  requires_python: '>=3.7'
 - pypi: https://files.pythonhosted.org/packages/fb/24/8e7b9a2fa61b0afd82209efe937557d180a1fa055bd7f6161eb9defc3719/black-26.5.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl
   name: black
   version: 26.5.1

@@ -8,7 +8,7 @@ from symbolcat import Symbol, real
 from symbolcat.lib import Constant, Function
 from symbolcat.lib.std import IMPL
 from symbolcat.ops import evaluate
-from symbolcat.ops.algebras import Literal
+from symbolcat.ops.algebras import Call, Literal
 from symbolcat.ops.egraph import (
     integer,
     negative,
@@ -45,9 +45,11 @@ def test_opaque_parts_keep_identity():
     g = Function("f", arity=1)  # same name as f, different function
     k = Constant("k")
     expr = simplify(f(x) + g(x) + k * 1)
-    funcs = {id(arg.func) for arg in expr.args[0].args}
-    assert funcs == {id(f), id(g)}
-    assert expr.args[1] is k
+    assert isinstance(expr, Call)
+    calls, constant = expr.args
+    assert isinstance(calls, Call)
+    assert {id(arg.func) for arg in calls.args} == {id(f), id(g)}
+    assert constant is k
 
 
 def test_known_constants_come_back():
@@ -280,6 +282,7 @@ def test_horner_is_reachable(degree, ascending):
         terms.reverse()
     poly = sum(terms[1:], start=terms[0])
     found = search(poly, iterations=8, max_nodes=20_000)
+    assert found is not None
     coefficients = list(range(1, degree + 2))
     assert found.equivalent(_horner(coefficients)) or found.equivalent(
         _horner(coefficients, constant_first=False)
@@ -303,7 +306,10 @@ def test_max_nodes_stops_early():
     assert evaluate(result, env, IMPL) == pytest.approx(evaluate(expr, env, IMPL))
 
 
-@pytest.mark.parametrize("expr", [Literal(1) / 0, x / 0 + 1])
+@pytest.mark.parametrize(
+    "expr",
+    [Literal(1) / 0, x / 0 + 1],  # pyrefly: ignore[division-by-zero]
+)
 def test_division_by_zero_is_returned_unchanged(expr):
     """Rules assuming non-zero denominators prove two different numbers
     equal on these; that must neither hang nor produce a wrong result."""

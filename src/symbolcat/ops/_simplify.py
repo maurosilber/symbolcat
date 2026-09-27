@@ -12,7 +12,6 @@ and a single bottom-up pass is enough. Because it works on a single layer,
 
 from __future__ import annotations
 
-from numbers import Number
 from typing import Any
 
 from .._core import Algebra, Call, Expr, Literal, cata
@@ -25,7 +24,7 @@ simplify_algebra = Algebra[Expr]("simplify")
 def is_number(expr: Expr, value: Any) -> bool:
     return (
         isinstance(expr, Literal)
-        and isinstance(expr.value, Number)
+        and isinstance(expr.value, int | float | complex)
         and not isinstance(expr.value, bool)
         and expr.value == value
     )
@@ -38,8 +37,11 @@ def fold(node: Expr) -> Expr:
         return node
     if not all(isinstance(arg, Literal) for arg in node.args):
         return node
+    func = IMPL[node.func]
+    if not callable(func):
+        return node
     try:
-        return Literal(IMPL[node.func](*(arg.value for arg in node.args)))
+        return Literal(func(*(arg.value for arg in node.args)))
     except (ArithmeticError, ValueError, TypeError):
         return node
 

@@ -22,7 +22,7 @@ LEAVES = (Num, Num.float, Num.var, Num.opaque, *CONSTANTS_BACK)
 NUM_FUNCTIONS = frozenset((*LEAVES, Num.apply, *FUNCTIONS.values()))
 
 
-def node_cost(costs: dict[Any, int], default: int) -> DagCostModel[int]:
+def node_cost(costs: dict[Any, int], default: int) -> DagCostModel[Any]:
     """Additive cost model with a cost per ``Num`` constructor."""
 
     def marginal_cost(egraph: EGraph, expr: Any) -> int:
@@ -31,7 +31,9 @@ def node_cost(costs: dict[Any, int], default: int) -> DagCostModel[int]:
             return 0
         return costs.get(fn, default)
 
-    return DagCostModel(marginal_cost, 0)
+    # (``int`` does not satisfy egglog's ``ComparableAdd`` protocol for type
+    # checkers: typeshed's ``int.__add__`` has a positional-only parameter)
+    return DagCostModel[Any](marginal_cost, 0)
 
 
 #: Number of nodes, with ties broken towards conventional forms. ``None``

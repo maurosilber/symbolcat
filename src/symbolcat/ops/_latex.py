@@ -32,7 +32,7 @@ from .._core import (
 )
 from .._core.precedence import POSTFIX, POW
 from ..lib import operators as op
-from ._printing import Printed, literal_precedence, needs_parens
+from ._printing import Printed, Side, literal_precedence, needs_parens
 
 GREEK = frozenset(
     [
@@ -142,7 +142,7 @@ def paren(text: str) -> str:
     return rf"\left({text}\right)"
 
 
-def operand(child: Printed, parent: Operator, side: str) -> str:
+def operand(child: Printed, parent: Operator, side: Side) -> str:
     return paren(child.text) if needs_parens(child, parent, side) else child.text
 
 
@@ -222,7 +222,8 @@ def _(node: Call[Printed]) -> Printed:
 
 @latex_algebra.register(Operator)
 def _(node: Call[Printed]) -> Printed:
-    func: Operator = node.func  # type: ignore[assignment]
+    func = node.func
+    assert isinstance(func, Operator)
     if func in PREFIX:
         (arg,) = node.args
         text = PREFIX[func] + operand(arg, func, "right")

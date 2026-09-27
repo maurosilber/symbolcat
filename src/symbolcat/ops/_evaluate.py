@@ -54,7 +54,7 @@ def _(node: Call[Any], *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> 
 
 def evaluate(
     expr: Any,
-    env: Mapping[Symbol | str, Any] | None = None,
+    env: Mapping[Symbol, Any] | Mapping[str, Any] | None = None,
     lib: Mapping[Any, Any] | None = None,
 ) -> Any:
     """Evaluate ``expr`` with values for its symbols and a library.

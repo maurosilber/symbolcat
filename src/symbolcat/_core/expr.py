@@ -8,7 +8,7 @@ Expression nodes and symbolic functions.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 
 class Expr:
@@ -154,7 +154,11 @@ class _Named:
     """
 
     __slots__ = ()
-    name: str
+
+    if TYPE_CHECKING:
+        # read-only, as the frozen dataclasses define it
+        @property
+        def name(self) -> str: ...
 
     def __set_name__(self, owner: type, name: str) -> None:
         if not self.name:

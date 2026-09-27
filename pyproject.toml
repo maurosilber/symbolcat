@@ -26,6 +26,19 @@ egraph = ["egglog"]
 requires = ["uv_build>=0.12"]
 build-backend = "uv_build"
 
+# for zuban: egglog terms are declared with docstring or `...` bodies
+[[tool.mypy.overrides]]
+module = ["symbolcat.ops.egraph._term"]
+disable_error_code = ["empty-body"]
+
+[tool.pyrefly]
+# explicit, so pyrefly does not migrate the [tool.mypy] settings meant for zuban
+project-includes = ["src", "tests", "conftest.py"]
+
+[[tool.pyrefly.sub-config]]
+matches = "src/symbolcat/ops/egraph/_term.py"
+errors = { bad-return = false }
+
 [tool.pytest.ini_options]
 addopts = "--doctest-glob=README.md"
 testpaths = ["src", "tests", "README.md"]
@@ -35,3 +48,12 @@ docstring-code-format = true
 
 [tool.tombi]
 toml-version = "v1.1.0"
+
+[tool.ty.environment]
+# pixi's environment is a conda prefix, which ty does not detect from VIRTUAL_ENV
+python = ".pixi/envs/default"
+
+# egglog terms are declared with docstring or `...` bodies
+[[tool.ty.overrides]]
+include = ["src/symbolcat/ops/egraph/_term.py"]
+rules = { empty-body = "ignore" }

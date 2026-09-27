@@ -27,7 +27,11 @@ dependencies = {
   tombi = "*",
   ruff = "*",
   mdformat = "*",
+  ty = "*",
+  pyrefly = "*",
 }
+# from PyPI: the conda-forge package does not ship zuban's typeshed stubs
+pypi-dependencies = { zuban = "*" }
 tasks = { lint = "prek run --all-files" }
 
 [feature.build]
