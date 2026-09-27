@@ -171,8 +171,22 @@ expanded, ...) and extracts the best one according to a cost model.
 x * (y + z)
 >>> print(egraph.simplify((x + 1) ** 2 - x**2 - 2 * x))
 1
+>>> print(egraph.simplify((x**2 - 1) / (x - 1)))
+x + 1
+>>> print(egraph.simplify(real.sin(x) ** 4 + real.cos(x) ** 4 + real.sin(2 * x) ** 2 / 2))
+1
 
 ```
+
+The rules cover arithmetic (exact on rationals), factoring, powers, `abs`,
+`exp` and `log`, and trigonometric and hyperbolic identities. Like
+`ops.simplify`, they assume the expression is defined: denominators are
+non-zero, and arguments of `log` and bases of real powers are positive. An
+input that divides by zero is returned unchanged.
+
+The search is bounded by `iterations` (passes of the rewrite rules) and
+`max_nodes` (size of the e-graph), so it stays fast on large expressions at
+the cost of possibly missing a simplification.
 
 `egraph.optimize` picks the cheapest expression to evaluate instead of the
 smallest one, and returns repeated sub-expressions as the same object, so
@@ -181,6 +195,8 @@ smallest one, and returns repeated sub-expressions as the same object, so
 ```python
 >>> print(egraph.optimize(real.sin(x) ** 2 + real.sin(x)))
 sin(x) + sin(x) * sin(x)
+>>> print(egraph.optimize(x**8))  # three shared squarings
+x * x * (x * x) * (x * x * (x * x))
 
 ```
 

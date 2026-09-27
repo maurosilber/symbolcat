@@ -4,9 +4,9 @@ symbolcat.ops.egraph._cost
 
 Cost models deciding which equivalent expression is extracted.
 
-Both count only ``Num`` nodes: the egglog primitives inside a literal
-(``BigRat``, ``BigInt``, ``String``, ...) are free, so a number costs the
-same as a symbol.
+``evaluation`` counts only ``Num`` nodes: the egglog primitives inside a
+literal (``BigRat``, ``BigInt``, ``String``, ...) are free, so a number costs
+the same as a symbol.
 """
 
 from __future__ import annotations
@@ -34,8 +34,10 @@ def node_cost(costs: dict[Any, int], default: int) -> DagCostModel[int]:
     return DagCostModel(marginal_cost, 0)
 
 
-#: Number of nodes: the smallest expression wins.
-size = node_cost({}, default=1)
+#: Number of nodes, with ties broken towards conventional forms. ``None``
+#: selects egglog's native extraction with the costs declared on the
+#: constructors in ``_term``, which is much faster than a Python callback.
+size = None
 
 #: Rough evaluation cost: prefers cheap operations and, with DAG
 #: extraction, reusing sub-expressions.
@@ -49,7 +51,7 @@ evaluation = node_cost(
         Num.__truediv__: 8,
         abs: 2,
         sqrt: 10,
-        Num.__pow__: 20,
+        Num.__pow__: 25,
         exp: 20,
         log: 20,
         sin: 20,
