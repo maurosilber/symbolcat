@@ -120,7 +120,7 @@ def simplify_naive(expr: Any) -> Expr:
 
     >>> from symbolcat import Symbol
     >>> x = Symbol("x")
-    >>> print(simplify(0 * x + 1 * (x ** (3 - 2)) + 2 * 3))
+    >>> print(simplify_naive(0 * x + 1 * (x ** (3 - 2)) + 2 * 3))
     x + 6
     """
     return cata(simplify_algebra, expr)

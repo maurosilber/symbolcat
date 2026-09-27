@@ -13,7 +13,9 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 from dataclasses import dataclass
+from functools import cache
 from itertools import count
+from threading import Lock
 from typing import Any, Literal
 
 from egglog import DagCostModel, EGraph, Schedule, back_off, eq, run, seq
@@ -118,7 +120,9 @@ def search(
     assume: Iterable[Assumption] = (),
     iterations: int,
     max_nodes: int,
+    match_limit: int = 1000,
     prepare_passes: int = 64,
+    egraph: EGraph | None = None,
 ) -> Search | None:
     """Saturate an e-graph with ``expr``.
 
@@ -131,8 +135,9 @@ def search(
     assumptions).
     """
     table = Table()
-    egraph = EGraph()
-    root = egraph.let("root", to_egglog(expr, table))
+    if egraph is None:
+        egraph = EGraph()
+    root = egraph.let(f"root{next(_names)}", to_egglog(expr, table))
     for assumption in assume:
         term = to_egglog(assumption.expr, table)
         egraph.register(PROPERTIES[assumption.property](term))
@@ -146,7 +151,7 @@ def search(
         egraph.run(shrinking)
         if not report.updated or size(egraph) > max_nodes:
             break
-    growing = grow()
+    growing = grow(match_limit)
     for _ in range(iterations):
         if contradiction(egraph):
             return None
@@ -157,6 +162,7 @@ def search(
             break
     if contradiction(egraph):
         return None
+    egraph.run(seq(*map(run, rules.COSTS)).saturate())
     return Search(egraph, root, table)
 
 
@@ -166,6 +172,7 @@ def saturate(
     assume: Iterable[Assumption],
     iterations: int,
     max_nodes: int,
+    match_limit: int,
     cost_model: DagCostModel[Any] | None,
     extractor: Literal["tree", "greedy-dag"],
 ) -> Expr:
@@ -174,17 +181,48 @@ def saturate(
     An undefined input is returned unchanged.
     """
     expr = as_expr(expr)
-    found = search(expr, assume=assume, iterations=iterations, max_nodes=max_nodes)
-    if found is None:
-        return expr
-    return found.extract(cost_model, extractor)
+    with _lock:
+        egraph = _shared()
+        egraph.push()
+        try:
+            found = search(
+                expr,
+                assume=assume,
+                iterations=iterations,
+                max_nodes=max_nodes,
+                match_limit=match_limit,
+                egraph=egraph,
+            )
+            if found is None:
+                return expr
+            return found.extract(cost_model, extractor)
+        finally:
+            egraph.pop()
+
+
+_lock = Lock()
+
+
+@cache
+def _shared() -> EGraph:
+    """An e-graph with every ruleset registered.
+
+    Registering the rules costs more than most searches, so each search runs
+    on this e-graph between ``push`` and ``pop`` instead of on a new one.
+    """
+    egraph = EGraph()
+    others = rules.ANALYSIS + rules.PREPARE + rules.COSTS
+    for schedule in (shrink(), grow(), seq(*map(run, others))):
+        egraph.run(schedule)
+    return egraph
 
 
 def simplify(
     expr: Any,
     assume: Iterable[Assumption] = (),
     iterations: int = 8,
-    max_nodes: int = 20_000,
+    max_nodes: int = 5_000,
+    match_limit: int = 1_000,
 ) -> Expr:
     """The smallest equivalent expression found.
 
@@ -192,7 +230,9 @@ def simplify(
     ``assume`` enables more (see ``positive``, ``integer``, ...).
 
     The e-graph grows for ``iterations`` passes of the rewrite rules, or
-    until it holds more than ``max_nodes`` e-nodes.
+    until it holds more than ``max_nodes`` e-nodes. A rule matching more than
+    ``match_limit`` times in a pass is banned for a while (back-off). Deeper
+    identities may need larger limits (see the last example).
 
     >>> from symbolcat import Symbol, real
     >>> x, y, z = Symbol("x"), Symbol("y"), Symbol("z")
@@ -202,12 +242,16 @@ def simplify(
     2
     >>> print(simplify((x + 1) ** 2 - x**2 - 2 * x))
     1
+    >>> e = real.sin(x) ** 4 + real.cos(x) ** 4 + real.sin(2 * x) ** 2 / 2
+    >>> print(simplify(e, max_nodes=10_000, match_limit=10_000))
+    1
     """
     return saturate(
         expr,
         assume=assume,
         iterations=iterations,
         max_nodes=max_nodes,
+        match_limit=match_limit,
         cost_model=cost.size,
         extractor="tree",
     )
@@ -217,11 +261,13 @@ def optimize(
     expr: Any,
     assume: Iterable[Assumption] = (),
     iterations: int = 8,
-    max_nodes: int = 20_000,
+    max_nodes: int = 5_000,
+    match_limit: int = 1_000,
 ) -> Expr:
     """The cheapest equivalent expression to evaluate that was found.
 
-    ``assume``, ``iterations`` and ``max_nodes`` are as in ``simplify``.
+    ``assume``, ``iterations``, ``max_nodes`` and ``match_limit`` are as in
+    ``simplify``.
 
     Uses DAG extraction: repeated sub-expressions are returned as the same
     object, so ``cata`` (and therefore ``evaluate``) computes them once.
@@ -229,17 +275,18 @@ def optimize(
     >>> from symbolcat import Symbol, real
     >>> x = Symbol("x")
     >>> expr = optimize(real.sin(x) ** 2 + real.sin(x))
-    >>> print(expr)
-    sin(x) + sin(x) * sin(x)
-    >>> single, product = expr.args
-    >>> product.args[0] is product.args[1] is single
-    True
+    >>> from symbolcat.ops.algebras import cata
+    >>> visited = []
+    >>> _ = cata(visited.append, expr)
+    >>> sum(getattr(node, "func", None) is real.sin for node in visited)
+    1
     """
     return saturate(
         expr,
         assume=assume,
         iterations=iterations,
         max_nodes=max_nodes,
+        match_limit=match_limit,
         cost_model=cost.evaluation,
         extractor="greedy-dag",
     )

@@ -6,16 +6,16 @@ Assumptions about sub-expressions, passed as ``assume=[...]``.
 
 By default, ``simplify`` and ``optimize`` only apply rules that are valid
 wherever the expression is defined. Some identities need more:
-``log(x * y) == log(x) + log(y)`` only when ``x`` and ``y`` are positive.
-Assumptions enable those rules.
+``sqrt(x ** 2) == x`` only when ``x`` is nonnegative. Assumptions enable
+those rules.
 
 >>> from symbolcat import Symbol, real
->>> from symbolcat.ops.egraph import positive, simplify
->>> x, y = Symbol("x"), Symbol("y")
->>> print(simplify(real.log(x * y) - real.log(x)))
-log(x * y) - log(x)
->>> print(simplify(real.log(x * y) - real.log(x), assume=[positive(x)]))
-log(y)
+>>> from symbolcat.ops.egraph import nonnegative, simplify
+>>> x = Symbol("x")
+>>> print(simplify(real.sqrt(x**2)))
+abs(x)
+>>> print(simplify(real.sqrt(x**2), assume=[nonnegative(x)]))
+x
 
 Properties are also derived: literals, ``exp(a)`` and ``cosh(a)`` are
 signed, sums and products of positives are positive, and so on.

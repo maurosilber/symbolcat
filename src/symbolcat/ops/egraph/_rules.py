@@ -207,19 +207,28 @@ def assumed(a: Num, b: Num, c: Num) -> Rules:
     yield rewrite(sqrt(a * b)).to(sqrt(a) * sqrt(b), is_positive(b))
     # powers with any exponent
     # (literal integer exponents are handled by ``powers``, with a bound)
-    yield rewrite((a * b) ** c).to(a**c * b**c, is_positive(a), is_positive(b))
-    yield rewrite((a**b) ** c).to(a ** (b * c), is_positive(a))
+    # (k * y) ** c == k ** c * y ** c for k > 0 wherever it is defined
+    yield rewrite((a * b) ** c).to(a**c * b**c, is_positive(a))
+    yield rewrite((a * b) ** c).to(a**c * b**c, is_positive(b))
+    yield rewrite((a * b) ** c).to(a**c * b**c, is_integer(c))
+    yield rewrite(a**c * b**c).to((a * b) ** c, is_nonnegative(a), is_nonnegative(b))
+    yield rewrite((a**b) ** c).to(a ** (b * c), is_nonnegative(a))
     yield rewrite((a**b) ** c).to(a ** (b * c), is_integer(c))
+    yield rewrite(a**b).to(exp(b * log(a)), is_positive(a))
     yield rewrite(ZERO**a).to(ZERO, is_positive(a))
     # integer multiples of pi
     yield rewrite(sin(Num.pi * a)).to(ZERO, is_integer(a))
     yield rewrite(tan(Num.pi * a)).to(ZERO, is_integer(a))
     yield rewrite(cos(Num.pi * a)).to(MINUS_ONE**a, is_integer(a))
     yield rewrite(MINUS_ONE ** (TWO * a)).to(ONE, is_integer(a))
+    yield rewrite(sin(Num.pi * (a + HALF))).to(MINUS_ONE**a, is_integer(a))
+    yield rewrite(cos(Num.pi * (a + HALF))).to(ZERO, is_integer(a))
+    yield rewrite(atan(a) + atan(ONE / a)).to(Num.pi / TWO, is_positive(a))
+    yield rewrite(atan(a) + atan(ONE / a)).to(-Num.pi / TWO, is_negative(a))
 
 
 @ruleset
-def literal_costs(a: Num, p: BigRat) -> Rules:
+def literal_costs(a: Num, p: BigRat, q: BigRat) -> Rules:
     """Negative and fractional literals cost a bit more: ``1 / x`` over
     ``x ** -1``, ``x - 1`` over ``x + -1``, and ``x / 6`` over
     ``x * (1 / 6)``. Named constants cost as much as any leaf."""
@@ -227,6 +236,18 @@ def literal_costs(a: Num, p: BigRat) -> Rules:
     yield rule(eq(a).to(Num(p)), p >= BigRat(0, 1), ne(p.denom).to(BigInt(1))).then(
         set_cost(Num(p), NODE + 40)
     )
+    # roots of fractions cost more than roots of integers: sqrt(3) / 2 over
+    # sqrt(3/4), (3/4) ** (1/2) and 2 ** (-1/2)
+    fraction = ne(p.denom).to(BigInt(1))
+    yield rule(eq(a).to(sqrt(Num(p))), fraction).then(set_cost(sqrt(Num(p)), 5 * NODE))
+    yield rule(eq(a).to(Num(p) ** Num(q)), ne(q.denom).to(BigInt(1))).then(
+        set_cost(Num(p) ** Num(q), 5 * NODE)
+    )
+    # and roots with a square factor a bit more: sqrt(3) / 2 over sqrt(12) / 4
+    for k in range(2, 11):
+        yield rule(
+            eq(a).to(sqrt(Num(p))), p > BigRat(0, 1), integer(p / BigRat(k * k, 1))
+        ).then(set_cost(sqrt(Num(p)), NODE + 20))
     yield rule(eq(a).to(Num.pi)).then(set_cost(Num.pi, NODE))
     yield rule(eq(a).to(Num.e)).then(set_cost(Num.e, NODE))
 
@@ -371,7 +392,7 @@ def identities(a: Num) -> Rules:
 
 
 @ruleset
-def algebra(a: Num, b: Num, c: Num, p: BigRat, q: BigRat) -> Rules:
+def algebra(a: Num, b: Num, c: Num, d: Num, p: BigRat, q: BigRat) -> Rules:
     """Commutative ring, and the other operations in terms of + and *."""
     yield rewrite(a + b).to(b + a)
     yield rewrite(a * b).to(b * a)
@@ -388,6 +409,15 @@ def algebra(a: Num, b: Num, c: Num, p: BigRat, q: BigRat) -> Rules:
     yield rewrite(a / (a / b)).to(b)
     yield rewrite(a * (b / a)).to(b)
     yield birewrite(a * (b / c)).to((a * b) / c)
+    # adding fractions, from Herbie and SymbolicUtils.jl: no rule introduces
+    # d / d, so these are not derivable
+    yield rewrite(a / b + c / d).to((a * d + b * c) / (b * d))
+    yield rewrite(a / b - c / d).to((a * d - b * c) / (b * d))
+    yield rewrite(c + a / b).to((c * b + a) / b)
+    yield rewrite(c - a / b).to((c * b - a) / b)
+    # rationalized roots (these extend the domain where the denominator is 0)
+    yield rewrite((a - b) / (sqrt(a) + sqrt(b))).to(sqrt(a) - sqrt(b))
+    yield rewrite((a**TWO - b) / (a + sqrt(b))).to(a - sqrt(b))
     yield rewrite((a / b) / c).to(a / (b * c))
     yield rewrite(a / (b / c)).to(a * c / b)
     # factoring
@@ -470,7 +500,30 @@ def powers(a: Num, b: Num, c: Num, p: BigRat, q: BigRat) -> Rules:
         p > BigRat(1, 1),
         p <= BigRat(16, 1),
     )
-    yield rewrite(abs(a * b)).to(abs(a) * abs(b))
+    # absolute values and roots, after Herbie, SymPy and SymbolicUtils.jl
+    yield birewrite(abs(a * b)).to(abs(a) * abs(b))
+    yield birewrite(abs(a / b)).to(abs(a) / abs(b))
+    yield rewrite(abs(a ** Num(q))).to(abs(a) ** Num(q), integer(q))
+    yield rewrite(abs(a) ** Num(q)).to(a ** Num(q), integer(q / BigRat(2, 1)))
+    yield rewrite((a**TWO) ** b).to(abs(a) ** (TWO * b))
+    yield rewrite(sqrt(a) * sqrt(b)).to(sqrt(a * b))
+    yield rewrite(sqrt(a) / sqrt(b)).to(sqrt(a / b))
+    yield rewrite(sqrt(a * b)).to(sqrt(abs(a)) * sqrt(abs(b)))
+    yield rewrite(sqrt(a / b)).to(sqrt(abs(a)) / sqrt(abs(b)))
+    yield rewrite(sqrt(a) ** b).to(a ** (b / TWO))  # sqrt(a) needs a >= 0
+    yield rewrite(ONE / sqrt(a)).to(sqrt(a) / a)
+    yield rewrite(cos(abs(a))).to(cos(a))
+    yield rewrite(cosh(abs(a))).to(cosh(a))
+    # square roots of literals: sqrt(12) == 2 * sqrt(3), sqrt(3/4) == sqrt(12) / 4
+    for k in range(2, 11):
+        k2 = BigRat(k * k, 1)
+        yield rewrite(sqrt(Num(q))).to(
+            rat(k) * sqrt(Num(q / k2)), integer(q / k2), q > k2
+        )
+    d = BigRat(q.denom, BigInt(1))
+    yield rewrite(sqrt(Num(q))).to(
+        sqrt(Num(q * d * d)) / Num(d), q > BigRat(0, 1), ne(q.denom).to(BigInt(1))
+    )
     # literal factors out of roots and into squares: sqrt(4 * x) == 2 * sqrt(x)
     yield rewrite(sqrt(Num(p) * a)).to(sqrt(Num(p)) * sqrt(a), p > BigRat(0, 1))
     for k in range(2, 13):
@@ -482,14 +535,101 @@ def exponential(a: Num, b: Num, p: BigRat) -> Rules:
     yield birewrite(exp(a) * exp(b)).to(exp(a + b))
     yield rewrite(exp(a) ** b).to(exp(a * b))
     yield birewrite(Num.e**a).to(exp(a))
-    # valid wherever the left-hand side is defined (a, b > 0); the other
-    # direction needs assumptions (see ``assumed``)
+    # only literal factors: exp(3 * x) -> exp(3) ** x would tie with exp(x) ** 3
+    yield rewrite(exp(Num(p) * a)).to(exp(a) ** Num(p))
+    yield rewrite(exp(a - b)).to(exp(a) / exp(b))
+    # valid wherever the left-hand side is defined (a, b > 0)
     yield rewrite(log(a) + log(b)).to(log(a * b))
+    yield rewrite(log(a) - log(b)).to(log(a / b))
+    yield rewrite(-log(a)).to(log(ONE / a))
+    yield rewrite(Num(p) * log(a)).to(log(a ** Num(p)))
     yield rewrite(exp(b * log(a))).to(a**b)
+    # log(a * b) is defined for a * b > 0, where it is log|a| + log|b| (with
+    # assumptions, ``abs`` goes away); likewise log(a ** b) == b * log|a|,
+    # as a ** b is only defined for negative a if b is an integer
+    yield rewrite(log(a * b)).to(log(abs(a)) + log(abs(b)))
+    yield rewrite(log(a / b)).to(log(abs(a)) - log(abs(b)))
+    yield rewrite(log(a**b)).to(b * log(abs(a)))
     # log(a ** p) is defined only for a ** p > 0: a > 0 unless p is even
     half_p = p / BigRat(2, 1)
     yield rewrite(log(a ** Num(p))).to(Num(p) * log(abs(a)), integer(half_p))
     yield rewrite(log(a ** Num(p))).to(Num(p) * log(a), ne(half_p.denom).to(BigInt(1)))
+
+
+def _root(n: int) -> Num:
+    return sqrt(rat(n))
+
+
+# sin(p * pi) for rational p in [0, 1/2], from SymPy and Herbie
+SINES = {
+    (1, 12): (_root(6) - _root(2)) / rat(4),
+    (1, 10): (_root(5) - ONE) / rat(4),
+    (1, 8): sqrt(TWO - _root(2)) / TWO,
+    (1, 6): HALF,
+    (1, 4): _root(2) / TWO,
+    (3, 10): (_root(5) + ONE) / rat(4),
+    (1, 3): _root(3) / TWO,
+    (3, 8): sqrt(TWO + _root(2)) / TWO,
+    (5, 12): (_root(6) + _root(2)) / rat(4),
+    (1, 2): ONE,
+}
+# tan(p * pi) for rational p in [0, 1/2)
+TANGENTS = {
+    (1, 12): TWO - _root(3),
+    (1, 8): _root(2) - ONE,
+    (1, 6): _root(3) / rat(3),
+    (1, 4): ONE,
+    (1, 3): _root(3),
+    (3, 8): _root(2) + ONE,
+    (5, 12): TWO + _root(3),
+}
+
+
+@ruleset
+def angles(p: BigRat) -> Rules:
+    """Special values at rational multiples of pi.
+
+    Angles are first reduced into [0, pi/2], and cosines written as sines:
+    coefficients are only ever combined, never split, so sin(2 * pi / 3)
+    would otherwise never reach the tables.
+    """
+    zero, one, half = BigRat(0, 1), BigRat(1, 1), BigRat(1, 2)
+    for angle in (Num(p) * Num.pi, Num.pi * Num(p)):
+        yield rewrite(sin(angle)).to(-sin(Num(-p) * Num.pi), p < zero)
+        yield rewrite(sin(angle)).to(-sin(Num(p - one) * Num.pi), p > one)
+        yield rewrite(sin(angle)).to(sin(Num(one - p) * Num.pi), p > half, p <= one)
+        yield rewrite(cos(angle)).to(cos(Num(-p) * Num.pi), p < zero)
+        yield rewrite(cos(angle)).to(-cos(Num(p - one) * Num.pi), p > one)
+        yield rewrite(cos(angle)).to(-cos(Num(one - p) * Num.pi), p > half, p <= one)
+        yield rewrite(cos(angle)).to(sin(Num(half - p) * Num.pi), p >= zero, p <= half)
+        yield rewrite(tan(angle)).to(-tan(Num(-p) * Num.pi), p < zero)
+        yield rewrite(tan(angle)).to(tan(Num(p - one) * Num.pi), p > half)
+    for (n, d), value in SINES.items():
+        yield replace(sin(rat(n, d) * Num.pi)).to(value)
+        yield replace(sin(Num.pi * rat(n, d))).to(value)
+    for (n, d), value in TANGENTS.items():
+        yield replace(tan(rat(n, d) * Num.pi)).to(value)
+        yield replace(tan(Num.pi * rat(n, d))).to(value)
+
+
+@ruleset
+def inverse_trigonometric(a: Num) -> Rules:
+    """From Herbie and SymPy."""
+    yield rewrite(asin(-a)).to(-asin(a))
+    yield rewrite(atan(-a)).to(-atan(a))
+    yield rewrite(acos(-a)).to(Num.pi - acos(a))
+    yield birewrite(acos(a)).to(Num.pi / TWO - asin(a))
+    yield rewrite(cos(asin(a))).to(sqrt(ONE - a**TWO))
+    yield rewrite(sin(acos(a))).to(sqrt(ONE - a**TWO))
+    yield rewrite(tan(asin(a))).to(a / sqrt(ONE - a**TWO))
+    yield rewrite(tan(acos(a))).to(sqrt(ONE - a**TWO) / a)
+    yield rewrite(sin(atan(a))).to(a / sqrt(ONE + a**TWO))
+    yield rewrite(cos(atan(a))).to(ONE / sqrt(ONE + a**TWO))
+    # special values (the others follow from symmetry and acos <-> asin)
+    for (n, d), value in SINES.items():
+        yield replace(asin(value)).to(Num.pi * rat(n, d))
+    for (n, d), value in TANGENTS.items():
+        yield replace(atan(value)).to(Num.pi * rat(n, d))
 
 
 @ruleset
@@ -509,6 +649,55 @@ def trigonometric(a: Num, b: Num) -> Rules:
     yield rewrite(cos(a) ** rat(-2) - ONE).to(tan(a) ** TWO)
     yield rewrite(ONE + tan(a) ** rat(-2)).to(sin(a) ** rat(-2))
     yield rewrite(sin(a) ** rat(-2) - ONE).to(tan(a) ** rat(-2))
+    yield rewrite(cos(a) ** rat(-2) - tan(a) ** TWO).to(ONE)
+    yield rewrite(tan(a) ** rat(-2) - sin(a) ** rat(-2)).to(MINUS_ONE)
+    # from Herbie, SymPy (fu.py) and SymbolicUtils.jl
+    half_sum, half_diff = (a + b) / TWO, (a - b) / TWO
+    # double angle, as shortcuts
+    yield rewrite(sin(a) * cos(a)).to(sin(TWO * a) / TWO)
+    yield rewrite(cos(a) ** TWO - sin(a) ** TWO).to(cos(TWO * a))
+    yield rewrite(sin(a) ** TWO - cos(a) ** TWO).to(-cos(TWO * a))
+    # half angle
+    yield birewrite(sin(a) / (ONE + cos(a))).to(tan(a / TWO))
+    yield rewrite((ONE - cos(a)) / sin(a)).to(tan(a / TWO))
+    yield rewrite((sin(a) + sin(b)) / (cos(a) + cos(b))).to(tan(half_sum))
+    yield rewrite((sin(a) - sin(b)) / (cos(a) + cos(b))).to(tan(half_diff))
+    yield rewrite(sqrt((ONE - cos(a)) / TWO)).to(abs(sin(a / TWO)))
+    yield rewrite(sqrt((ONE + cos(a)) / TWO)).to(abs(cos(a / TWO)))
+    # tangent addition, only compressing: expanding tan(a + b) is undefined
+    # where tan(a) is, even if tan(a + b) is not
+    yield rewrite((tan(a) + tan(b)) / (ONE - tan(a) * tan(b))).to(tan(a + b))
+    yield rewrite(TWO * tan(a) / (ONE - tan(a) ** TWO)).to(tan(TWO * a))
+    yield rewrite(-ONE / tan(a)).to(tan(a + Num.pi / TWO))
+
+
+@ruleset
+def trigonometric_expansions(a: Num, b: Num) -> Rules:
+    """Identities that expand an expression, from Herbie and SymPy (fu.py).
+
+    They match almost every trigonometric expression, so the e-graph grows
+    quickly: ``max_nodes`` keeps the search short.
+    """
+    half_sum, half_diff = (a + b) / TWO, (a - b) / TWO
+    # triple angle
+    three = rat(3)
+    yield birewrite(sin(three * a)).to(three * sin(a) - rat(4) * sin(a) ** three)
+    yield birewrite(cos(three * a)).to(rat(4) * cos(a) ** three - three * cos(a))
+    # power reduction
+    yield rewrite(sin(a) ** TWO).to(HALF - cos(TWO * a) / TWO)
+    yield rewrite(cos(a) ** TWO).to(HALF + cos(TWO * a) / TWO)
+    # product to sum
+    yield rewrite(sin(a) * cos(b)).to((sin(a + b) + sin(a - b)) / TWO)
+    yield rewrite(cos(a) * cos(b)).to((cos(a - b) + cos(a + b)) / TWO)
+    yield rewrite(sin(a) * sin(b)).to((cos(a - b) - cos(a + b)) / TWO)
+    # sum to product
+    yield rewrite(sin(a) + sin(b)).to(TWO * sin(half_sum) * cos(half_diff))
+    yield rewrite(sin(a) - sin(b)).to(TWO * cos(half_sum) * sin(half_diff))
+    yield rewrite(cos(a) + cos(b)).to(TWO * cos(half_sum) * cos(half_diff))
+    yield rewrite(cos(a) - cos(b)).to(-TWO * sin(half_sum) * sin(half_diff))
+    yield rewrite(sin(a) + cos(a)).to(_root(2) * sin(a + Num.pi / rat(4)))
+    yield rewrite(_root(3) * sin(a) + cos(a)).to(TWO * sin(a + Num.pi / rat(6)))
+    yield rewrite(sin(a) + _root(3) * cos(a)).to(TWO * sin(a + Num.pi / rat(3)))
 
 
 @ruleset
@@ -521,20 +710,46 @@ def hyperbolic(a: Num, b: Num) -> Rules:
     yield birewrite(sinh(a + b)).to(sinh(a) * cosh(b) + cosh(a) * sinh(b))
     yield birewrite(cosh(a + b)).to(cosh(a) * cosh(b) + sinh(a) * sinh(b))
     yield rewrite(ONE - tanh(a) ** TWO).to(cosh(a) ** rat(-2))
+    # from Herbie, SymPy and SymbolicUtils.jl
+    half_sum, half_diff = (a + b) / TWO, (a - b) / TWO
+    yield rewrite(cosh(a) ** TWO - ONE).to(sinh(a) ** TWO)
+    yield rewrite(sinh(a) ** TWO + ONE).to(cosh(a) ** TWO)
+    yield rewrite(sinh(a) * cosh(a)).to(sinh(TWO * a) / TWO)
+    yield rewrite(cosh(a) ** TWO + sinh(a) ** TWO).to(cosh(TWO * a))
+    # the denominators are positive, so both directions are valid
+    yield birewrite((tanh(a) + tanh(b)) / (ONE + tanh(a) * tanh(b))).to(tanh(a + b))
+    yield birewrite(TWO * tanh(a) / (ONE + tanh(a) ** TWO)).to(tanh(TWO * a))
+    yield birewrite(tanh(a)).to((exp(TWO * a) - ONE) / (exp(TWO * a) + ONE))
+    # half angle
+    yield birewrite(sinh(a) / (cosh(a) + ONE)).to(tanh(a / TWO))
+    yield rewrite((cosh(a) - ONE) / sinh(a)).to(tanh(a / TWO))
+    yield birewrite(sqrt((cosh(a) + ONE) / TWO)).to(cosh(a / TWO))
+    yield rewrite(sinh(a / TWO)).to(sinh(a) / sqrt(TWO * (cosh(a) + ONE)))
+    # sum to product
+    yield rewrite(sinh(a) + sinh(b)).to(TWO * sinh(half_sum) * cosh(half_diff))
+    yield rewrite(sinh(a) - sinh(b)).to(TWO * cosh(half_sum) * sinh(half_diff))
+    yield rewrite(cosh(a) + cosh(b)).to(TWO * cosh(half_sum) * cosh(half_diff))
+    yield rewrite(cosh(a) - cosh(b)).to(TWO * sinh(half_sum) * sinh(half_diff))
 
 
-SHRINK = (contradictions, fold, identities, literal_costs)
+SHRINK = (contradictions, fold, identities)
+#: Costs for extraction, set once at the end: on an undefined input (two
+#: literals merged) they would conflict.
+COSTS = (literal_costs,)
 #: Rules deriving facts, run to saturation once per iteration (not in every
 #: shrinking pass: they only feed ``assumed`` and the contradiction check).
 ANALYSIS = (signs,)
 #: Growing rules that run on their own before the search.
 PREPARE = (horner,)
 GROW = (
+    angles,
+    inverse_trigonometric,
     coefficients,
     algebra,
     powers,
     exponential,
     trigonometric,
     hyperbolic,
+    trigonometric_expansions,
     assumed,
 )

@@ -7,7 +7,8 @@ Put extracted products in a conventional order.
 Extraction cannot tell apart equally cheap orderings of a product
 (``3 * (x * y)``, ``y * x * 3``, ...). This algebra flattens chains of
 products and sorts the factors: numbers, then named constants, then symbols
-alphabetically, then everything else in their original order.
+alphabetically, then everything else in their original order. A leading
+fraction becomes a division (``pi / 6``, not ``1 / 6 * pi``).
 
 Flattening rebuilds products, so it must not be used on DAG extractions:
 a factor shared between products would be duplicated.
@@ -15,6 +16,7 @@ a factor shared between products would be duplicated.
 
 from __future__ import annotations
 
+from math import prod
 from typing import Any
 
 from ..._core import Algebra, Call, Constant, Expr, Literal, Symbol, cata
@@ -54,10 +56,21 @@ def rank(expr: Expr) -> tuple[int, str]:
 @canonical_algebra.register(op.mul)
 def _(node: Call[Expr]) -> Expr:
     ordered = sorted((f for arg in node.args for f in factors(arg)), key=rank)
+    # multiply literal factors: 2 * 2 * x -> 4 * x
+    numbers = [f for f in ordered if isinstance(f, Literal)]
+    if len(numbers) > 1 and all(isinstance(f.value, int | float) for f in numbers):
+        product = Literal(prod(f.value for f in numbers))
+        ordered = [product, *(f for f in ordered if not isinstance(f, Literal))]
+    # a leading fraction is written as a division: pi / 6, not 1 / 6 * pi
+    denominator = None
+    first = ordered[0]
+    if isinstance(first, Call) and first.func is op.truediv and len(ordered) > 1:
+        numerator, denominator = first.args
+        ordered = ordered[1:] if numerator == Literal(1) else [numerator, *ordered[1:]]
     result = ordered[0]
     for factor in ordered[1:]:
         result = op.mul(result, factor)
-    return result
+    return result if denominator is None else op.truediv(result, denominator)
 
 
 def canonical(expr: Any) -> Expr:

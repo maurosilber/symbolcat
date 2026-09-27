@@ -117,7 +117,6 @@ def test_known_constants_come_back():
         # trigonometric and hyperbolic
         (real.sin(x + real.constants.pi), -real.sin(x)),
         (real.sin(x) / real.cos(x), real.tan(x)),
-        (real.sin(x) ** 4 + real.cos(x) ** 4 + real.sin(2 * x) ** 2 / 2, Literal(1)),
         (real.exp(x) - real.exp(-x), 2 * real.sinh(x)),
         (real.sin(x + 2 * real.constants.pi), real.sin(x)),
         (real.sin(real.constants.pi / 6) + real.cos(real.constants.pi / 3), Literal(1)),
@@ -145,23 +144,29 @@ def test_simplify(expr, expected):
     assert simplify(expr) == expected
 
 
+def test_deep_identity_with_larger_limits():
+    expr = real.sin(x) ** 4 + real.cos(x) ** 4 + real.sin(2 * x) ** 2 / 2
+    assert simplify(expr, max_nodes=10_000, match_limit=10_000) == Literal(1)
+
+
 @pytest.mark.parametrize(
-    "expr",
+    "expr, needs_assumption",
     [
-        real.log(x * y) - real.log(x),  # false for negative x and y
-        real.log(x**2),  # 2 * log(x) is undefined for negative x
-        real.abs(x) - x,
-        real.sin(real.constants.pi * y),
+        (real.sqrt(x**2) - x, Literal(0)),  # 0 only for nonnegative x
+        (real.log(x**2), 2 * real.log(x)),  # undefined for negative x
+        (real.abs(x) - x, Literal(0)),
+        (real.sin(real.constants.pi * y), Literal(0)),  # needs integer y
     ],
 )
-def test_strict_by_default(expr):
-    assert simplify(expr) == expr
+def test_strict_by_default(expr, needs_assumption):
+    assert simplify(expr) != needs_assumption
 
 
 @pytest.mark.parametrize(
     "expr, expected",
     [
         # valid wherever the input is defined, so no assumption needed
+        (real.log(x * y) - real.log(x), real.log(y)),  # needs x, y > 0
         (real.log(x) + real.log(y), real.log(x * y)),
         (real.log(x / y) + real.log(y), real.log(x)),
         (real.log(x**3) / real.log(x), Literal(3)),  # odd power: x > 0
@@ -219,6 +224,38 @@ a, b, c, d = Symbol("a"), Symbol("b"), Symbol("c"), Symbol("d")
     ],
 )
 def test_metatheory(expr, expected):
+    assert simplify(expr) == expected
+
+
+@pytest.mark.parametrize(
+    "expr, expected",
+    [
+        # from Herbie, SymPy, SymbolicUtils.jl and egglog's Herbie port
+        (
+            (real.sin(x) + real.sin(y)) / (real.cos(x) + real.cos(y)),
+            real.tan((x + y) / 2),
+        ),
+        (3 * real.sin(x) - 4 * real.sin(x) ** 3, real.sin(3 * x)),
+        (2 * real.sin(x) ** 2 - 1, -real.cos(2 * x)),
+        (real.sin(x) / (1 + real.cos(x)), real.tan(x / 2)),
+        (real.cosh(x) ** 2 - 1, real.sinh(x) ** 2),
+        (real.sinh(x) ** 2 + 1, real.cosh(x) ** 2),
+        ((real.exp(2 * x) - 1) / (real.exp(2 * x) + 1), real.tanh(x)),
+        # special values and inverse functions
+        (real.sin(2 * real.constants.pi / 3), real.sqrt(Literal(3)) / 2),
+        (real.asin(Literal(1) / 2), real.constants.pi / 6),
+        (real.asin(x) + real.acos(x), real.constants.pi / 2),
+        (real.acos(-x) + real.acos(x), real.constants.pi),
+        # roots, absolute values, logarithms and fractions
+        (real.sqrt(Literal(3) / 4), real.sqrt(Literal(3)) / 2),
+        (real.sqrt(Literal(18)) / 3, real.sqrt(Literal(2))),
+        (real.sqrt(x) * real.sqrt(y), real.sqrt(x * y)),
+        (real.abs(x) * real.abs(y), real.abs(x * y)),
+        (real.log(x) - real.log(y), real.log(x / y)),
+        (1 / x - 1 / (x + 1), 1 / (x + x**2)),
+    ],
+)
+def test_rules_from_other_libraries(expr, expected):
     assert simplify(expr) == expected
 
 

@@ -92,7 +92,7 @@ most specific one wins:
 | `to_latex` | `Printed(text, precedence)` |
 | `evaluate` | a backend value (Python, NumPy, SymPy) |
 | `substitute` | the rebuilt expression, with replacements |
-| `simplify` | the rebuilt expression, constant-folded |
+| `simplify_naive` | the rebuilt expression, constant-folded |
 | `diff` | a `(value, derivative)` pair |
 | `free_symbols` | the ordered set of user symbols |
 
@@ -141,10 +141,10 @@ mapping:
 ### Substitution, simplification and differentiation
 
 ```python
->>> from symbolcat.ops import diff, simplify, substitute
+>>> from symbolcat.ops import diff, simplify_naive, substitute
 >>> print(substitute(x + 2 * y, {x: y, y: x}))
 y + 2 * x
->>> print(simplify(0 * x + 1 * x ** (3 - 2)))
+>>> print(simplify_naive(0 * x + 1 * x ** (3 - 2)))
 x
 >>> print(diff(x**3 + y * x, x))
 3 * x ** 2 + y
@@ -160,7 +160,7 @@ differentiation.
 
 `symbolcat.ops.egraph` simplifies and optimizes expressions with
 [egglog](https://github.com/egraphs-good/egglog-python) (install the `egraph`
-extra). Unlike `simplify`, which makes one bottom-up pass of local rules,
+extra). Unlike `simplify_naive`, which makes one bottom-up pass of local rules,
 equality saturation keeps many equivalent forms at once (commuted, factored,
 expanded, ...) and extracts the best one according to a cost model.
 
@@ -173,7 +173,8 @@ x * (y + z)
 1
 >>> print(egraph.simplify((x**2 - 1) / (x - 1)))
 x + 1
->>> print(egraph.simplify(real.sin(x) ** 4 + real.cos(x) ** 4 + real.sin(2 * x) ** 2 / 2))
+>>> quartic = real.sin(x) ** 4 + real.cos(x) ** 4 + real.sin(2 * x) ** 2 / 2
+>>> print(egraph.simplify(quartic, max_nodes=10_000, match_limit=10_000))
 1
 
 ```
@@ -184,15 +185,18 @@ math theories of [Metatheory.jl](https://github.com/JuliaSymbolics/Metatheory.jl
 
 By default, only rules that are valid wherever the expression is defined are
 applied (the result may be defined on a larger domain: `x / x` becomes `1`).
-Rules like `log(x * y) = log(x) + log(y)`, false for negative `x` and `y`,
-need assumptions:
+So `log(x * y) - log(x)` becomes `log(y)` (both sides need `x, y > 0`),
+but `sqrt(x**2) - x` only becomes `0` for nonnegative `x`, which is an
+assumption:
 
 ```python
->>> from symbolcat.ops.egraph import integer, positive
+>>> from symbolcat.ops.egraph import integer, nonnegative
 >>> print(egraph.simplify(real.log(x * y) - real.log(x)))
-log(x * y) - log(x)
->>> print(egraph.simplify(real.log(x * y) - real.log(x), assume=[positive(x)]))
 log(y)
+>>> print(egraph.simplify(real.sqrt(x**2) - x))
+abs(x) - x
+>>> print(egraph.simplify(real.sqrt(x**2) - x, assume=[nonnegative(x)]))
+0
 >>> n = Symbol("n")
 >>> print(egraph.simplify(real.cos(real.constants.pi * n) ** 2, assume=[integer(n)]))
 1
@@ -204,17 +208,17 @@ The assumptions are `positive`, `nonnegative`, `negative`, `nonzero` and
 a product of positives is positive, ...). An undefined input (a division by
 zero, contradictory assumptions) is returned unchanged.
 
-The search is bounded by `iterations` (passes of the rewrite rules) and
-`max_nodes` (size of the e-graph), so it stays fast on large expressions at
-the cost of possibly missing a simplification.
+The search is bounded by `iterations` (passes of the rewrite rules),
+`max_nodes` (size of the e-graph) and `match_limit` (matches of a rule in a
+pass before it is banned for a while), so it stays fast on large expressions
+at the cost of possibly missing a simplification, like the one above with
+the default limits.
 
 `egraph.optimize` picks the cheapest expression to evaluate instead of the
 smallest one, and returns repeated sub-expressions as the same object, so
 `cata`, and therefore `evaluate`, computes them only once:
 
 ```python
->>> print(egraph.optimize(real.sin(x) ** 2 + real.sin(x)))
-sin(x) + sin(x) * sin(x)
 >>> print(egraph.optimize(x**8))  # three shared squarings
 x * x * (x * x) * (x * x * (x * x))
 >>> poly = 6 * x**5 + 5 * x**4 + 4 * x**3 + 3 * x**2 + 2 * x + 1
