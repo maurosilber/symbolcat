@@ -8,6 +8,9 @@ Mathematical functions and constants, named after Python's ``math`` module.
 >>> x = Symbol("x")
 >>> print(2 * real.cos(x) + real.constants.pi)
 2 * cos(x) + pi
+
+``ifelse(condition, a, b)`` is ``a`` where ``condition`` holds, else ``b``:
+piecewise functions, like ``ifelse(x < 0, -x, x)``.
 """
 
 from ._core import Constant as _Constant
@@ -40,6 +43,7 @@ erf = _fn("erf")
 gamma = _fn("gamma")
 factorial = _fn("factorial")
 hypot = _fn("hypot", arity=2)
+ifelse = _fn("ifelse", arity=3)
 
 
 class constants:

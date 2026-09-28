@@ -58,6 +58,21 @@ def operand(child: Printed, parent: Operator, side: Side, /) -> str:
     return child.text
 
 
+def indices(key: Printed, /) -> tuple[int, ...] | None:
+    """The integer indices of a printed literal key (``3``, ``3.0`` or
+    ``(0, 1)``), or ``None`` for a symbolic key."""
+    import ast
+
+    try:
+        value = ast.literal_eval(key.text)
+    except (ValueError, SyntaxError):
+        return None
+    values = value if isinstance(value, tuple) else (value,)
+    if not all(isinstance(v, (int, float)) and float(v).is_integer() for v in values):
+        return None
+    return tuple(int(v) for v in values)
+
+
 def literal_precedence(value: Any, /) -> int:
     if isinstance(value, (int, float)) and not isinstance(value, bool) and value < 0:
         return UNARY

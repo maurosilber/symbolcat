@@ -23,6 +23,7 @@ from .._algebraic._system import EquationSystem, residual
 from .._analysis._inspect import variables
 from .._calculus._diff import diff
 from .._calculus._time import _base, expand_derivatives
+from .._events import Event
 from .._transform._simplify import as_fraction, is_number, simplify_exact
 from .._transform._substitute import substitute, substitute_variables
 from ._pantelides import pantelides
@@ -33,11 +34,7 @@ def _is_nonzero_number(expr: Expr, /) -> bool:
     value = as_fraction(expr)
     if value is not None:
         return value != 0
-    return (
-        isinstance(expr, Literal)
-        and type(expr.value) is float
-        and expr.value != 0
-    )
+    return isinstance(expr, Literal) and type(expr.value) is float and expr.value != 0
 
 
 def _alias(
@@ -113,11 +110,14 @@ def structural_simplify(
     t: Symbol | None = None,
     *,
     prefer: Iterable[Symbol] = (),
+    events: Iterable[Event] = (),
 ) -> IndexOneDAE:
     """Eliminate the aliases, and reduce the index with Pantelides' algorithm
     and dummy derivatives. The eliminated unknowns are ``observed``.
 
     ``prefer`` lists unknowns to keep as states (see ``dummy_derivatives``).
+    The aliases are substituted in the ``events``: an event can assign to
+    an eliminated unknown only if it is an alias of another one (``x = y``).
 
     >>> from symbolcat import D, Symbol
     >>> x, v, w, k = Symbol("x"), Symbol("v"), Symbol("w"), Symbol("k")
@@ -127,6 +127,11 @@ def structural_simplify(
     """
     system, aliases = eliminate_aliases(equations, unknowns, t)
     bases = [u for u in system.unknowns if isinstance(u, Symbol)]
+
+    def eliminate(expr: Expr, /) -> Expr:
+        return simplify_exact(expand_derivatives(substitute(expr, aliases), bases, t))
+
+    events = [event.map(eliminate, aliases) for event in events]
     result = pantelides(system.equations, bases, t)
-    dae = dummy_derivatives(result, prefer=prefer)
+    dae = dummy_derivatives(result, prefer=prefer, events=events)
     return replace(dae, observed=aliases)

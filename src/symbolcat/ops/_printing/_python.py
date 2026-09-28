@@ -10,6 +10,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from ... import real
 from ..._core import Algebra, Call, Expr, Symbol, cata, name_of
 from ...linalg import Array, nest
 from .._analysis._inspect import free_symbols
@@ -32,6 +33,11 @@ def python_algebra(array: str | None, /) -> Algebra[Printed]:
             rows = ["[" + ", ".join(row) + "]" for row in rows]
         text = "[" + ", ".join(rows) + "]"
         return Printed(text if array is None else f"{array}({text})")
+
+    @algebra.register(real.ifelse)
+    def _(node: Call[Printed]) -> Printed:
+        condition, a, b = (arg.text for arg in node.args)
+        return Printed(f"({a} if {condition} else {b})")
 
     return algebra
 

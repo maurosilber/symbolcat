@@ -12,7 +12,7 @@ new symbols.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -22,6 +22,7 @@ from .._algebraic._linear import solve_linear
 from .._analysis._inspect import free_symbols
 from .._calculus._time import _base
 from .._dae._system import IndexOneDAE
+from .._events import Event
 from .._transform._substitute import substitute_variables
 
 
@@ -31,6 +32,8 @@ class ODE:
 
     States are symbols, or derivatives of them (``D(x)``, from second-order
     equations). ``t`` is the time symbol, if ``rhs`` depends on it.
+    ``events`` change the states (see ``ContinuousEvent``). The right-hand
+    side can contain delayed states, ``delay(x, tau)``.
 
     >>> from symbolcat import Symbol
     >>> x, v, k = Symbol("x"), Symbol("v"), Symbol("k")
@@ -45,13 +48,22 @@ class ODE:
 
     rhs: Mapping[Variable, Expr]
     t: Symbol | None
+    events: tuple[Event, ...]
 
-    def __init__(self, rhs: Mapping[Any, Any], /, t: Symbol | None = None) -> None:
+    def __init__(
+        self,
+        rhs: Mapping[Any, Any],
+        /,
+        t: Symbol | None = None,
+        *,
+        events: Iterable[Event] = (),
+    ) -> None:
         for state in rhs:
             if not is_variable(state):
                 raise TypeError(f"states must be symbols or D(...) of them: {state}")
         object.__setattr__(self, "rhs", {s: as_expr(f) for s, f in rhs.items()})
         object.__setattr__(self, "t", t)
+        object.__setattr__(self, "events", tuple(events))
 
     @property
     def states(self) -> tuple[Variable, ...]:
@@ -63,7 +75,10 @@ class ODE:
         excluded = {_base(s) for s in self.rhs} | {self.t}
         return tuple(
             dict.fromkeys(
-                s for f in self.rhs.values() for s in free_symbols(f) if s not in excluded
+                s
+                for f in self.rhs.values()
+                for s in free_symbols(f)
+                if s not in excluded
             )
         )
 
@@ -90,6 +105,7 @@ def solve_for_derivatives(dae: IndexOneDAE, /) -> ODE:
     return ODE(
         {s: D(s) if D(s) in states else solution[D(s)] for s in dae.states},
         dae.t,
+        events=dae.events,
     )
 
 
@@ -122,9 +138,10 @@ def to_first_order(ode: ODE, /) -> ODE:
             raise ValueError(f"to_first_order: {symbol.name} is already used")
         names[state] = symbol
     return ODE(
-        {
-            names.get(s, s): substitute_variables(f, names)
-            for s, f in ode.rhs.items()
-        },
+        {names.get(s, s): substitute_variables(f, names) for s, f in ode.rhs.items()},
         ode.t,
+        events=[
+            event.map(lambda e: substitute_variables(e, names), names)
+            for event in ode.events
+        ],
     )

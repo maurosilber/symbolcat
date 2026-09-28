@@ -62,6 +62,7 @@ IMPL = {
     real.gamma: math.gamma,
     real.factorial: math.factorial,
     real.hypot: math.hypot,
+    real.ifelse: lambda condition, a, b: a if condition else b,
     real.constants.e: math.e,
     real.constants.pi: math.pi,
     real.constants.tau: math.tau,

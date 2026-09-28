@@ -6,6 +6,8 @@ A minimalistic symbolic package, organized around catamorphisms.
 
 - ``Symbol``: create symbols and combine them with Python operators.
 - ``D``: the time derivative of a symbol, ``D(x)``, as an unknown of its own.
+  ``delay(x, tau)`` and ``partial(u, x)`` build delay and partial
+  differential equations.
 - ``real``: mathematical functions and constants.
 - ``linalg``: vectors and matrices of expressions.
 - ``ops``: operations on expressions (printing, LaTeX, evaluation, ...).
@@ -24,6 +26,6 @@ x + 3 \\cdot \\sin\\left(y\\right)
 
 from . import lib, linalg, ops, real
 from ._core import Symbol
-from ._derivative import D
+from ._derivative import D, delay, partial
 
-__all__ = ["D", "Symbol", "lib", "linalg", "ops", "real"]
+__all__ = ["D", "Symbol", "delay", "lib", "linalg", "ops", "partial", "real"]

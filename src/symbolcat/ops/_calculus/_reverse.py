@@ -127,6 +127,17 @@ rule(real.cosh)(chain(real.sinh))
 rule(real.tanh)(lambda node, g, shapes, shape: ((1 - node**2) * g,))
 
 
+@rule(real.ifelse)
+def _(node, g, shapes, shape):
+    condition, _, _ = node.args
+    return Literal(0), real.ifelse(condition, g, 0), real.ifelse(condition, 0, g)
+
+
+@rule(op.eq, op.ne, op.lt, op.le, op.gt, op.ge, op.and_, op.or_, op.invert)
+def _(node, g, shapes, shape):
+    return tuple(Literal(0) for _ in node.args)
+
+
 # Arrays
 
 

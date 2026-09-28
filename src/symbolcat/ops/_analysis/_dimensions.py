@@ -133,6 +133,14 @@ def _(node: Call[Pair]) -> Dimension:
     return same(node)
 
 
+@rule(real.ifelse)
+def _(node: Call[Pair]) -> Dimension:
+    """Both branches have the same dimension."""
+    condition, a, b = node.args
+    dimensionless(Call(node.func, (condition,)))
+    return same(Call(node.func, (a, b)))
+
+
 @rule(op.eq, op.ne, op.lt, op.le, op.gt, op.ge, real.atan2)
 def _(node: Call[Pair]) -> Dimension:
     same(node)

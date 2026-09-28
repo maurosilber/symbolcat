@@ -250,6 +250,16 @@ def _(node: Call[Printed]) -> Printed:
     return Printed(text, op.mul.precedence, ndim=1)
 
 
+@latex_algebra.register(real.ifelse)
+def _(node: Call[Printed]) -> Printed:
+    condition, a, b = node.args
+    text = (
+        rf"\begin{{cases}} {a.text} & {condition.text} \\ "
+        rf"{b.text} & \text{{otherwise}} \end{{cases}}"
+    )
+    return Printed(text)
+
+
 @latex_algebra.register(real.factorial)
 def _(node: Call[Printed]) -> Printed:
     (arg,) = node.args

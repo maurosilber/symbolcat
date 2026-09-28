@@ -11,6 +11,7 @@ Analysis of explicit ODEs.
 - ``linearize``: the Jacobians of the state-space form around a point.
 - ``observability_matrix``: the gradients of the outputs and of their Lie
   derivatives, whose rank tells which states the outputs determine.
+- ``transfer_function``: ``C (s I - A)^-1 B + D``, from a linearization.
 """
 
 from __future__ import annotations
@@ -19,13 +20,16 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from ..._core import Call, Expr, Literal
+from ..._core import Call, Expr, Literal, Symbol
 from ..._derivative import Variable
-from ...linalg import matrix
+from ...linalg import matrix, to_list
+from .._algebraic._linear import solve_linear
+from .._algebraic._polynomial import cancel
 from .._algebraic._system import EquationSystem
 from .._calculus._diff import gradient, jacobian, jvp
 from .._transform._simplify import simplify_naive
 from .._transform._substitute import substitute_variables
+from ._discrete import DiscreteSystem
 from ._system import ODE
 
 
@@ -70,7 +74,7 @@ class Linearization:
 
 
 def linearize(
-    ode: ODE,
+    ode: ODE | DiscreteSystem,
     /,
     inputs: Sequence[Variable] = (),
     outputs: Sequence[Any] = (),
@@ -80,6 +84,8 @@ def linearize(
     """The Jacobians of the right-hand side and of the ``outputs`` with
     respect to the states and the ``inputs`` (some of the parameters),
     evaluated ``at`` a point (a mapping of symbols to values), if given.
+
+    For a ``DiscreteSystem``, ``A`` is the Jacobian of the update.
 
     >>> from symbolcat import Symbol, real
     >>> x, v, u, g = Symbol("x"), Symbol("v"), Symbol("u"), Symbol("g")
@@ -121,4 +127,44 @@ def observability_matrix(ode: ODE, outputs: Sequence[Any], /) -> Call[Expr]:
         for h in outputs:
             derivative = lie_derivative(h, ode, order=k)
             rows.append(gradient(derivative, ode.states).args)
+    return matrix(rows)
+
+
+def transfer_function(lin: Linearization, s: Symbol, /) -> Call[Expr]:
+    """The transfer matrix ``C (s I - A)^-1 B + D`` from the inputs to the
+    outputs, as rational functions of ``s`` without common factors.
+
+    >>> from symbolcat import Symbol
+    >>> x, v, u, k, c, s = (Symbol(n) for n in "x v u k c s".split())
+    >>> oscillator = ODE({x: v, v: -k * x - c * v + u})
+    >>> print(transfer_function(linearize(oscillator, [u], [x]), s))
+    matrix([[1 / (s ** 2 + s * c + k)]])
+    """
+    if lin.B is None or lin.C is None or lin.D is None:
+        raise ValueError(
+            "transfer_function: the linearization needs inputs and outputs"
+        )
+    A, B, C, D = map(to_list, (lin.A, lin.B, lin.C, lin.D))
+    n, m = len(A), len(B[0])
+    unknowns = [Symbol(f"__tf_{i}") for i in range(n)]
+    # (s I - A) X = B, one column of B at a time
+    columns = []
+    for j in range(m):
+        equations = [
+            sum(
+                ((s if i == k else Literal(0)) - A[i][k]) * unknowns[k]
+                for k in range(n)
+            )
+            - B[i][j]
+            for i in range(n)
+        ]
+        solution = solve_linear(equations, unknowns)
+        columns.append([solution[u] for u in unknowns])
+    rows = [
+        [
+            cancel(sum((C[r][k] * columns[j][k] for k in range(n)), D[r][j]))
+            for j in range(m)
+        ]
+        for r in range(len(C))
+    ]
     return matrix(rows)

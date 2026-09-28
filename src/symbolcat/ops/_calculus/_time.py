@@ -20,11 +20,31 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from ..._core import Call, Expr, Literal, Symbol, cata
-from ..._derivative import D, is_variable
+from ..._core import Call, Expr, Literal, Symbol, as_expr, cata
+from ..._derivative import D, delay, is_variable
 from .._analysis._inspect import variables
 from .._transform._substitute import substitute
 from ._diff import jvp
+
+
+def delays(expr: Any, /) -> tuple[Call[Expr], ...]:
+    """The delayed values ``delay(x, tau)`` in ``expr``, in order of first
+    appearance.
+
+    >>> from symbolcat import Symbol, delay
+    >>> x, tau = Symbol("x"), Symbol("tau")
+    >>> delays(x + delay(x, tau) * delay(x, 2 * tau))
+    (Call(delay, (Symbol('x'), Symbol('tau'))), Call(delay, (Symbol('x'), Call(mul, (Literal(2), Symbol('tau'))))))
+    """
+    out: dict[Call[Expr], None] = {}
+    stack = [as_expr(expr)]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, Call):
+            if node.func is delay:
+                out[node] = None
+            stack.extend(reversed(node.args))
+    return tuple(out)
 
 
 def _base(var: Expr, /) -> Expr:
@@ -54,6 +74,11 @@ def time_derivative(
     seed: dict[Expr, Expr] = {
         var: D(var) for var in variables(expr) if _base(var) in unknowns
     }
+    # d/dt x(t - tau) = D(x)(t - tau), for a constant delay
+    for node in delays(expr):
+        value, tau = node.args
+        if _base(value) in unknowns:
+            seed[node] = delay(D(value), tau)
     if t is not None:
         seed[t] = Literal(1)
     return jvp(expr, seed)

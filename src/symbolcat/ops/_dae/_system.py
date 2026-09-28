@@ -30,6 +30,7 @@ from .._algebraic._matching import augment, perfect_matching
 from .._algebraic._system import EquationSystem
 from .._analysis._inspect import free_symbols, variables
 from .._calculus._time import _base
+from .._events import Event
 from ._pantelides import Pantelides
 
 
@@ -40,6 +41,7 @@ class IndexOneDAE:
     the states. The derivative of each state, ``D(state)``, is a state or an
     unknown. ``parameters`` are the other symbols, besides the time ``t``.
     ``observed`` holds unknowns that were eliminated, with their values.
+    ``events`` can only assign to states and parameters.
 
     Raises ``ValueError`` if the equations cannot be matched to the unknowns.
     """
@@ -50,8 +52,17 @@ class IndexOneDAE:
     parameters: tuple[Symbol, ...]
     t: Symbol | None = None
     observed: Mapping[Symbol, Expr] = field(default_factory=dict)
+    events: tuple[Event, ...] = ()
 
     def __post_init__(self) -> None:
+        assignable = set(self.states) | set(self.parameters)
+        for event in self.events:
+            for var in event.affect:
+                if var not in assignable:
+                    raise ValueError(
+                        f"an event assigns to {var}, which is not a state or a "
+                        "parameter (prefer it as a state in dummy_derivatives)"
+                    )
         known = set(self.states) | set(self.unknowns)
         for state in self.states:
             if D(state) not in known:
@@ -69,6 +80,7 @@ def _system(
     result: Pantelides,
     equations: Sequence[Expr],
     is_state: Sequence[bool],
+    events: Iterable[Event],
 ) -> IndexOneDAE:
     states = tuple(v for v, s in zip(result.variables, is_state, strict=True) if s)
     unknowns = tuple(
@@ -83,10 +95,12 @@ def _system(
             if s != result.t and s not in known
         )
     )
-    return IndexOneDAE(tuple(equations), states, unknowns, parameters, result.t)
+    return IndexOneDAE(
+        tuple(equations), states, unknowns, parameters, result.t, events=tuple(events)
+    )
 
 
-def lower_index(result: Pantelides, /) -> IndexOneDAE:
+def lower_index(result: Pantelides, /, *, events: Iterable[Event] = ()) -> IndexOneDAE:
     """The highest equations, to solve for the highest derivatives.
 
     Every lower derivative is a state, so the constraints that were
@@ -105,11 +119,15 @@ def lower_index(result: Pantelides, /) -> IndexOneDAE:
     D(x)
     """
     is_state = [d is not None for d in result.variable_derivative]
-    return _system(result, result.highest_equations, is_state)
+    return _system(result, result.highest_equations, is_state, events)
 
 
 def dummy_derivatives(
-    result: Pantelides, /, *, prefer: Iterable[Symbol] = ()
+    result: Pantelides,
+    /,
+    *,
+    prefer: Iterable[Symbol] = (),
+    events: Iterable[Event] = (),
 ) -> IndexOneDAE:
     """Keep every equation, and make one derivative per differentiated
     equation a dummy: an algebraic unknown, instead of the derivative of a
@@ -170,7 +188,7 @@ def dummy_derivatives(
             if (below := var_below[v]) is not None and var_below[below] is not None
         ]
     is_state = [d is not None and d not in dummies for d in result.variable_derivative]
-    return _system(result, result.equations, is_state)
+    return _system(result, result.equations, is_state, events)
 
 
 def _inverse(derivative: Sequence[int | None], /) -> list[int | None]:

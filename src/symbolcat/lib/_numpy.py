@@ -39,6 +39,7 @@ IMPL = {
     real.gamma: np.vectorize(math.gamma),
     real.factorial: np.vectorize(math.factorial),
     real.hypot: np.hypot,
+    real.ifelse: np.where,
     real.constants.e: np.e,
     real.constants.pi: np.pi,
     real.constants.tau: 2 * np.pi,

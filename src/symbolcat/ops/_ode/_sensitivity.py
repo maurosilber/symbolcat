@@ -36,6 +36,10 @@ def sensitivities(ode: ODE, parameters: Iterable[Symbol], /) -> ODE:
     >>> print(ode.rhs[Symbol("dx_dk")])
     -x + -k * dx_dk
     """
+    if ode.events:
+        raise NotImplementedError(
+            "sensitivities: events make the sensitivities jump; not supported"
+        )
     states = []
     for state in ode.states:
         if not isinstance(state, Symbol):

@@ -128,9 +128,7 @@ def test_sensitivities():
     assert s == Symbol("dx_dk")
     assert ode.states == (x, s)
     point = random_point(x, k, s)
-    assert value(ode.rhs[s], point) == pytest.approx(
-        -point[k] * point[s] - point[x]
-    )
+    assert value(ode.rhs[s], point) == pytest.approx(-point[k] * point[s] - point[x])
 
 
 def test_sensitivities_need_symbol_states():

@@ -14,6 +14,13 @@ the derivatives of the unknowns with ``D``.
 >>> x, v = Symbol("x"), Symbol("v")
 >>> print(D(x) - v)
 D(x) - v
+
+Two more nodes build other kinds of differential equations:
+
+- ``delay(x, tau)``: the value of ``x`` at time ``t - tau``, for delay
+  differential equations. It is independent of ``x``.
+- ``partial(u, x)``: the partial derivative of ``u`` with respect to a
+  spatial coordinate ``x``, for partial differential equations.
 """
 
 from __future__ import annotations
@@ -24,6 +31,8 @@ from ._core import Call, Expr, Symbol
 from ._core.expr import Function
 
 D = Function("D", arity=1)
+delay = Function("delay", arity=2)
+partial = Function("partial", arity=2)
 
 type Variable = Symbol | Call[Expr]
 """A symbol or a time derivative of one (see ``is_variable``)."""

@@ -24,7 +24,7 @@ from typing import Any
 
 from ... import linalg, real
 from ..._core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata
-from ..._derivative import D, Variable, is_variable
+from ..._derivative import D, Variable, delay, is_variable
 from ...lib import operators as op
 from ...linalg import Array, matrix, vector
 from .._analysis._inspect import free_symbols
@@ -77,6 +77,14 @@ def rule(*funcs: Function) -> Callable[[Rule], Rule]:
     return decorator
 
 
+@diff_algebra.register(delay)
+def _(node: Call[Dual], *, seed: Seed) -> Dual:
+    """A delayed value is a variable, independent of the current one."""
+    (value, _), (tau, _) = node.args
+    delayed = delay(value, tau)
+    return delayed, seed.get(delayed, ZERO)
+
+
 @rule(op.add)
 def _(args, dargs):
     return dargs[0] + dargs[1]
@@ -126,6 +134,20 @@ def _(node: Call[Dual], *, seed: Seed) -> Dual:
     values = tuple(value for value, _ in node.args)
     derivatives = tuple(d for _, d in node.args)
     return node.func(*values), node.func(*derivatives)
+
+
+@rule(real.ifelse)
+def _(args, dargs):
+    """The derivative of the branch taken; the condition is piecewise
+    constant."""
+    (condition, _, _), (_, da, db) = args, dargs
+    return real.ifelse(condition, da, db)
+
+
+@rule(op.eq, op.ne, op.lt, op.le, op.gt, op.ge, op.and_, op.or_, op.invert)
+def _(args, dargs):
+    """Comparisons and logic are piecewise constant."""
+    return ZERO
 
 
 @rule(op.getitem)

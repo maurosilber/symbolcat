@@ -16,7 +16,7 @@ from collections.abc import Callable
 from fractions import Fraction
 from typing import Any
 
-from ... import linalg
+from ... import linalg, real
 from ..._core import Algebra, Call, Expr, Function, Literal, cata
 from ...lib import operators as op
 from ...lib.std import IMPL
@@ -178,6 +178,16 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
     if isinstance(a, Call) and a.func is op.neg:
         return a.args[0]
     return fold(node, exact=exact)
+
+
+@simplify_algebra.register(real.ifelse)
+def _(node: Call[Expr], *, exact: bool = False) -> Expr:
+    condition, a, b = node.args
+    if isinstance(condition, Literal) and type(condition.value) is bool:
+        return a if condition.value else b
+    if a == b:
+        return a
+    return node
 
 
 @simplify_algebra.register(op.pos)

@@ -69,6 +69,7 @@ IMPL: dict[Any, Any] = {
     real.gamma: sympy.gamma,
     real.factorial: sympy.factorial,
     real.hypot: lambda x, y: sympy.sqrt(x**2 + y**2),
+    real.ifelse: lambda c, a, b: sympy.Piecewise((a, c), (b, True)),
     real.constants.e: sympy.E,
     real.constants.pi: sympy.pi,
     real.constants.tau: 2 * sympy.pi,

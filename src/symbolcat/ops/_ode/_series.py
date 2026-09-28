@@ -40,7 +40,9 @@ def taylor_solution(
         raise ValueError("taylor_solution: pass the time symbol t")
     start = as_expr(t0)
     at_start: dict[Expr, Expr] = {} if ode.t is None else {ode.t: start}
-    step = time - start if not (isinstance(start, Literal) and start.value == 0) else time
+    step = (
+        time - start if not (isinstance(start, Literal) and start.value == 0) else time
+    )
     solution: dict[Variable, Expr] = {}
     for state in ode.states:
         term: Expr = state

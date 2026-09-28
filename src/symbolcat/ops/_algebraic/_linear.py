@@ -72,7 +72,11 @@ def solve_linear(
             factor = simplify_exact(rows[r][col] / pivot[col])
             # The pivot row is zero before ``col``: those entries are kept.
             rows[r] = [
-                a if k < col else Literal(0) if k == col else simplify_exact(a - factor * b)
+                a
+                if k < col
+                else Literal(0)
+                if k == col
+                else simplify_exact(a - factor * b)
                 for k, (a, b) in enumerate(zip(rows[r], pivot, strict=True))
             ]
     return {
