@@ -24,6 +24,7 @@ from ._mathml import to_mathml
 from ._polynomial import coefficients
 from ._printing import to_str
 from ._python import to_python
+from ._reverse import reverse_gradient, vjp
 from ._series import series
 from ._share import cse, share
 from ._simplify import simplify_naive
@@ -43,6 +44,7 @@ __all__ = [
     "gradient",
     "hessian",
     "jacobian",
+    "reverse_gradient",
     "series",
     "shape",
     "share",
@@ -55,4 +57,5 @@ __all__ = [
     "to_python",
     "to_str",
     "tree_view",
+    "vjp",
 ]

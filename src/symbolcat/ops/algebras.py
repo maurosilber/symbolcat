@@ -55,6 +55,7 @@ from ._latex import latex_algebra
 from ._mathml import mathml_algebra
 from ._polynomial import coefficients_algebra
 from ._printing import Printed, str_algebra
+from ._reverse import reverse_algebra
 from ._series import series_algebra
 from ._simplify import simplify_algebra
 from ._substitute import substitute_algebra
@@ -82,6 +83,7 @@ __all__ = [
     "latex_algebra",
     "mathml_algebra",
     "name_of",
+    "reverse_algebra",
     "series_algebra",
     "simplify_algebra",
     "str_algebra",
