@@ -23,12 +23,12 @@ from typing import Any
 from ..._core import Call, Expr, Literal, Symbol
 from ..._derivative import Variable
 from ...linalg import matrix, to_list
-from .._algebraic._linear import solve_linear
-from .._algebraic._polynomial import cancel
-from .._algebraic._system import EquationSystem
-from .._calculus._diff import gradient, jacobian, jvp
-from .._transform._simplify import simplify_naive
-from .._transform._substitute import substitute_variables
+from ...ops._algebraic._linear import solve_linear
+from ...ops._algebraic._polynomial import cancel
+from ...ops._algebraic._system import EquationSystem
+from ...ops._calculus._diff import gradient, jacobian, jvp
+from ...ops._transform._simplify import simplify_naive
+from ...ops._transform._substitute import substitute_variables
 from ._discrete import DiscreteSystem
 from ._system import ODE
 

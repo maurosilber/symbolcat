@@ -5,16 +5,10 @@ import pytest
 
 from symbolcat import Symbol, real
 from symbolcat.lib import Function
-from symbolcat.ops import (
-    cse,
-    evaluate,
-    share,
-    to_graphviz,
-    to_mathml,
-    to_python,
-    tree_view,
-)
+from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Call, Literal, cata
+from symbolcat.ops.printing import to_graphviz, to_mathml, to_python, tree_view
+from symbolcat.ops.transform import cse, share
 
 x, y = Symbol("x"), Symbol("y")
 

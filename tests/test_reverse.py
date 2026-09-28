@@ -4,14 +4,10 @@ import pytest
 
 from symbolcat import Symbol, linalg, real
 from symbolcat.linalg import cross, det, inv, matrix, norm, trace, transpose, vector
-from symbolcat.ops import (
-    evaluate,
-    gradient,
-    reverse_gradient,
-    vjp,
-)
+from symbolcat.ops import evaluate
 from symbolcat.ops._calculus._reverse import _postorder
 from symbolcat.ops.algebras import Literal
+from symbolcat.ops.calculus import gradient, reverse_gradient, vjp
 
 x, y, z, A, B = Symbol("x"), Symbol("y"), Symbol("z"), Symbol("A"), Symbol("B")
 

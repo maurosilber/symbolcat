@@ -16,8 +16,8 @@ from typing import Any
 
 from ..._core import Expr, Literal, Symbol, as_expr
 from ..._derivative import Variable
-from .._transform._simplify import simplify_exact
-from .._transform._substitute import substitute_variables
+from ...ops._transform._simplify import simplify_exact
+from ...ops._transform._substitute import substitute_variables
 from ._analysis import lie_derivative
 from ._system import ODE
 

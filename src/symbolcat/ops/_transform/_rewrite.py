@@ -41,7 +41,9 @@ class Wild(Symbol):
     predicate: Callable[[Expr], bool] | None = field(default=None, compare=False)
 
 
-def match(pattern: Any, expr: Any, /, bindings: Bindings | None = None) -> Bindings | None:
+def match(
+    pattern: Any, expr: Any, /, bindings: Bindings | None = None
+) -> Bindings | None:
     """The bindings of the wildcards of ``pattern`` that make it equal to
     ``expr``, or ``None``.
 

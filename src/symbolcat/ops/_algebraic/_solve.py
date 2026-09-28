@@ -28,7 +28,13 @@ from ...lib import operators as op
 from .._analysis._polynomial import coefficients
 from .._transform._simplify import is_number, simplify_exact
 from .._transform._substitute import substitute_variables
-from ._polynomial import NotPolynomial, _univariate, cancel, rational_roots, polynomial_divide
+from ._polynomial import (
+    NotPolynomial,
+    _univariate,
+    cancel,
+    polynomial_divide,
+    rational_roots,
+)
 from ._system import residual
 
 _SOLVE = Symbol("__solve")
@@ -71,7 +77,9 @@ def _solve(expr: Expr, /) -> list[Expr]:
         return [
             s
             for s in _solve(numerator)
-            if not is_number(simplify_exact(substitute_variables(denominator, {_SOLVE: s})), 0)
+            if not is_number(
+                simplify_exact(substitute_variables(denominator, {_SOLVE: s})), 0
+            )
         ]
     if fraction != expr:  # cancelled into a polynomial, without common roots
         return _solve(fraction)
@@ -90,7 +98,7 @@ def _is_rational(expr: Expr, /) -> bool:
 
 def _polynomial(coeffs: dict[int, Expr], expr: Expr, /) -> list[Expr]:
     degree = max(coeffs, default=0)
-    c = lambda k: coeffs.get(k, Literal(0))  # noqa: E731
+    c = lambda k: coeffs.get(k, Literal(0))
     if degree == 0:
         return []
     if degree == 1:

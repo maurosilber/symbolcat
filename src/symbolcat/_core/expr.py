@@ -22,12 +22,12 @@ class Expr:
     __slots__ = ()
 
     def __str__(self) -> str:
-        from ..ops import to_str
+        from ..ops._printing._str import to_str
 
         return to_str(self)
 
     def _repr_latex_(self) -> str:
-        from ..ops import to_latex
+        from ..ops._printing._latex import to_latex
 
         return f"${to_latex(self)}$"
 

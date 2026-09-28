@@ -65,7 +65,7 @@ def to_graphviz(expr: Any, /) -> str:
     ``share`` or ``egraph.optimize``) are drawn once.
 
     >>> from symbolcat import Symbol, real
-    >>> from symbolcat.ops import share
+    >>> from symbolcat.ops.transform import share
     >>> x = Symbol("x")
     >>> print(to_graphviz(share(real.sin(x) * real.sin(x))))
     digraph {

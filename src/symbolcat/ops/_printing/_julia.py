@@ -11,6 +11,7 @@ SpecialFunctions.jl.
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping, Sequence
 from typing import Any
 
@@ -43,7 +44,7 @@ def _(node: Literal) -> Printed:
     value = node.value
     if isinstance(value, bool):
         return Printed("true" if value else "false")
-    if isinstance(value, float) and value != value:
+    if isinstance(value, float) and math.isnan(value):
         return Printed("NaN")
     if value in (float("inf"), float("-inf")):
         return Printed("Inf" if value > 0 else "-Inf", literal_precedence(value))
@@ -118,7 +119,7 @@ def to_julia(
         return _0 ^ 2 + _0 * y
     end
     >>> v = Symbol("v")
-    >>> print(to_julia(v[0] * x ** -1, name="g"))
+    >>> print(to_julia(v[0] * x**-1, name="g"))
     function g(v, x)
         return v[1] * x ^ (-1)
     end

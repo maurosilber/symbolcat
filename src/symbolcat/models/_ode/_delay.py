@@ -19,10 +19,10 @@ from typing import Any
 from ... import real
 from ..._core import Call, Expr, Literal, Symbol
 from ...linalg import matrix
-from .._calculus._diff import jvp
-from .._calculus._time import delays
-from .._transform._simplify import simplify_exact
-from .._transform._substitute import substitute_variables
+from ...ops._calculus._diff import jvp
+from ...ops._calculus._time import delays
+from ...ops._transform._simplify import simplify_exact
+from ...ops._transform._substitute import substitute_variables
 from ._system import ODE
 
 

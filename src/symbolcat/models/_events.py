@@ -23,7 +23,7 @@ from typing import Any
 
 from .._core import Expr, as_expr
 from .._derivative import Variable, is_variable
-from ._algebraic._system import residual
+from ..ops._algebraic._system import residual
 
 
 def _affect(affect: Mapping[Any, Any], /) -> dict[Variable, Expr]:
@@ -115,7 +115,9 @@ class DiscreteEvent:
     ) -> DiscreteEvent:
         """Apply ``func`` to the condition and the new values, and ``rename``
         the assigned variables."""
-        return DiscreteEvent(func(self.condition), _map_affect(self.affect, func, rename))
+        return DiscreteEvent(
+            func(self.condition), _map_affect(self.affect, func, rename)
+        )
 
 
 type Event = ContinuousEvent | DiscreteEvent

@@ -14,16 +14,12 @@ from symbolcat.linalg import (
     vector,
     zeros,
 )
-from symbolcat.ops import (
-    diff,
-    evaluate,
-    expand_arrays,
-    shape,
-    simplify_naive,
-    to_latex,
-    to_mathml,
-)
+from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Literal, as_expr
+from symbolcat.ops.calculus import diff
+from symbolcat.ops.inspect import shape
+from symbolcat.ops.printing import to_latex, to_mathml
+from symbolcat.ops.transform import expand_arrays, simplify_naive
 
 x, y, A, B = Symbol("x"), Symbol("y"), Symbol("A"), Symbol("B")
 v = vector([x, y])
@@ -293,7 +289,7 @@ def test_to_list():
 def test_to_python_writes_arrays_as_lists():
     import math
 
-    from symbolcat.ops import to_python
+    from symbolcat.ops.printing import to_python
 
     expr = m @ v + 1
     source = to_python(expr)
@@ -303,7 +299,7 @@ def test_to_python_writes_arrays_as_lists():
 
 
 def test_to_python_shares_the_determinant_of_inv():
-    from symbolcat.ops import to_python
+    from symbolcat.ops.printing import to_python
 
     source = to_python(inv(m))
     assert source.count("x * y") == 1
@@ -311,7 +307,7 @@ def test_to_python_shares_the_determinant_of_inv():
 
 def test_to_python_with_numpy():
     np = pytest.importorskip("numpy")
-    from symbolcat.ops import to_python
+    from symbolcat.ops.printing import to_python
 
     source = to_python(det(A) * (A @ m), shapes={A: (2, 2)}, array="array")
     assert "array([[x, 1], [0, y]])" in source
@@ -326,7 +322,7 @@ def test_to_python_with_numpy():
 
 
 def test_series_of_an_array():
-    from symbolcat.ops import series
+    from symbolcat.ops.calculus import series
 
     assert series(vector([real.sin(x), x]) * 2, x, order=4) == vector(
         [2 * x - x**3 / 3, 2 * x]
@@ -336,7 +332,7 @@ def test_series_of_an_array():
 def test_series_of_matrix_products():
     np = pytest.importorskip("numpy")
     from symbolcat.lib.numpy import IMPL
-    from symbolcat.ops import series
+    from symbolcat.ops.calculus import series
 
     shapes = {A: (2, 2), B: (2, 2)}
     expr = transpose(A + x * B) @ (A + x * B)
@@ -350,7 +346,7 @@ def test_series_of_matrix_products():
 
 
 def test_series_of_det_needs_entries():
-    from symbolcat.ops import series
+    from symbolcat.ops.calculus import series
 
     with pytest.raises(NotImplementedError, match="series of det"):
         series(det(A + x * B), x, shapes={A: (2, 2), B: (2, 2)})
@@ -361,7 +357,7 @@ def test_series_of_det_needs_entries():
 
 
 def test_dimensions_of_entries():
-    from symbolcat.ops import dimensions
+    from symbolcat.ops.inspect import dimensions
 
     t = Symbol("t")
     units = {x: {"m": 1}, t: {"s": 1}}
@@ -376,7 +372,7 @@ def test_dimensions_of_entries():
 
 
 def test_dimensions_of_matrix_functions():
-    from symbolcat.ops import dimensions
+    from symbolcat.ops.inspect import dimensions
 
     units = {A: {"m": 1}, x: {"m": 1}}
     shapes = {A: (3, 3)}

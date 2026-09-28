@@ -19,13 +19,13 @@ matrix([[x, 1], [0, y]])
 
 Arrays follow NumPy: operators (except ``@``) and ``real`` functions apply
 entrywise, broadcasting scalars, and ``@`` is the matrix product, which is
-the dot product for two vectors. ``symbolcat.ops.expand_arrays`` computes
+the dot product for two vectors. ``symbolcat.ops.transform.expand_arrays`` computes
 these entry by entry:
 
 >>> from symbolcat import ops
->>> print(ops.expand_arrays(m @ linalg.vector([1, 2])))
+>>> print(ops.transform.expand_arrays(m @ linalg.vector([1, 2])))
 vector([x * 1 + 1 * 2, 0 * 1 + y * 2])
->>> print(ops.expand_arrays(linalg.det(m)))
+>>> print(ops.transform.expand_arrays(linalg.det(m)))
 x * y - 1 * 0
 """
 

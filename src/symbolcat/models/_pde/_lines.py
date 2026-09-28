@@ -19,11 +19,11 @@ from __future__ import annotations
 from collections.abc import Iterable, Sequence
 from typing import Any
 
-from ..._core import Expr, Literal, Symbol, as_expr, name_of
+from ..._core import Expr, Symbol, as_expr, name_of
 from ..._derivative import D, partial
-from .._algebraic._system import EquationSystem, residual
-from .._transform._simplify import simplify_exact
-from .._transform._substitute import substitute_variables
+from ...ops._algebraic._system import EquationSystem, residual
+from ...ops._transform._simplify import simplify_exact
+from ...ops._transform._substitute import substitute_variables
 
 
 def grid_symbol(u: Symbol, i: int, /) -> Symbol:

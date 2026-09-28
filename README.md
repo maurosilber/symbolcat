@@ -21,14 +21,26 @@ x + 3 * sin(y)
 The top level only has what you need to build expressions and act on them:
 
 - `Symbol`: a symbol; combine symbols with Python operators.
-- `D`: the time derivative of a symbol, `D(x)`, an unknown of its own
-  (for differential equations; see `ops.time_derivative`).
-- `real`: mathematical functions (`real.sin`) and constants
+- `D`: the time derivative of a symbol, `D(x)`, an unknown of its own.
+  `delay(x, tau)` and `partial(u, x)` build delay and partial differential
+  equations.
+- `real`: mathematical functions (`real.sin`, `real.ifelse`) and constants
   (`real.constants.pi`).
 - `linalg`: vectors, matrices and linear algebra (`det`, `inv`, ...).
-- `ops`: operations on expressions (`ops.to_latex`, `ops.evaluate`, ...).
+- `ops`: operations on expressions, `ops.evaluate`, and one namespace per
+  topic:
+  - `ops.transform`: substitution, simplification, rewriting rules.
+  - `ops.inspect`: symbols, size, shape, dimensions, sparsity patterns.
+  - `ops.printing`: text, LaTeX, MathML, and Python, C and Julia source.
+  - `ops.calculus`: derivatives, series, time derivatives.
+  - `ops.polynomials`: Gröbner bases, GCDs, rational functions.
+  - `ops.equations`: solving equations, systems of equations.
   - `ops.egraph`: simplification with e-graphs (needs `egglog`).
   - `ops.algebras`: the extension API (algebras, `cata`, node types).
+- `models`: models of dynamical systems and their symbolic analysis:
+  `models.dae` (index reduction, structural simplification), `models.ode`,
+  `models.dynamics` (linearization, identifiability, ...),
+  `models.stochastic`, `models.pde` and `models.reactions`.
 - `lib`: `Function` and `Constant` to define new ones, the Python-syntax
   `operators`, and the backends for `ops.evaluate` (`lib.std`, `lib.numpy`,
   `lib.sympy`).
@@ -113,7 +125,7 @@ orders a system `{symbol: expression}` using `free_symbols`.
 ### LaTeX
 
 ```python
->>> from symbolcat.ops import to_latex
+>>> from symbolcat.ops.printing import to_latex
 >>> alpha_1 = Symbol("alpha_1")
 >>> print(to_latex(real.sqrt(x**2 + 1) / (alpha_1 * real.sin(x))))
 \frac{\sqrt{x^{2} + 1}}{\alpha_{1} \cdot \sin\left(x\right)}
@@ -155,7 +167,8 @@ mapping:
 ### Substitution, simplification and differentiation
 
 ```python
->>> from symbolcat.ops import diff, simplify_naive, substitute
+>>> from symbolcat.ops.calculus import diff
+>>> from symbolcat.ops.transform import simplify_naive, substitute
 >>> print(substitute(x + 2 * y, {x: y, y: x}))
 y + 2 * x
 >>> print(simplify_naive(0 * x + 1 * x ** (3 - 2)))
@@ -175,7 +188,7 @@ These come from `linalg`, which renders them as matrices in LaTeX and
 evaluates them to nested lists (NumPy arrays, SymPy matrices):
 
 ```python
->>> from symbolcat.ops import hessian
+>>> from symbolcat.ops.calculus import hessian
 >>> print(to_latex(hessian(x**2 * y)))
 \begin{pmatrix} 2 \cdot y & 2 \cdot x \\ 2 \cdot x & 0 \end{pmatrix}
 >>> evaluate(hessian(x**2 * y), {x: 1, y: 2})
@@ -192,7 +205,8 @@ two vectors). `linalg` also has `transpose`, `trace`, `det`, `inv`, `norm`,
 
 ```python
 >>> from symbolcat import linalg
->>> from symbolcat.ops import expand_arrays, shape
+>>> from symbolcat.ops.inspect import shape
+>>> from symbolcat.ops.transform import expand_arrays
 >>> m = linalg.matrix([[x, 1], [0, y]])
 >>> print(expand_arrays(linalg.det(m)))
 x * y - 1 * 0
@@ -224,7 +238,7 @@ det(A + x * B) * trace(inv(A + x * B) @ B)
 sub-expressions computed once:
 
 ```python
->>> from symbolcat.ops import to_python
+>>> from symbolcat.ops.printing import to_python
 >>> print(to_python(real.sin(x) ** 2 + real.sin(x) * y))
 def f(x, y):
     _0 = sin(x)
@@ -236,7 +250,8 @@ def f(x, y):
 `diff` to the first coefficients, and `dimensions` checks physical units:
 
 ```python
->>> from symbolcat.ops import dimensions, series
+>>> from symbolcat.ops.calculus import series
+>>> from symbolcat.ops.inspect import dimensions
 >>> print(series(real.sin(x) / x, x, order=5))
 1 - x ** 2 / 6 + x ** 4 / 120
 >>> t, v = Symbol("t"), Symbol("v")
@@ -325,7 +340,8 @@ the round trip.
 A new function only needs rules in the algebras that should support it:
 
 ```python
->>> from symbolcat.ops.algebras import Printed, latex_algebra
+>>> from symbolcat.ops.algebras import Printed
+>>> from symbolcat.ops.algebras.builtin import latex_algebra
 >>> sinc = Function("sinc", arity=1)
 >>> @latex_algebra.register(sinc)
 ... def _(node):

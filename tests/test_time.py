@@ -4,23 +4,19 @@ from typing import Any
 import pytest
 
 from symbolcat import D, Symbol, real
-from symbolcat.ops import (
-    change_variables,
+from symbolcat.models.ode import change_variables, euler_lagrange
+from symbolcat.ops import evaluate
+from symbolcat.ops.algebras import Literal
+from symbolcat.ops.calculus import (
     diff,
-    dimensions,
-    euler_lagrange,
-    evaluate,
     expand_derivatives,
     jacobian,
     jvp,
-    simplify_naive,
-    substitute_variables,
     time_derivative,
-    to_latex,
-    to_str,
-    variables,
 )
-from symbolcat.ops.algebras import Literal
+from symbolcat.ops.inspect import dimensions, variables
+from symbolcat.ops.printing import to_latex, to_str
+from symbolcat.ops.transform import simplify_naive, substitute_variables
 
 x, y, v, k, t = Symbol("x"), Symbol("y"), Symbol("v"), Symbol("k"), Symbol("t")
 

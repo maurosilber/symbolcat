@@ -16,8 +16,8 @@ From a network:
   ``D(s) = sum_r N[s, r] v_r``, with the stoichiometry matrix ``N``.
 - ``chemical_langevin``: the chemical Langevin SDE, one Wiener process per
   reaction, with diffusion ``N[s, r] sqrt(v_r)``.
-- ``propensities``: the jump rates of the stochastic (Gillespie) model,
-  with falling factorials of the molecule counts.
+- ``propensity``: the jump rate of a reaction in the stochastic
+  (Gillespie) model, with falling factorials of the molecule counts.
 - ``conservation_laws``: linear combinations of the species that are
   constant, from the left null space of ``N``.
 - ``deficiency``, ``linkage_classes``, ``is_weakly_reversible``: the
@@ -34,17 +34,19 @@ from typing import Any
 from ... import real
 from ..._core import Call, Expr, Literal, Symbol, as_expr
 from ...linalg import matrix
-from .._algebraic._rank import rational_nullspace, rational_rank
-from .._algebraic._structure import _strongly_connected
-from .._analysis._inspect import free_symbols
-from .._transform._simplify import simplify_exact
+from ...ops._algebraic._rank import rational_nullspace, rational_rank
+from ...ops._algebraic._structure import _strongly_connected
+from ...ops._analysis._inspect import free_symbols
+from ...ops._transform._simplify import simplify_exact
 from .._ode._system import ODE
 from .._sde._system import SDE
 
 type Complex = frozenset[tuple[Symbol, int]]
 
 
-def _stoichiometry(species: Mapping[Symbol, int] | Iterable[Symbol], /) -> dict[Symbol, int]:
+def _stoichiometry(
+    species: Mapping[Symbol, int] | Iterable[Symbol], /
+) -> dict[Symbol, int]:
     if isinstance(species, Mapping):
         out = {s: int(n) for s, n in species.items() if n}
     else:
@@ -135,7 +137,10 @@ class ReactionSystem:
         excluded = set(self.species) | {self.t}
         return tuple(
             dict.fromkeys(
-                s for r in self.reactions for s in free_symbols(r.rate) if s not in excluded
+                s
+                for r in self.reactions
+                for s in free_symbols(r.rate)
+                if s not in excluded
             )
         )
 
@@ -191,12 +196,12 @@ def stoichiometry_matrix(system: ReactionSystem, /) -> Call[Expr]:
     >>> print(stoichiometry_matrix(ReactionSystem([Reaction(k, [A], [B])])))
     matrix([[-1], [1]])
     """
-    return matrix(
-        [[r.net(s) for r in system.reactions] for s in system.species]
-    )
+    return matrix([[r.net(s) for r in system.reactions] for s in system.species])
 
 
-def reaction_rate_equations(system: ReactionSystem, /, *, combinatoric: bool = True) -> ODE:
+def reaction_rate_equations(
+    system: ReactionSystem, /, *, combinatoric: bool = True
+) -> ODE:
     """The deterministic mass-action ODE.
 
     >>> from symbolcat import Symbol
@@ -244,11 +249,6 @@ def chemical_langevin(system: ReactionSystem, /, *, combinatoric: bool = True) -
     return SDE(drift, diffusion, system.t)
 
 
-def propensities(system: ReactionSystem, /, *, combinatoric: bool = True) -> tuple[Expr, ...]:
-    """The jump rate of each reaction (see ``propensity``)."""
-    return tuple(propensity(r, combinatoric=combinatoric) for r in system.reactions)
-
-
 def conservation_laws(system: ReactionSystem, /) -> tuple[Expr, ...]:
     """Linear combinations of the species that the reactions keep
     constant, with integer coefficients.
@@ -256,7 +256,11 @@ def conservation_laws(system: ReactionSystem, /) -> tuple[Expr, ...]:
     >>> from symbolcat import Symbol
     >>> E, S, C, P, k = (Symbol(n) for n in "E S C P k".split())
     >>> network = ReactionSystem(
-    ...     [Reaction(k, [E, S], [C]), Reaction(k, [C], [E, S]), Reaction(k, [C], [E, P])]
+    ...     [
+    ...         Reaction(k, [E, S], [C]),
+    ...         Reaction(k, [C], [E, S]),
+    ...         Reaction(k, [C], [E, P]),
+    ...     ]
     ... )
     >>> for law in conservation_laws(network):
     ...     print(law)
@@ -291,7 +295,9 @@ def _nonnegative(vector: list[Any], others: list[list[Any]], /) -> list[Any]:
     for other in others:
         for sign in (1, -1):
             for base in (vector, [-v for v in vector]):
-                candidates.append([a + sign * b for a, b in zip(base, other, strict=True)])
+                candidates.append(
+                    [a + sign * b for a, b in zip(base, other, strict=True)]
+                )
     candidates = [c for c in candidates if any(c)]
     return min(
         candidates,
@@ -299,7 +305,7 @@ def _nonnegative(vector: list[Any], others: list[list[Any]], /) -> list[Any]:
     )
 
 
-def complexes(system: ReactionSystem, /) -> tuple[Complex, ...]:
+def _complexes(system: ReactionSystem, /) -> tuple[Complex, ...]:
     """The distinct complexes (substrate and product sides), in order of
     appearance. The empty complex stands for nothing."""
     out: dict[Complex, None] = {}
@@ -309,8 +315,10 @@ def complexes(system: ReactionSystem, /) -> tuple[Complex, ...]:
     return tuple(out)
 
 
-def _edges(system: ReactionSystem, /) -> tuple[tuple[Complex, ...], list[tuple[int, int]]]:
-    nodes = complexes(system)
+def _edges(
+    system: ReactionSystem, /
+) -> tuple[tuple[Complex, ...], list[tuple[int, int]]]:
+    nodes = _complexes(system)
     index = {c: i for i, c in enumerate(nodes)}
     edges = [
         (index[frozenset(r.substrates.items())], index[frozenset(r.products.items())])
@@ -319,9 +327,23 @@ def _edges(system: ReactionSystem, /) -> tuple[tuple[Complex, ...], list[tuple[i
     return nodes, edges
 
 
-def linkage_classes(system: ReactionSystem, /) -> tuple[tuple[int, ...], ...]:
+def linkage_classes(
+    system: ReactionSystem, /
+) -> tuple[tuple[dict[Symbol, int], ...], ...]:
     """The connected components of the graph of complexes (reactions as
-    undirected edges), as indices into ``complexes``."""
+    undirected edges). A complex maps species to stoichiometries; the empty
+    complex stands for nothing.
+
+    >>> from symbolcat import Symbol
+    >>> A, B, C, k = Symbol("A"), Symbol("B"), Symbol("C"), Symbol("k")
+    >>> linkage_classes(ReactionSystem([Reaction(k, [A], [B]), Reaction(k, [C], [])]))
+    (({Symbol('A'): 1}, {Symbol('B'): 1}), ({Symbol('C'): 1}, {}))
+    """
+    nodes = _complexes(system)
+    return tuple(tuple(dict(nodes[i]) for i in c) for c in _linkage_indices(system))
+
+
+def _linkage_indices(system: ReactionSystem, /) -> tuple[tuple[int, ...], ...]:
     nodes, edges = _edges(system)
     parent = list(range(len(nodes)))
 
@@ -349,7 +371,7 @@ def deficiency(system: ReactionSystem, /) -> int:
     0
     """
     n = [[r.net(s) for r in system.reactions] for s in system.species]
-    return len(complexes(system)) - len(linkage_classes(system)) - rational_rank(n)
+    return len(_complexes(system)) - len(_linkage_indices(system)) - rational_rank(n)
 
 
 def is_weakly_reversible(system: ReactionSystem, /) -> bool:
@@ -359,7 +381,10 @@ def is_weakly_reversible(system: ReactionSystem, /) -> bool:
     >>> from symbolcat import Symbol
     >>> A, B, C, k = Symbol("A"), Symbol("B"), Symbol("C"), Symbol("k")
     >>> cycle = [Reaction(k, [A], [B]), Reaction(k, [B], [C]), Reaction(k, [C], [A])]
-    >>> is_weakly_reversible(ReactionSystem(cycle)), is_weakly_reversible(ReactionSystem(cycle[:2]))
+    >>> (
+    ...     is_weakly_reversible(ReactionSystem(cycle)),
+    ...     is_weakly_reversible(ReactionSystem(cycle[:2])),
+    ... )
     (True, False)
     """
     nodes, edges = _edges(system)
@@ -367,4 +392,4 @@ def is_weakly_reversible(system: ReactionSystem, /) -> bool:
     for a, b in edges:
         successors[a].append(b)
     components = _strongly_connected(successors)
-    return len(components) == len(linkage_classes(system))
+    return len(components) == len(_linkage_indices(system))

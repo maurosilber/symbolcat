@@ -3,19 +3,19 @@ import sys
 import pytest
 
 from symbolcat import Symbol, real
+from symbolcat.lib import Constant, Function
 from symbolcat.lib import operators as op
-from symbolcat.ops import evaluate, to_latex
+from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import (
     Algebra,
     Call,
-    Constant,
-    Function,
     Literal,
     Operator,
     cata,
     children,
     fmap,
 )
+from symbolcat.ops.printing import to_latex
 
 x, y = Symbol("x"), Symbol("y")
 

@@ -7,7 +7,7 @@ The time derivative as an expression node.
 ``D(x)`` is the derivative of ``x`` with respect to time, and ``D(D(x))`` the
 second derivative. It is a node, not an operation: ``D(x)`` stays as written,
 so it can appear in equations (``D(x) - v``) as an unknown of its own.
-``ops.time_derivative`` computes the derivative of an expression, and writes
+``ops.calculus.time_derivative`` computes the derivative of an expression, and writes
 the derivatives of the unknowns with ``D``.
 
 >>> from symbolcat import D, Symbol

@@ -23,10 +23,10 @@ from typing import Any
 
 from ..._core import Call, Expr, Symbol
 from ..._derivative import D, Variable, is_variable
-from .._algebraic._matching import Graph, augment, perfect_matching
-from .._algebraic._system import residual
-from .._analysis._inspect import variables
-from .._calculus._time import _base, time_derivative
+from ...ops._algebraic._matching import Graph, augment, perfect_matching
+from ...ops._algebraic._system import residual
+from ...ops._analysis._inspect import variables
+from ...ops._calculus._time import _base, time_derivative
 
 
 @dataclass(frozen=True)

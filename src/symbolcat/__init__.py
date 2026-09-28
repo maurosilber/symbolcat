@@ -11,6 +11,8 @@ A minimalistic symbolic package, organized around catamorphisms.
 - ``real``: mathematical functions and constants.
 - ``linalg``: vectors and matrices of expressions.
 - ``ops``: operations on expressions (printing, LaTeX, evaluation, ...).
+- ``models``: models of dynamical systems (DAEs, ODEs, SDEs, PDEs, reaction
+  networks) and their analysis.
 - ``lib``: defining new functions, and implementation libraries.
 
 >>> from symbolcat import Symbol, ops, real
@@ -18,14 +20,14 @@ A minimalistic symbolic package, organized around catamorphisms.
 >>> expr = x + 3 * real.sin(y)
 >>> print(expr)
 x + 3 * sin(y)
->>> print(ops.to_latex(expr))
+>>> print(ops.printing.to_latex(expr))
 x + 3 \\cdot \\sin\\left(y\\right)
 >>> ops.evaluate(expr, {x: 1, y: 0})
 1.0
 """
 
-from . import lib, linalg, ops, real
+from . import lib, linalg, models, ops, real
 from ._core import Symbol
 from ._derivative import D, delay, partial
 
-__all__ = ["D", "Symbol", "delay", "lib", "linalg", "ops", "partial", "real"]
+__all__ = ["D", "Symbol", "delay", "lib", "linalg", "models", "ops", "partial", "real"]

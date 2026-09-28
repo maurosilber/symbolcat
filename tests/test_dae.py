@@ -5,21 +5,21 @@ import pytest
 
 from symbolcat import D, Symbol, real
 from symbolcat.lib import operators as op
-from symbolcat.ops import (
+from symbolcat.models.dae import (
     IndexOneDAE,
     Pantelides,
     dummy_derivatives,
     eliminate_aliases,
-    evaluate,
     initialization_system,
     lower_index,
     pantelides,
-    solve_for_derivatives,
     structural_simplify,
-    substitute_variables,
-    time_derivative,
-    variables,
 )
+from symbolcat.models.ode import solve_for_derivatives
+from symbolcat.ops import evaluate
+from symbolcat.ops.calculus import time_derivative
+from symbolcat.ops.inspect import variables
+from symbolcat.ops.transform import substitute_variables
 
 x, y, w, z, T = Symbol("x"), Symbol("y"), Symbol("w"), Symbol("z"), Symbol("T")
 g, L, k, t = Symbol("g"), Symbol("L"), Symbol("k"), Symbol("t")

@@ -6,20 +6,17 @@ import pytest
 
 from symbolcat import D, Symbol, real
 from symbolcat.linalg import to_list
-from symbolcat.ops import (
-    ODE,
-    evaluate,
+from symbolcat.models.dynamics import (
     lie_derivative,
     linearize,
     observability_matrix,
     sensitivities,
-    sensitivity_symbol,
     steady_state,
-    substitute_variables,
-    taylor_solution,
-    to_first_order,
 )
+from symbolcat.models.ode import ODE, taylor_solution, to_first_order
+from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Literal
+from symbolcat.ops.transform import substitute_variables
 
 x, v, k, g, u, t = (Symbol(n) for n in ("x", "v", "k", "g", "u", "t"))
 
@@ -124,8 +121,7 @@ def test_observability():
 def test_sensitivities():
     """For D(x) = -k x, x = x0 exp(-k t), so dx/dk = -t x."""
     ode = sensitivities(ODE({x: -k * x}), [k])
-    s = sensitivity_symbol(x, k)
-    assert s == Symbol("dx_dk")
+    s = Symbol("dx_dk")
     assert ode.states == (x, s)
     point = random_point(x, k, s)
     assert value(ode.rhs[s], point) == pytest.approx(-point[k] * point[s] - point[x])

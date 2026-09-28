@@ -4,17 +4,12 @@ import pytest
 
 from symbolcat import Symbol, real
 from symbolcat.linalg import matrix, vector
-from symbolcat.ops import (
-    coefficients,
-    dimensions,
-    evaluate,
-    gradient,
-    hessian,
-    jacobian,
-    series,
-    solve_dependencies,
-)
+from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Literal
+from symbolcat.ops.calculus import gradient, hessian, jacobian, series
+from symbolcat.ops.equations import solve_dependencies
+from symbolcat.ops.inspect import dimensions
+from symbolcat.ops.polynomials import coefficients
 
 x, y, a = Symbol("x"), Symbol("y"), Symbol("a")
 

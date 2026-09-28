@@ -161,8 +161,7 @@ def _groebner(polys: Iterable[Poly], key: Key, /) -> list[Poly]:
     for k, p in enumerate(basis):
         m = _leading(p, key)[0]
         if not any(
-            _divides(_leading(q, key)[0], m)
-            and (_leading(q, key)[0] != m or other < k)
+            _divides(_leading(q, key)[0], m) and (_leading(q, key)[0] != m or other < k)
             for other, q in enumerate(basis)
             if other != k
         ):
@@ -379,7 +378,9 @@ def polynomial_divide(
     quotients, remainder = _divide(
         _poly(f, generators), [_poly(g, generators) for g in divisors], key
     )
-    return [_to_expr(q, generators, key) for q in quotients], _to_expr(remainder, generators, key)
+    return [_to_expr(q, generators, key) for q in quotients], _to_expr(
+        remainder, generators, key
+    )
 
 
 def polynomial_gcd(a: Any, b: Any, gens: Sequence[Symbol] | None = None, /) -> Expr:
@@ -391,7 +392,9 @@ def polynomial_gcd(a: Any, b: Any, gens: Sequence[Symbol] | None = None, /) -> E
     x + y
     """
     generators = _gens([a, b], gens)
-    return _to_expr(_gcd(_poly(a, generators), _poly(b, generators), len(generators)), generators)
+    return _to_expr(
+        _gcd(_poly(a, generators), _poly(b, generators), len(generators)), generators
+    )
 
 
 def polynomial_lcm(a: Any, b: Any, gens: Sequence[Symbol] | None = None, /) -> Expr:

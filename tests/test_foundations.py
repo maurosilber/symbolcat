@@ -10,36 +10,36 @@ import pytest
 from symbolcat import D, Symbol, real
 from symbolcat.lib import operators as op
 from symbolcat.linalg import vector
-from symbolcat.ops import (
-    Rule,
-    Wild,
-    cancel,
-    diff,
-    dimensions,
-    evaluate,
+from symbolcat.ops import evaluate
+from symbolcat.ops.algebras import Literal
+from symbolcat.ops.calculus import diff, vjp
+from symbolcat.ops.equations import (
     generic_rank,
+    rational_nullspace,
+    rational_rank,
+    solve,
+)
+from symbolcat.ops.inspect import dimensions
+from symbolcat.ops.polynomials import (
+    cancel,
     groebner,
-    match,
     polynomial_divide,
     polynomial_gcd,
     polynomial_lcm,
-    rational_nullspace,
-    rational_rank,
     rational_roots,
+    square_free_factorization,
+)
+from symbolcat.ops.printing import to_c, to_julia, to_latex, to_python
+from symbolcat.ops.transform import (
+    Rule,
+    Wild,
+    match,
     rewrite,
     simplify_naive,
-    solve,
-    square_free_factorization,
     substitute_variables,
-    to_c,
-    to_julia,
-    to_latex,
-    to_python,
-    vjp,
 )
-from symbolcat.ops.algebras import Literal
 
-x, y, z, a, b = (Symbol(n) for n in "x y z a b".split())
+x, y, z, a, b = (Symbol(n) for n in ["x", "y", "z", "a", "b"])
 
 
 def value(expr: Any, point: dict[Any, Any]) -> Any:
@@ -83,7 +83,7 @@ def test_ifelse_printing():
     f = real.ifelse(x < 0, -x, x)
     assert "cases" in to_latex(f)
     namespace: dict[str, Any] = {}
-    exec(to_python(f), namespace)
+    exec(to_python(f), namespace)  # noqa: S102
     assert namespace["f"](-3) == 3
 
 
@@ -219,7 +219,7 @@ def test_rational_rank_and_nullspace():
 def test_generic_rank():
     assert generic_rank([[x, x * y], [1, y]]) == 1
     assert generic_rank([[x, 1 / y], [y, x]]) == 2
-    with pytest.raises(ValueError, match="rational functions"):
+    with pytest.raises(TypeError, match="rational functions"):
         generic_rank([[real.sin(x)]])
 
 
@@ -276,13 +276,15 @@ int main(void) {{ printf("%.17g\\n", {call}); return 0; }}
     subprocess.run(
         ["cc", "-o", str(tmp_path / "f"), str(tmp_path / "f.c"), "-lm"], check=True
     )
-    out = subprocess.run([str(tmp_path / "f")], capture_output=True, text=True, check=True)
+    out = subprocess.run(
+        [str(tmp_path / "f")], capture_output=True, text=True, check=True
+    )
     return float(out.stdout)
 
 
 @pytest.mark.skipif(shutil.which("cc") is None, reason="no C compiler")
 def test_c_compiles_and_matches(tmp_path):
-    expr = real.sin(x) ** 2 / 2 + real.ifelse(x < y, y, x) + real.constants.pi * x ** -1
+    expr = real.sin(x) ** 2 / 2 + real.ifelse(x < y, y, x) + real.constants.pi * x**-1
     result = run_c(to_c(expr, args=[x, y]), "f(0.7, 1.3)", tmp_path)
     assert result == pytest.approx(evaluate(expr, {x: 0.7, y: 1.3}))
 
@@ -301,7 +303,10 @@ def julia_works() -> bool:
     try:
         out = subprocess.run(
             ["julia", "--startup-file=no", "-e", "print(1)"],
-            capture_output=True, text=True, timeout=120,
+            capture_output=True,
+            text=True,
+            timeout=120,
+            check=False,
         )
     except (OSError, subprocess.TimeoutExpired):
         return False
@@ -310,11 +315,14 @@ def julia_works() -> bool:
 
 @pytest.mark.skipif(not julia_works(), reason="no working Julia")
 def test_julia_runs_and_matches():
-    expr = real.sin(x) ** 2 / 2 + real.ifelse(x < y, y, x) + real.atan2(y, x) * x ** -1
+    expr = real.sin(x) ** 2 / 2 + real.ifelse(x < y, y, x) + real.atan2(y, x) * x**-1
     source = to_julia(expr, args=[x, y]) + "\nprintln(f(0.7, 1.3))"
     out = subprocess.run(
         ["julia", "--startup-file=no", "-e", source],
-        capture_output=True, text=True, check=True, timeout=120,
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=120,
     )
     assert float(out.stdout) == pytest.approx(evaluate(expr, {x: 0.7, y: 1.3}))
 

@@ -18,12 +18,12 @@ from typing import Any
 
 from ..._core import Call, Expr, Symbol, as_expr, name_of
 from ..._derivative import D, Variable, is_variable
-from .._algebraic._linear import solve_linear
-from .._analysis._inspect import free_symbols
-from .._calculus._time import _base
+from ...ops._algebraic._linear import solve_linear
+from ...ops._analysis._inspect import free_symbols
+from ...ops._calculus._time import _base
+from ...ops._transform._substitute import substitute_variables
 from .._dae._system import IndexOneDAE
 from .._events import Event
-from .._transform._substitute import substitute_variables
 
 
 @dataclass(frozen=True, init=False)
@@ -94,7 +94,7 @@ def solve_for_derivatives(dae: IndexOneDAE, /) -> ODE:
     each state.
 
     >>> from symbolcat import D, Symbol
-    >>> from symbolcat.ops import lower_index, pantelides
+    >>> from symbolcat.models.dae import lower_index, pantelides
     >>> x, v, m, k = Symbol("x"), Symbol("v"), Symbol("m"), Symbol("k")
     >>> dae = lower_index(pantelides([D(x) - v, m * D(v) + k * x], [x, v]))
     >>> print(solve_for_derivatives(dae).rhs[v])

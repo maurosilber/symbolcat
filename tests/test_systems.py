@@ -6,39 +6,40 @@ import pytest
 from symbolcat import D, Symbol, delay, partial, real
 from symbolcat.lib import operators as op
 from symbolcat.linalg import to_list
-from symbolcat.ops import (
+from symbolcat.models.dae import IndexOneDAE, structural_simplify
+from symbolcat.models.dynamics import (
+    characteristic_matrix,
+    fixed_points,
+    identifiability,
+    linearize,
+    sensitivities,
+    transfer_function,
+)
+from symbolcat.models.ode import (
     ODE,
-    SDE,
     ContinuousEvent,
     DiscreteEvent,
     DiscreteSystem,
-    IndexOneDAE,
-    characteristic_matrix,
-    delays,
-    diff,
-    evaluate,
-    fixed_points,
-    grid_symbol,
-    hessian_sparsity,
-    identifiability,
+    iterate,
+    to_first_order,
+)
+from symbolcat.models.pde import grid_symbol, method_of_lines
+from symbolcat.models.stochastic import (
+    SDE,
     ito_lemma,
     ito_to_stratonovich,
-    iterate,
-    jacobian_sparsity,
-    linearize,
-    method_of_lines,
-    sensitivities,
-    solve,
     stratonovich_to_ito,
-    structural_simplify,
-    substitute_variables,
-    time_derivative,
-    to_first_order,
-    transfer_function,
 )
+from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Literal
+from symbolcat.ops.calculus import diff, time_derivative
+from symbolcat.ops.equations import solve
+from symbolcat.ops.inspect import delays, hessian_sparsity, jacobian_sparsity
+from symbolcat.ops.transform import substitute_variables
 
-x, y, v, w, k, g, t, tau, s = (Symbol(n) for n in "x y v w k g t tau s".split())
+x, y, v, w, k, g, t, tau, s = (
+    Symbol(n) for n in ["x", "y", "v", "w", "k", "g", "t", "tau", "s"]
+)
 
 
 def value(expr: Any, point: dict[Any, Any]) -> Any:
@@ -194,9 +195,15 @@ def test_method_of_lines_neumann_and_coordinate():
     u, xs = Symbol("u"), Symbol("x")
     # D(u) = u_x + x, with u_x = 0 on the left
     system = method_of_lines(
-        [D(u) - partial(u, xs) - xs], [u], xs, (0, 2), 3, left=[partial(u, xs)], right=[u]
+        [D(u) - partial(u, xs) - xs],
+        [u],
+        xs,
+        (0, 2),
+        3,
+        left=[partial(u, xs)],
+        right=[u],
     )
-    left, middle, right = system.equations
+    left, middle, _ = system.equations
     u0, u1, u2 = (grid_symbol(u, i) for i in range(3))
     assert value(left, {u0: 1.0, u1: 3.0}) == 2.0
     assert value(middle, {D(u1): 5.0, u0: 1.0, u2: 3.0}) == 5.0 - 1.0 - 1.0
@@ -215,7 +222,7 @@ def test_sparsity():
 
 def test_identifiability_two_compartments():
     """x1 feeds x2 at rate a, both decay; only x1 is measured."""
-    x1, x2, a, b = (Symbol(n) for n in "x1 x2 a b".split())
+    x1, x2, a, b = (Symbol(n) for n in ["x1", "x2", "a", "b"])
     ode = ODE({x1: -(a + b) * x1, x2: a * x1 - b * x2})
     result = identifiability(ode, [x1])
     assert result[x1]

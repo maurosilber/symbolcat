@@ -14,11 +14,11 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from ..._core import Expr, Literal, Symbol, name_of
-from .._calculus._diff import jvp
+from ...ops._calculus._diff import jvp
 from ._system import ODE
 
 
-def sensitivity_symbol(state: Symbol, parameter: Symbol, /) -> Symbol:
+def _sensitivity_symbol(state: Symbol, parameter: Symbol, /) -> Symbol:
     """The symbol of the sensitivity of ``state`` to ``parameter``,
     ``dx_dk``."""
     return Symbol(f"d{name_of(state)}_d{name_of(parameter)}")
@@ -26,7 +26,7 @@ def sensitivity_symbol(state: Symbol, parameter: Symbol, /) -> Symbol:
 
 def sensitivities(ode: ODE, parameters: Iterable[Symbol], /) -> ODE:
     """``ode`` augmented with the sensitivities of each state to each of the
-    ``parameters``, named by ``sensitivity_symbol`` (``dx_dk``).
+    ``parameters``, named ``dx_dk`` for the state ``x`` and the parameter ``k``.
 
     States must be symbols (see ``to_first_order``).
 
@@ -50,8 +50,8 @@ def sensitivities(ode: ODE, parameters: Iterable[Symbol], /) -> ODE:
         states.append(state)
     rhs: dict[Expr, Expr] = {s: f for s, f in ode.rhs.items()}
     for p in parameters:
-        seed: dict[Expr, Expr] = {s: sensitivity_symbol(s, p) for s in states}
+        seed: dict[Expr, Expr] = {s: _sensitivity_symbol(s, p) for s in states}
         seed[p] = Literal(1)
         for s in states:
-            rhs[sensitivity_symbol(s, p)] = jvp(ode.rhs[s], seed)
+            rhs[_sensitivity_symbol(s, p)] = jvp(ode.rhs[s], seed)
     return ODE(rhs, ode.t)

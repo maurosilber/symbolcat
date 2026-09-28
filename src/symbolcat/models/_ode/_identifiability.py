@@ -19,8 +19,8 @@ from typing import Any
 
 from ..._core import Literal, Symbol
 from ..._derivative import Variable
-from .._algebraic._rank import generic_rank
 from ...linalg import to_list
+from ...ops._algebraic._rank import generic_rank
 from ._analysis import observability_matrix
 from ._system import ODE
 
@@ -41,9 +41,7 @@ def identifiability(
     """
     if parameters is None:
         parameters = ode.parameters
-    extended = ODE(
-        {**ode.rhs, **{p: Literal(0) for p in parameters}}, ode.t
-    )
+    extended = ODE({**ode.rhs, **{p: Literal(0) for p in parameters}}, ode.t)
     rows = to_list(observability_matrix(extended, outputs))
     full = generic_rank(rows)
     result: dict[Variable, bool] = {}
@@ -51,5 +49,3 @@ def identifiability(
         without = [[e for k, e in enumerate(row) if k != j] for row in rows]
         result[var] = generic_rank(without) < full
     return result
-
-

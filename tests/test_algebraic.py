@@ -5,16 +5,11 @@ import pytest
 
 from symbolcat import D, Symbol, real
 from symbolcat.lib import operators as op
-from symbolcat.ops import (
-    EquationSystem,
-    block_triangular,
-    evaluate,
-    solve_linear,
-    substitute_variables,
-    tear,
-)
+from symbolcat.ops import evaluate
 from symbolcat.ops._algebraic._matching import perfect_matching
 from symbolcat.ops.algebras import Literal
+from symbolcat.ops.equations import EquationSystem, block_triangular, solve_linear, tear
+from symbolcat.ops.transform import substitute_variables
 
 x, y, z, a, b = Symbol("x"), Symbol("y"), Symbol("z"), Symbol("a"), Symbol("b")
 

@@ -19,9 +19,9 @@ from typing import Any
 
 from ..._core import Expr, Literal, Symbol, as_expr
 from ..._derivative import Variable, is_variable
-from .._analysis._inspect import free_symbols
-from .._calculus._diff import diff
-from .._transform._simplify import simplify_exact
+from ...ops._analysis._inspect import free_symbols
+from ...ops._calculus._diff import diff
+from ...ops._transform._simplify import simplify_exact
 
 CONVENTIONS = ("ito", "stratonovich")
 
@@ -87,9 +87,14 @@ class SDE:
     @property
     def parameters(self) -> tuple[Symbol, ...]:
         excluded = set(self.drift) | {self.t}
-        exprs = [*self.drift.values(), *(g for gs in self.diffusion.values() for g in gs)]
+        exprs = [
+            *self.drift.values(),
+            *(g for gs in self.diffusion.values() for g in gs),
+        ]
         return tuple(
-            dict.fromkeys(s for e in exprs for s in free_symbols(e) if s not in excluded)
+            dict.fromkeys(
+                s for e in exprs for s in free_symbols(e) if s not in excluded
+            )
         )
 
 
@@ -127,7 +132,9 @@ def ito_to_stratonovich(sde: SDE, /) -> SDE:
 def stratonovich_to_ito(sde: SDE, /) -> SDE:
     """The same process, in Itô's convention."""
     if sde.convention != "stratonovich":
-        raise ValueError("stratonovich_to_ito: the SDE is not in Stratonovich's convention")
+        raise ValueError(
+            "stratonovich_to_ito: the SDE is not in Stratonovich's convention"
+        )
     correction = _correction(sde)
     return SDE(
         {s: simplify_exact(f + correction[s]) for s, f in sde.drift.items()},
@@ -165,7 +172,9 @@ def ito_lemma(expr: Any, sde: SDE, /) -> tuple[Expr, tuple[Expr, ...]]:
                 second = second + covariance * diff(gradient[i], k)
         drift = drift + second / 2
     diffusion = tuple(
-        simplify_exact(sum((gradient[i] * sde.diffusion[i][j] for i in sde.states), Literal(0)))
+        simplify_exact(
+            sum((gradient[i] * sde.diffusion[i][j] for i in sde.states), Literal(0))
+        )
         for j in range(sde.noise)
     )
     return simplify_exact(drift), diffusion

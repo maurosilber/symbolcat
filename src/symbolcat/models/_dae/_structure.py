@@ -18,14 +18,14 @@ from dataclasses import replace
 from typing import Any
 
 from ..._core import Expr, Literal, Symbol
-from .._algebraic._structure import solve_for
-from .._algebraic._system import EquationSystem, residual
-from .._analysis._inspect import variables
-from .._calculus._diff import diff
-from .._calculus._time import _base, expand_derivatives
+from ...ops._algebraic._structure import solve_for
+from ...ops._algebraic._system import EquationSystem, residual
+from ...ops._analysis._inspect import variables
+from ...ops._calculus._diff import diff
+from ...ops._calculus._time import _base, expand_derivatives
+from ...ops._transform._simplify import as_fraction, is_number, simplify_exact
+from ...ops._transform._substitute import substitute, substitute_variables
 from .._events import Event
-from .._transform._simplify import as_fraction, is_number, simplify_exact
-from .._transform._substitute import substitute, substitute_variables
 from ._pantelides import pantelides
 from ._system import IndexOneDAE, dummy_derivatives
 

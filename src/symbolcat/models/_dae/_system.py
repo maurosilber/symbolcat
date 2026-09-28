@@ -26,10 +26,10 @@ from dataclasses import dataclass, field
 
 from ..._core import Expr, Symbol
 from ..._derivative import D, Variable
-from .._algebraic._matching import augment, perfect_matching
-from .._algebraic._system import EquationSystem
-from .._analysis._inspect import free_symbols, variables
-from .._calculus._time import _base
+from ...ops._algebraic._matching import augment, perfect_matching
+from ...ops._algebraic._system import EquationSystem
+from ...ops._analysis._inspect import free_symbols, variables
+from ...ops._calculus._time import _base
 from .._events import Event
 from ._pantelides import Pantelides
 
@@ -108,7 +108,7 @@ def lower_index(result: Pantelides, /, *, events: Iterable[Event] = ()) -> Index
     solution drifts away from them.
 
     >>> from symbolcat import D, Symbol
-    >>> from symbolcat.ops import pantelides
+    >>> from symbolcat.models.dae import pantelides
     >>> x, y, k = Symbol("x"), Symbol("y"), Symbol("k")
     >>> dae = lower_index(pantelides([D(x) - y, x - k], [x, y]))
     >>> dae.states, dae.unknowns
@@ -144,7 +144,7 @@ def dummy_derivatives(
     unknowns are kept as states when possible.
 
     >>> from symbolcat import D, Symbol
-    >>> from symbolcat.ops import pantelides
+    >>> from symbolcat.models.dae import pantelides
     >>> x, y, k = Symbol("x"), Symbol("y"), Symbol("k")
     >>> dae = dummy_derivatives(pantelides([D(x) - y, x - k], [x, y]))
     >>> dae.states, dae.unknowns

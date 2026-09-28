@@ -11,17 +11,27 @@ Numbers are doubles, so integer literals are written with a decimal point
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping, Sequence
 from typing import Any
 
 from ... import real
-from ..._core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata, name_of
+from ..._core import (
+    Call,
+    Constant,
+    Expr,
+    Function,
+    Literal,
+    Symbol,
+    cata,
+    name_of,
+)
+from ..._core.precedence import POSTFIX
 from ...lib import operators as op
 from ...linalg import Array
 from .._analysis._inspect import free_symbols
 from .._transform._arrays import expand_arrays
 from .._transform._share import cse
-from ..._core.precedence import POSTFIX
 from ._base import Printed, indices, literal_precedence, operand
 from ._str import str_algebra
 
@@ -49,7 +59,7 @@ def _(node: Literal) -> Printed:
         return Printed("1" if value else "0")
     if isinstance(value, int):
         return Printed(f"{value}.0", literal_precedence(value))
-    if isinstance(value, float) and value != value:
+    if isinstance(value, float) and math.isnan(value):
         return Printed("NAN")
     if value in (float("inf"), float("-inf")):
         return Printed("INFINITY" if value > 0 else "(-INFINITY)")
@@ -98,7 +108,9 @@ def _(node: Call[Printed]) -> Printed:
 def _(node: Call[Printed]) -> Printed:
     obj, key = node.args
     found = indices(key)
-    index = f"[(int)({key.text})]" if found is None else "".join(f"[{i}]" for i in found)
+    index = (
+        f"[(int)({key.text})]" if found is None else "".join(f"[{i}]" for i in found)
+    )
     return Printed(f"{operand(obj, op.getitem, 'left')}{index}", POSTFIX)
 
 
@@ -171,5 +183,9 @@ def to_c(
         lines = [f"void {name}({signature}{out}double *out) {{", *body]
         lines += [f"    out[{i}] = {_source(e)};" for i, e in enumerate(result.args)]
     else:
-        lines = [f"double {name}({signature}) {{", *body, f"    return {_source(result)};"]
+        lines = [
+            f"double {name}({signature}) {{",
+            *body,
+            f"    return {_source(result)};",
+        ]
     return "\n".join([*lines, "}"])

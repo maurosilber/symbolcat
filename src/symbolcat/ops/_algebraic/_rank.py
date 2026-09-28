@@ -13,7 +13,6 @@ rank there is the generic rank, except on a set of measure zero
 
 from __future__ import annotations
 
-
 import random
 from collections.abc import Sequence
 from fractions import Fraction
@@ -45,7 +44,9 @@ def _echelon(rows: Rows, /) -> tuple[Rows, list[int]]:
         for i in range(len(rows)):
             if i != r and rows[i][col]:
                 factor = rows[i][col]
-                rows[i] = [a - factor * b for a, b in zip(rows[i], rows[r], strict=True)]
+                rows[i] = [
+                    a - factor * b for a, b in zip(rows[i], rows[r], strict=True)
+                ]
         pivots.append(col)
         r += 1
     return rows, pivots
@@ -95,7 +96,7 @@ def _exact_div(a: Any, b: Any, /) -> Fraction:
 
 def _exact_pow(a: Any, b: Any, /) -> Any:
     if type(b) is not int and not (isinstance(b, Fraction) and b.denominator == 1):
-        raise ValueError("generic_rank: entries must be rational functions")
+        raise TypeError("generic_rank: entries must be rational functions")
     return Fraction(a) ** int(b)
 
 
@@ -131,10 +132,7 @@ def generic_rank(matrix: Any, /, *, seed: int = 0) -> int:
                     point[var] = Fraction(rng.randint(1, 10**9), rng.randint(1, 10**9))
             value = evaluate(substitute_variables(entry, point), lib=EXACT)
             if not isinstance(value, (int, Fraction)) or isinstance(value, bool):
-                raise ValueError("generic_rank: entries must be rational functions")
+                raise TypeError("generic_rank: entries must be rational functions")
             out.append(Fraction(value))
         values.append(out)
     return rational_rank(values)
-
-
-

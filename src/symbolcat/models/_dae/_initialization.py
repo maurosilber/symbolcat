@@ -18,8 +18,8 @@ from collections.abc import Mapping
 from typing import Any
 
 from ..._core import as_expr
-from .._algebraic._system import EquationSystem
-from .._transform._substitute import substitute_variables
+from ...ops._algebraic._system import EquationSystem
+from ...ops._transform._substitute import substitute_variables
 from ._pantelides import Pantelides
 
 
@@ -30,7 +30,7 @@ def initialization_system(
     ones (a mapping of variables, or the time, to values).
 
     >>> from symbolcat import D, Symbol
-    >>> from symbolcat.ops import pantelides
+    >>> from symbolcat.models.dae import pantelides
     >>> x, y, L = Symbol("x"), Symbol("y"), Symbol("L")
     >>> result = pantelides([D(x) - y, x**2 - L**2], [x, y])
     >>> system = initialization_system(result)

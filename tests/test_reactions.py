@@ -4,26 +4,25 @@ import pytest
 
 from symbolcat import Symbol
 from symbolcat.linalg import to_list
-from symbolcat.ops import (
+from symbolcat.models.dynamics import lie_derivative
+from symbolcat.models.reactions import (
     Reaction,
     ReactionSystem,
     chemical_langevin,
-    complexes,
     conservation_laws,
     deficiency,
-    evaluate,
     is_weakly_reversible,
-    lie_derivative,
     linkage_classes,
-    propensities,
+    propensity,
     rate_law,
     reaction_rate_equations,
     stoichiometry_matrix,
-    substitute_variables,
 )
+from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Literal
+from symbolcat.ops.transform import substitute_variables
 
-A, B, C, E, S, P = (Symbol(n) for n in "A B C E S P".split())
+A, B, C, E, S, P = (Symbol(n) for n in ["A", "B", "C", "E", "S", "P"])
 k1, k2, k3 = Symbol("k1"), Symbol("k2"), Symbol("k3")
 
 
@@ -33,7 +32,11 @@ def value(expr: Any, point: dict[Any, Any]) -> Any:
 
 def michaelis_menten() -> ReactionSystem:
     return ReactionSystem(
-        [Reaction(k1, [E, S], [C]), Reaction(k2, [C], [E, S]), Reaction(k3, [C], [E, P])]
+        [
+            Reaction(k1, [E, S], [C]),
+            Reaction(k2, [C], [E, S]),
+            Reaction(k3, [C], [E, P]),
+        ]
     )
 
 
@@ -97,7 +100,7 @@ def test_no_conservation_laws():
 
 
 def test_propensities():
-    (a,) = propensities(ReactionSystem([Reaction(k1, {A: 3}, [])]))
+    a = propensity(Reaction(k1, {A: 3}, []))
     assert value(a, {A: 5, k1: 1}) == pytest.approx(5 * 4 * 3 / 6)
 
 
@@ -113,8 +116,7 @@ def test_chemical_langevin():
 
 def test_network_structure():
     network = michaelis_menten()
-    assert len(complexes(network)) == 3  # E + S, C, E + P
-    assert linkage_classes(network) == ((0, 1, 2),)
+    assert linkage_classes(network) == (({E: 1, S: 1}, {C: 1}, {E: 1, P: 1}),)
     assert deficiency(network) == 0
     assert not is_weakly_reversible(network)
 
@@ -122,8 +124,12 @@ def test_network_structure():
 def test_deficiency_one():
     # A + B <-> 2B, B -> A (Feinberg's classic example has deficiency 1)
     network = ReactionSystem(
-        [Reaction(k1, [A, B], [B, B]), Reaction(k2, [B, B], [A, B]), Reaction(k3, [B], [A])]
+        [
+            Reaction(k1, [A, B], [B, B]),
+            Reaction(k2, [B, B], [A, B]),
+            Reaction(k3, [B], [A]),
+        ]
     )
-    assert len(complexes(network)) == 4
-    assert len(linkage_classes(network)) == 2
+    classes = linkage_classes(network)
+    assert [len(c) for c in classes] == [2, 2]  # A + B, 2 B | B, A
     assert deficiency(network) == 1

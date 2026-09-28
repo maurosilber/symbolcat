@@ -8,16 +8,11 @@ from symbolcat.lib import Function
 from symbolcat.lib import operators as op
 from symbolcat.lib.std import IMPL
 from symbolcat.linalg import matrix, to_list, vector
-from symbolcat.ops import (
-    count_nodes,
-    depth,
-    diff,
-    evaluate,
-    free_symbols,
-    simplify_naive,
-    substitute,
-)
+from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Literal
+from symbolcat.ops.calculus import diff
+from symbolcat.ops.inspect import count_nodes, depth, free_symbols
+from symbolcat.ops.transform import simplify_naive, substitute
 
 x, y = Symbol("x"), Symbol("y")
 
