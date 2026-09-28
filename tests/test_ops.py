@@ -213,3 +213,45 @@ def test_diff_array_entrywise():
 
 def test_math_consistency():
     assert evaluate(real.constants.tau / 2) == math.pi
+
+
+def test_ifelse_only_evaluates_the_branch_taken():
+    expr = real.ifelse(x > 0, real.log(x), 0)
+    assert evaluate(expr, {x: -1}) == 0
+    assert evaluate(expr, {x: math.e}) == 1
+
+
+def test_ifelse_with_array_conditions_needs_both_branches():
+    import numpy as np
+
+    from symbolcat.lib import numpy as np_lib
+
+    values = np.array([-1.0, 4.0])
+    expr = real.ifelse(x > 0, real.sqrt(x), 0)
+    with np.errstate(invalid="ignore"):
+        result = evaluate(expr, {x: values}, lib=np_lib.IMPL)
+    assert list(result) == [0, 2]
+
+
+@pytest.mark.parametrize("a", [0.3, 1.0, 2.5, 30.0])
+@pytest.mark.parametrize("value", [0.0, 0.1, 1.0, 3.0, 40.0])
+def test_gammainc(a, value):
+    import sympy
+
+    lower: Any = sympy.lowergamma(a, value)
+    expected = float((lower / sympy.gamma(a)).evalf(30))
+    assert evaluate(real.gammainc(a, x), {x: value}) == pytest.approx(
+        expected, abs=1e-14
+    )
+
+
+def test_gammainc_derivative():
+    a = Symbol("a")
+    expr = real.gammainc(2.5, x**2)
+    h, point = 1e-6, 0.8
+    numeric = (evaluate(expr, {x: point + h}) - evaluate(expr, {x: point - h})) / (
+        2 * h
+    )
+    assert evaluate(diff(expr, x), {x: point}) == pytest.approx(numeric)
+    with pytest.raises(NotImplementedError, match="with respect to a"):
+        diff(real.gammainc(a, x), a)

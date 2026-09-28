@@ -4,11 +4,11 @@ pytest.importorskip("egglog")
 
 from egglog import EGraph
 
-from symbolcat import Symbol, real
+from symbolcat import Symbol, complex, real
 from symbolcat.lib import Constant, Function
 from symbolcat.lib.std import IMPL
 from symbolcat.ops import evaluate
-from symbolcat.ops.algebras import Call, Literal
+from symbolcat.ops.algebras import Call, Literal, as_expr
 from symbolcat.ops.egraph import (
     integer,
     negative,
@@ -446,3 +446,41 @@ def test_random_expressions_keep_their_value(seed):
             if a is not None:
                 assert b is not None, (expr, result, env)
                 assert b == pytest.approx(a, rel=1e-4, abs=1e-9), (expr, result, env)
+
+
+# complex expressions
+
+
+I = complex.constants.I
+
+
+@pytest.mark.parametrize(
+    "expr, expected",
+    [
+        (I * I, -1),
+        (complex.re(complex.exp(I * x)), real.cos(x)),
+        (complex.abs(complex.exp(I * x)), 1),
+        (complex.exp(I * x) * complex.exp(-I * x), 1),
+        ((x + I * y) * (x - I * y), x**2 + y**2),
+        (complex.re(complex.exp(I * x)) ** 2 + complex.im(complex.exp(I * x)) ** 2, 1),
+        (complex.exp(I * (x + x)), complex.exp(I * (2 * x))),
+    ],
+)
+def test_complex(expr, expected):
+    assert simplify(expr) == as_expr(expected)
+
+
+def test_complex_is_not_real():
+    """I ** 2 is not nonnegative: abs(I * I) is 1, not I * I."""
+    assert simplify(real.abs(I * I)) == Literal(1)
+    assert evaluate(simplify(real.sqrt(-(I**2)))) == 1
+
+
+def test_complex_is_hidden_from_real_rules():
+    f = Function("f", arity=1)
+    expr = f(I * x) * f(I * x)
+    assert evaluate(simplify(expr), {x: 1.0}, lib={**IMPL, f: lambda v: v}) == -1
+
+
+def test_complex_assumptions():
+    assert simplify(complex.abs(complex.rect(x, y)), assume=[positive(x)]) == x

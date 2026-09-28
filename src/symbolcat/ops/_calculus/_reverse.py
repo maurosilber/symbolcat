@@ -44,15 +44,19 @@ from ..._core import (
     as_expr,
     children,
     fmap,
+    name_of,
 )
 from ...lib import operators as op
 from ...linalg import Array, array, identity, matrix, transpose, vector
-from .._analysis._inspect import complex_algebra, free_symbols
+from .._analysis._inspect import complex_algebra, free_symbols, is_complex
 from .._transform._arrays import Shape, _shapes, arrays_algebra, entries
 from .._transform._share import share
 from .._transform._simplify import simplify_naive
 
 type Cotangents = tuple[Expr, ...]
+
+# The cotangent of an argument without a derivative: an error if it is needed.
+NO_DERIVATIVE = Literal(None)
 type Rule = Callable[..., Cotangents]
 
 reverse_algebra = Algebra[Cotangents]("reverse")
@@ -112,7 +116,8 @@ def _(node, g, shapes, shape):
     # The exponent's cotangent is only used if the exponent depends on a
     # variable, so log(a) does not appear for constant exponents.
     a, b = node.args
-    return b * a ** (b - 1) * g, node * real.log(a) * g
+    log = cx.log if is_complex(a) else real.log
+    return b * a ** (b - 1) * g, node * log(a) * g
 
 
 def chain(outer: Callable[[Expr], Expr], /) -> Rule:
@@ -133,6 +138,12 @@ rule(real.sinh)(chain(real.cosh))
 rule(real.cosh)(chain(real.sinh))
 rule(real.tanh)(lambda node, g, shapes, shape: ((1 - node**2) * g,))
 rule(real.erf)(chain(lambda a: 2 / real.sqrt(real.constants.pi) * real.exp(-(a**2))))
+
+
+@rule(real.gammainc)
+def _(node, g, shapes, shape):
+    a, x = node.args
+    return NO_DERIVATIVE, x ** (a - 1) * real.exp(-x) / real.gamma(a) * g
 
 
 rule(cx.exp)(lambda node, g, shapes, shape: (node * g,))
@@ -376,9 +387,16 @@ def vjp(
         shape = shape_of[id(node)]
         pullback = reverse_algebra.handler_for(node)
         cotangents = pullback(node, g=g, shapes=arg_shapes, shape=shape)
-        for arg, s, c in zip(node.args, arg_shapes, cotangents, strict=True):
+        for i, (arg, s, c) in enumerate(
+            zip(node.args, arg_shapes, cotangents, strict=True)
+        ):
             if id(arg) not in active:
                 continue
+            if c is NO_DERIVATIVE:
+                raise NotImplementedError(
+                    f"reverse: no derivative of {name_of(node.func)} "
+                    f"with respect to argument {i}"
+                )
             if node.func in linalg.ENTRYWISE:
                 c = unbroadcast(c, s, shape)
             if not is_complex[id(arg)]:

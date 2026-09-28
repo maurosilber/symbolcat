@@ -14,6 +14,49 @@ from .. import complex as cx
 from .. import real
 from . import operators as op
 
+
+def gammainc(a: float, x: float, /) -> float:
+    """The regularized lower incomplete gamma function, ``P(a, x)``.
+
+    A series for ``x < a + 1``, and a continued fraction for ``Q = 1 - P``
+    otherwise (Numerical Recipes, 6.2).
+
+    >>> round(gammainc(1, 2.0), 12) == round(1 - math.exp(-2.0), 12)
+    True
+    """
+    if a <= 0 or x < 0:
+        raise ValueError(f"gammainc needs a > 0 and x >= 0, got {a}, {x}")
+    if x == 0:
+        return 0.0
+    log_prefactor = a * math.log(x) - x - math.lgamma(a)
+    if x < a + 1:
+        term = total = 1 / a
+        n = a
+        while abs(term) > abs(total) * 1e-16:
+            n += 1
+            term *= x / n
+            total += term
+        return total * math.exp(log_prefactor)
+    # modified Lentz's method
+    tiny = 1e-300
+    b = x + 1 - a
+    c, d = 1 / tiny, 1 / b
+    h = d
+    for i in range(1, 10_000):
+        an = -i * (i - a)
+        b += 2
+        d = an * d + b
+        d = tiny if abs(d) < tiny else d
+        c = b + an / c
+        c = tiny if abs(c) < tiny else c
+        d = 1 / d
+        delta = d * c
+        h *= delta
+        if abs(delta - 1) < 1e-16:
+            break
+    return 1 - math.exp(log_prefactor) * h
+
+
 OPERATORS = {
     op.eq: operator.eq,
     op.ne: operator.ne,
@@ -62,6 +105,7 @@ IMPL = {
     real.tanh: math.tanh,
     real.erf: math.erf,
     real.gamma: math.gamma,
+    real.gammainc: gammainc,
     real.factorial: math.factorial,
     real.hypot: math.hypot,
     real.ifelse: lambda condition, a, b: a if condition else b,

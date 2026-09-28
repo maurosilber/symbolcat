@@ -5,8 +5,8 @@ symbolcat.ops._printing._julia
 Generate Julia source for a function computing an expression.
 
 Powers are ``^``, indices are 1-based, and explicit arrays are Julia array
-literals (``[a, b]``, ``[a b; c d]``). ``erf`` and ``gamma`` come from
-SpecialFunctions.jl.
+literals (``[a, b]``, ``[a b; c d]``). ``erf``, ``gamma`` and
+``gammainc`` come from SpecialFunctions.jl.
 
 Complex functions whose real version throws outside its domain (``sqrt``,
 ``log``, ...) are applied to ``complex(z)``, so they take the principal
@@ -81,6 +81,12 @@ def _(node: Call[Printed]) -> Printed:
 def _(node: Call[Printed]) -> Printed:
     (arg,) = node.args
     return Printed(f"{name_of(node.func)}(complex({arg.text}))")
+
+
+@julia_algebra.register(real.gammainc)
+def _(node: Call[Printed]) -> Printed:
+    a, x = node.args
+    return Printed(f"gamma_inc({a.text}, {x.text})[1]", POSTFIX)
 
 
 @julia_algebra.register(cx.rect)

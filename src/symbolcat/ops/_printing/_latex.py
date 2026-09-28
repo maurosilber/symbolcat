@@ -122,6 +122,7 @@ FUNCTION_NAMES = {
     real.cosh: r"\cosh",
     real.tanh: r"\tanh",
     real.gamma: r"\Gamma",
+    real.gammainc: "P",
     linalg.trace: r"\operatorname{tr}",
     linalg.det: r"\det",
     cx.re: r"\operatorname{Re}",

@@ -13,7 +13,7 @@ import numpy as np
 from .. import complex as cx
 from .. import linalg, real
 from ..linalg import Array
-from ._std import OPERATORS
+from ._std import OPERATORS, gammainc
 
 IMPL = {
     **OPERATORS,
@@ -38,6 +38,7 @@ IMPL = {
     real.tanh: np.tanh,
     real.erf: np.vectorize(math.erf),
     real.gamma: np.vectorize(math.gamma),
+    real.gammainc: np.vectorize(gammainc),
     real.factorial: np.vectorize(math.factorial),
     real.hypot: np.hypot,
     real.ifelse: np.where,

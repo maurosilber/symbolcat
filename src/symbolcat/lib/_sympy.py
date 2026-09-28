@@ -42,6 +42,11 @@ def entrywise(func: Callable[..., Any], /) -> Callable[..., Any]:
     return apply
 
 
+def _gammainc(a: Any, x: Any, /) -> Any:
+    lower: Any = sympy.lowergamma(a, x)
+    return lower / sympy.gamma(a)
+
+
 IMPL: dict[Any, Any] = {
     **OPERATORS,
     Array: sympy.Matrix,
@@ -68,6 +73,7 @@ IMPL: dict[Any, Any] = {
     real.tanh: sympy.tanh,
     real.erf: sympy.erf,
     real.gamma: sympy.gamma,
+    real.gammainc: _gammainc,
     real.factorial: sympy.factorial,
     real.hypot: lambda x, y: sympy.sqrt(x**2 + y**2),
     real.ifelse: lambda c, a, b: sympy.Piecewise((a, c), (b, True)),

@@ -7,6 +7,12 @@ Simplify and optimize expressions by equality saturation.
 The expression is added to an e-graph, the rewrite rules grow it with
 equivalent forms, and the cheapest form according to a cost model is
 extracted back.
+
+The terms and rules are for real numbers. Complex sub-expressions are
+hidden behind placeholders, so no rule mistakes them for real ones; and the
+real and imaginary parts of a complex expression (``real_imag``) are
+simplified as real expressions and joined back. The smaller of both forms
+is returned.
 """
 
 from __future__ import annotations
@@ -20,8 +26,12 @@ from typing import Any, Literal
 
 from egglog import DagCostModel, EGraph, Schedule, back_off, eq, run, seq
 
-from ..._core import Expr
+from ..._core import Call, Constant, Expr, cata
+from .._analysis._inspect import complex_algebra, count_nodes
 from .._transform._arrays import expand_arrays
+from .._transform._complex import join, real_imag, uses_complex
+from .._transform._simplify import simplify_algebra
+from .._transform._substitute import substitute
 from . import _cost as cost
 from . import _rules as rules
 from ._assume import Assumption
@@ -169,8 +179,81 @@ def search(
     return Search(egraph, root, table)
 
 
+type Hidden = tuple[Expr, bool]
+
+
+def hide_complex(expr: Expr, /) -> tuple[Expr, dict[Constant, Expr]]:
+    """``expr`` with its largest complex sub-expressions replaced by
+    placeholder constants, and the mapping back to them."""
+    placeholders: dict[Constant, Expr] = {}
+
+    def hide(node: Expr, /) -> Expr:
+        placeholder = Constant(f"_complex{len(placeholders)}")
+        placeholders[placeholder] = node
+        return placeholder
+
+    def algebra(layer: Any, /) -> Hidden:
+        if not isinstance(layer, Call):
+            return layer, complex_algebra(layer)
+        node = layer.func(*(value for value, _ in layer.args))
+        is_complex = complex_algebra(fmap_flags(layer))
+        if is_complex:
+            return node, True
+        args = [hide(value) if flag else value for value, flag in layer.args]
+        return layer.func(*args), False
+
+    result, is_complex = cata(algebra, expr)
+    return (hide(result) if is_complex else result), placeholders
+
+
+def fmap_flags(layer: Call[Hidden], /) -> Call[bool]:
+    return Call(layer.func, tuple(flag for _, flag in layer.args))
+
+
 def saturate(
     expr: Any,
+    /,
+    *,
+    shapes: Mapping[Any, Any] | None,
+    **options: Any,
+) -> Expr:
+    """Search, and extract the cheapest expression.
+
+    Operations on explicit arrays are first computed entry by entry.
+    An undefined input is returned unchanged (with arrays expanded).
+    """
+    expr = expand_arrays(expr, shapes)
+    kept = saturate_real(expr, **options)
+    if not uses_complex(expr):
+        return kept
+    re, im = real_imag(expr)
+    split = join((saturate_real(re, **options), saturate_real(im, **options)))
+    return min((kept, split), key=count_nodes)
+
+
+def saturate_real(expr: Expr, /, **options: Any) -> Expr:
+    """``saturate_hidden``, with the complex sub-expressions hidden (their
+    real arguments are simplified on their own)."""
+    hidden, placeholders = hide_complex(expr)
+    inside = {p: saturate_inside(v, **options) for p, v in placeholders.items()}
+    return substitute(saturate_hidden(hidden, **options), inside)
+
+
+def saturate_inside(expr: Expr, /, **options: Any) -> Expr:
+    """A complex expression, with its real arguments simplified."""
+    if not isinstance(expr, Call):
+        return expr
+    args = [
+        saturate_inside(arg, **options)
+        if cata(complex_algebra, arg)
+        else saturate_real(arg, **options)
+        for arg in expr.args
+    ]
+    return simplify_algebra(expr.func(*args), exact=True)
+
+
+def saturate_hidden(
+    expr: Expr,
     /,
     *,
     assume: Iterable[Assumption],
@@ -179,14 +262,7 @@ def saturate(
     match_limit: int,
     cost_model: DagCostModel[Any] | None,
     extractor: Literal["tree", "greedy-dag"],
-    shapes: Mapping[Any, Any] | None,
 ) -> Expr:
-    """Search, and extract the cheapest expression.
-
-    Operations on explicit arrays are first computed entry by entry.
-    An undefined input is returned unchanged (with arrays expanded).
-    """
-    expr = expand_arrays(expr, shapes)
     with _lock:
         egraph = _shared()
         egraph.push()

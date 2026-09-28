@@ -73,6 +73,7 @@ FUNCTION_NAMES = {
     real.acos: "arccos",
     real.atan: "arctan",
     real.gamma: "Γ",
+    real.gammainc: "P",
     linalg.trace: "tr",
     cx.re: "Re",
     cx.im: "Im",

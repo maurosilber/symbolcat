@@ -5,6 +5,7 @@ import math
 import pytest
 
 from symbolcat import Symbol, complex, linalg, real
+from symbolcat.lib import Function
 from symbolcat.lib import numpy as np_lib
 from symbolcat.lib import sympy as sympy_lib
 from symbolcat.ops import evaluate
@@ -12,7 +13,7 @@ from symbolcat.ops.algebras import Literal
 from symbolcat.ops.calculus import diff, series, vjp
 from symbolcat.ops.inspect import dimensions, is_complex, shape
 from symbolcat.ops.printing import to_c, to_julia, to_latex, to_mathml, to_python
-from symbolcat.ops.transform import simplify_naive
+from symbolcat.ops.transform import real_imag, simplify_naive
 
 x, y = Symbol("x"), Symbol("y")
 I = complex.constants.I
@@ -211,7 +212,7 @@ def test_python():
     source = to_python(expr)
     assert ".real" in source and ".conjugate()" in source and "1j" in source
     namespace = dict(vars(cmath))
-    exec(source, namespace)
+    exec(source, namespace)  # noqa: S102
     assert namespace["f"](0.3, -0.7) == pytest.approx(evaluate(expr, POINT))
 
 
@@ -228,3 +229,65 @@ def test_julia():
 def test_c_rejects_complex(expr):
     with pytest.raises(NotImplementedError):
         to_c(expr)
+
+
+def test_diff_of_a_complex_power():
+    f = complex.re(z**x)
+    assert evaluate(diff(f, x), POINT) == pytest.approx(finite_difference(f, x))
+    (d,) = vjp(f, (x,))
+    assert evaluate(d, POINT) == pytest.approx(finite_difference(f, x))
+
+
+# real and imaginary parts
+
+PARTS = [
+    *(func(z) for func in UNARY),
+    *(func(x) for func in UNARY),
+    z**3,
+    z**-2,
+    z**x,
+    z ** (x + I * y),
+    z / (x - 2 * I),
+    complex.rect(x, y) * z,
+    real.ifelse(x < 0, z, complex.conj(z)),
+    complex.exp(complex.sqrt(z) * complex.log(z)),
+    linalg.vector([z, x]) * I,
+]
+GRID = [(u / 2, v / 2) for u in range(-5, 6) for v in range(-5, 6)]
+
+
+@pytest.mark.parametrize("expr", PARTS, ids=str)
+def test_real_imag(expr):
+    re, im = real_imag(expr)
+    assert not is_complex(re) and not is_complex(im)
+    for u, v in GRID:
+        point = {x: u, y: v}
+        on_cut = getattr(expr, "func", None) in (complex.asin, complex.acos)
+        if on_cut and v == 0 and abs(u) > 1:
+            continue  # asin and acos on their branch cut: cmath uses the sign of 0
+        try:
+            expected = evaluate(expr, point)
+            got_re, got_im = evaluate(re, point), evaluate(im, point)
+        except (ValueError, ZeroDivisionError):
+            continue  # singular points, like log(0) in z ** x at z = 0
+        if isinstance(expected, list):
+            got = [builtins.complex(a, b) for a, b in zip(got_re, got_im)]
+            assert got == pytest.approx(expected)
+        else:
+            assert builtins.complex(got_re, got_im) == pytest.approx(expected)
+
+
+def test_real_imag_of_real_input_on_the_branch_cut():
+    for func in (complex.asin, complex.acos, complex.sqrt, complex.log):
+        re, im = real_imag(func(x))
+        for value in (-2.5, 2.5):
+            expected = evaluate(func(x), {x: value})
+            got = builtins.complex(evaluate(re, {x: value}), evaluate(im, {x: value}))
+            assert got == pytest.approx(expected)
+
+
+def test_real_imag_keeps_unknown_functions():
+    f = Function("f", arity=1)
+    re, im = real_imag(f(z))
+    assert re == complex.re(f(z)) and im == complex.im(f(z))
+    assert real_imag(f(x)) == (f(x), Literal(0))

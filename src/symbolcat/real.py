@@ -11,6 +11,10 @@ Mathematical functions and constants, named after Python's ``math`` module.
 
 ``ifelse(condition, a, b)`` is ``a`` where ``condition`` holds, else ``b``:
 piecewise functions, like ``ifelse(x < 0, -x, x)``.
+
+``gammainc(a, x)`` is the regularized lower incomplete gamma function,
+``P(a, x) = 1 / gamma(a) * integral(t ** (a - 1) * exp(-t), t, 0, x)``, as
+in SciPy.
 """
 
 from ._core import Constant as _Constant
@@ -41,6 +45,7 @@ cosh = _fn("cosh")
 tanh = _fn("tanh")
 erf = _fn("erf")
 gamma = _fn("gamma")
+gammainc = _fn("gammainc", arity=2)
 factorial = _fn("factorial")
 hypot = _fn("hypot", arity=2)
 ifelse = _fn("ifelse", arity=3)

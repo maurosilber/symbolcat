@@ -28,7 +28,7 @@ from ..._core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, c
 from ..._derivative import D, Variable, delay, is_variable
 from ...lib import operators as op
 from ...linalg import Array, matrix, vector
-from .._analysis._inspect import free_symbols
+from .._analysis._inspect import free_symbols, is_complex
 from .._transform._simplify import is_number, simplify_naive
 
 type Dual = tuple[Expr, Expr]
@@ -125,7 +125,8 @@ def _(args, dargs):
     (a, b), (da, db) = args, dargs
     if is_number(simplify_naive(db), 0):
         return b * a ** (b - 1) * da
-    return a**b * (db * real.log(a) + b * da / a)
+    log = cx.log if is_complex(a) else real.log
+    return a**b * (db * log(a) + b * da / a)
 
 
 @diff_algebra.register(Array, linalg.transpose, linalg.trace, linalg.sum)
@@ -205,6 +206,16 @@ rule(real.sinh)(chain(real.cosh))
 rule(real.cosh)(chain(real.sinh))
 rule(real.tanh)(chain(lambda a: 1 - real.tanh(a) ** 2))
 rule(real.erf)(chain(lambda a: 2 / real.sqrt(real.constants.pi) * real.exp(-(a**2))))
+
+
+@rule(real.gammainc)
+def _(args, dargs):
+    """Only with respect to ``x``: the derivative in ``a`` has no closed form."""
+    (a, x), (da, dx) = args, dargs
+    if not is_number(simplify_naive(da), 0):
+        raise NotImplementedError("diff: gammainc(a, x) with respect to a")
+    return x ** (a - 1) * real.exp(-x) / real.gamma(a) * dx
+
 
 # Holomorphic complex functions: the complex derivative.
 rule(cx.exp)(chain(cx.exp))
