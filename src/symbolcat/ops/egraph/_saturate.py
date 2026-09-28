@@ -11,7 +11,7 @@ extracted back.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from functools import cache
 from itertools import count
@@ -20,7 +20,8 @@ from typing import Any, Literal
 
 from egglog import DagCostModel, EGraph, Schedule, back_off, eq, run, seq
 
-from ..._core import Expr, as_expr
+from ..._core import Expr
+from .._arrays import expand_arrays
 from . import _cost as cost
 from . import _rules as rules
 from ._assume import Assumption
@@ -178,12 +179,14 @@ def saturate(
     match_limit: int,
     cost_model: DagCostModel[Any] | None,
     extractor: Literal["tree", "greedy-dag"],
+    shapes: Mapping[Any, Any] | None,
 ) -> Expr:
     """Search, and extract the cheapest expression.
 
-    An undefined input is returned unchanged.
+    Operations on explicit arrays are first computed entry by entry.
+    An undefined input is returned unchanged (with arrays expanded).
     """
-    expr = as_expr(expr)
+    expr = expand_arrays(expr, shapes)
     with _lock:
         egraph = _shared()
         egraph.push()
@@ -228,6 +231,7 @@ def simplify(
     iterations: int = 8,
     max_nodes: int = 5_000,
     match_limit: int = 1_000,
+    shapes: Mapping[Any, Any] | None = None,
 ) -> Expr:
     """The smallest equivalent expression found.
 
@@ -238,6 +242,10 @@ def simplify(
     until it holds more than ``max_nodes`` e-nodes. A rule matching more than
     ``match_limit`` times in a pass is banned for a while (back-off). Deeper
     identities may need larger limits (see the last example).
+
+    Operations on explicit arrays are computed entry by entry, and each
+    entry is simplified. ``shapes`` gives the shapes of symbols that are
+    arrays (see ``expand_arrays``).
 
     >>> from symbolcat import Symbol, real
     >>> x, y, z = Symbol("x"), Symbol("y"), Symbol("z")
@@ -259,6 +267,7 @@ def simplify(
         match_limit=match_limit,
         cost_model=cost.size,
         extractor="tree",
+        shapes=shapes,
     )
 
 
@@ -270,11 +279,12 @@ def optimize(
     iterations: int = 8,
     max_nodes: int = 5_000,
     match_limit: int = 1_000,
+    shapes: Mapping[Any, Any] | None = None,
 ) -> Expr:
     """The cheapest equivalent expression to evaluate that was found.
 
-    ``assume``, ``iterations``, ``max_nodes`` and ``match_limit`` are as in
-    ``simplify``.
+    ``assume``, ``iterations``, ``max_nodes``, ``match_limit`` and
+    ``shapes`` are as in ``simplify``.
 
     Uses DAG extraction: repeated sub-expressions are returned as the same
     object, so ``cata`` (and therefore ``evaluate``) computes them once.
@@ -296,4 +306,5 @@ def optimize(
         match_limit=match_limit,
         cost_model=cost.evaluation,
         extractor="greedy-dag",
+        shapes=shapes,
     )

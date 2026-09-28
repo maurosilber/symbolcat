@@ -18,7 +18,7 @@ from typing import Any, cast
 
 from egglog import BigRat, String, Vec, f64, get_callable_args, get_callable_fn, i64
 
-from ... import real
+from ... import linalg, real
 from ..._core import (
     Algebra,
     Call,
@@ -55,6 +55,11 @@ FUNCTIONS: dict[Function, Any] = {
     real.sinh: term.sinh,
     real.cosh: term.cosh,
     real.tanh: term.tanh,
+    op.matmul: term.matmul,
+    linalg.transpose: term.transpose,
+    linalg.trace: term.trace,
+    linalg.det: term.det,
+    linalg.inv: term.inv,
 }
 FUNCTIONS_BACK = {v: k for k, v in FUNCTIONS.items()}
 

@@ -13,11 +13,11 @@ function ``diff`` knows gets a series for free.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from math import factorial
 from typing import Any
 
-from .. import real
+from .. import linalg, real
 from .._core import (
     Algebra,
     Call,
@@ -30,6 +30,7 @@ from .._core import (
     cata,
 )
 from ..lib import operators as op
+from ._arrays import entries, expand_arrays
 from ._diff import diff_algebra
 from ._simplify import as_fraction, is_number, simplify_exact
 from ._substitute import substitute
@@ -60,11 +61,12 @@ def clean(s: Series, /) -> Series:
     return [simplify_exact(c) for c in s]
 
 
-def mul(a: Series, b: Series, /) -> Series:
+def mul(a: Series, b: Series, /, *, product: Function = op.mul) -> Series:
+    """The series of a product, or of any other bilinear ``product``."""
     n = len(a)
     out: Series = []
     for k in range(n):
-        terms = [a[i] * b[k - i] for i in range(k + 1)]
+        terms = [product(a[i], b[k - i]) for i in range(k + 1)]
         total = terms[0]
         for term in terms[1:]:
             total = total + term
@@ -242,6 +244,30 @@ def _(node: Call[Series], **ctx: Any) -> Series:
     return mul(*node.args)
 
 
+@series_algebra.register(op.matmul, linalg.cross)
+def _(node: Call[Series], **ctx: Any) -> Series:
+    a, b = node.args
+    return mul(a, b, product=node.func)
+
+
+@series_algebra.register(linalg.transpose, linalg.trace, linalg.sum)
+def _(node: Call[Series], **ctx: Any) -> Series:
+    """Linear functions apply to each coefficient."""
+    (a,) = node.args
+    return clean([node.func(c) for c in a])
+
+
+@series_algebra.register(linalg.det, linalg.inv, linalg.norm)
+def _(node: Call[Series], *, n: int, **ctx: Any) -> Series:
+    (a,) = node.args
+    if not is_constant(a):
+        raise NotImplementedError(
+            f"series of {node.func.name} with a varying argument: "
+            "give the entries of the array"
+        )
+    return constant(node.func(a[0]), n)
+
+
 @series_algebra.register(op.truediv)
 def _(node: Call[Series], **ctx: Any) -> Series:
     return div(*node.args)
@@ -283,10 +309,20 @@ def term(coefficient: Expr, power: Expr | None, /) -> Expr:
     return coefficient * power
 
 
-def series(expr: Any, var: Symbol, /, *, at: Any = 0, order: int = 6) -> Expr:
+def series(
+    expr: Any,
+    var: Symbol,
+    /,
+    *,
+    at: Any = 0,
+    order: int = 6,
+    shapes: Mapping[Any, Any] | None = None,
+) -> Expr:
     """Taylor polynomial of ``expr`` in ``var`` around ``at``.
 
-    Terms of degree below ``order`` are kept.
+    Terms of degree below ``order`` are kept. Operations on arrays are first
+    computed entry by entry (see ``expand_arrays``, which takes ``shapes``),
+    and an array gets the series of each entry.
 
     >>> from symbolcat import Symbol, real
     >>> x = Symbol("x")
@@ -296,7 +332,13 @@ def series(expr: Any, var: Symbol, /, *, at: Any = 0, order: int = 6) -> Expr:
     exp(1) + exp(1) * (x - 1) + exp(1) * (x - 1) ** 2 / 2
     >>> print(series(real.sin(x) / x, x, order=5))
     1 - x ** 2 / 6 + x ** 4 / 120
+    >>> from symbolcat.linalg import vector
+    >>> print(series(real.exp(vector([x, -x])), x, order=3))
+    vector([1 + x + x ** 2 / 2, 1 - x + x ** 2 / 2])
     """
+    expr = expand_arrays(expr, shapes)
+    if isinstance(expr, Call) and (items := entries(expr)) is not None:
+        return expr.func(*(series(e, var, at=at, order=order) for e in items))
     at = as_expr(at)
     n = order + PADDING
     coefficients = cata(series_algebra, expr, var=var, at=at, n=n)[:order]

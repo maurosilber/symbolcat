@@ -38,7 +38,8 @@ NODE = 1000
 
 
 class Num(Expr):
-    """A real-valued term."""
+    """A real-valued term, or an array of them: operations apply entrywise,
+    except for the matrix functions below."""
 
     pi: ClassVar[Num]
     e: ClassVar[Num]
@@ -136,6 +137,30 @@ def cosh(x: Num) -> Num: ...
 
 @function(cost=NODE)
 def tanh(x: Num) -> Num: ...
+
+
+# Matrix functions. Terms carry no shape, so their rules must hold for
+# every shape where both sides are defined.
+
+
+@function(cost=NODE)
+def matmul(a: Num, b: Num) -> Num: ...
+
+
+@function(cost=NODE)
+def transpose(a: Num) -> Num: ...
+
+
+@function(cost=NODE)
+def trace(a: Num) -> Num: ...
+
+
+@function(cost=NODE)
+def det(a: Num) -> Num: ...
+
+
+@function(cost=NODE)
+def inv(a: Num) -> Num: ...
 
 
 # Properties of terms, as facts in the e-graph. Given by assumptions, and

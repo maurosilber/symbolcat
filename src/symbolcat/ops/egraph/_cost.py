@@ -16,7 +16,21 @@ from typing import Any
 from egglog import DagCostModel, EGraph, get_callable_fn
 
 from ._convert import CONSTANTS_BACK, FUNCTIONS
-from ._term import Num, abs, cos, exp, log, sin, sqrt, tan
+from ._term import (
+    Num,
+    abs,
+    cos,
+    det,
+    exp,
+    inv,
+    log,
+    matmul,
+    sin,
+    sqrt,
+    tan,
+    trace,
+    transpose,
+)
 
 LEAVES = (Num, Num.float, Num.var, Num.opaque, *CONSTANTS_BACK)
 NUM_FUNCTIONS = frozenset((*LEAVES, Num.apply, *FUNCTIONS.values()))
@@ -59,6 +73,11 @@ evaluation = node_cost(
         sin: 20,
         cos: 20,
         tan: 25,
+        transpose: 1,
+        trace: 5,
+        matmul: 30,
+        det: 50,
+        inv: 100,
     },
     default=20,
 )

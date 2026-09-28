@@ -7,6 +7,11 @@ Physical dimensions of an expression.
 A dimension is a mapping from base units to exponents (``{"m": 1, "s": -2}``
 for an acceleration). Every node folds into a pair: its value, needed to
 read literal exponents (``x ** 2``), and its dimension.
+
+Operations on explicit arrays are first computed entry by entry, so the
+entries of an array can have different dimensions (a state vector of a
+position and a velocity). A symbol with an array shape has one dimension
+for all its entries.
 """
 
 from __future__ import annotations
@@ -15,7 +20,7 @@ from collections.abc import Callable, Mapping
 from fractions import Fraction
 from typing import Any
 
-from .. import real
+from .. import linalg, real
 from .._core import (
     Algebra,
     Call,
@@ -28,6 +33,8 @@ from .._core import (
     name_of,
 )
 from ..lib import operators as op
+from ..linalg import Array, nest
+from ._arrays import expand_arrays, shape
 from ._evaluate import evaluate
 
 type Dimension = dict[str, Fraction]
@@ -75,7 +82,7 @@ def dimensionless(node: Call[Pair], /) -> None:
 
 
 @dimensions_algebra.register(Symbol)
-def _(node: Symbol, *, units: Mapping[Symbol, Dimension]) -> Pair:
+def _(node: Symbol, *, units: Mapping[Symbol, Dimension], **ctx: Any) -> Pair:
     if node not in units:
         raise ValueError(f"No units given for {name_of(node)!r}")
     return node, units[node]
@@ -96,7 +103,7 @@ def _(node: Call[Pair], **ctx: Any) -> Pair:
 type Rule = Callable[[Call[Pair]], Dimension]
 
 
-def rule(*funcs: Function) -> Callable[[Rule], Rule]:
+def rule(*funcs: Function | type) -> Callable[[Rule], Rule]:
     """Register ``node -> dimension``; the value is rebuilt from the arguments."""
 
     def decorator(dimension: Rule) -> Rule:
@@ -122,7 +129,19 @@ def _(node: Call[Pair]) -> Dimension:
     return DIMENSIONLESS
 
 
-@rule(op.mul, op.matmul)
+@rule(Array, linalg.transpose, linalg.trace, linalg.sum, linalg.norm)
+def _(node: Call[Pair]) -> Dimension:
+    """Arrays with unknown entries have the same dimension for all of them."""
+    return same(node)
+
+
+@rule(linalg.inv)
+def _(node: Call[Pair]) -> Dimension:
+    ((_, a),) = node.args
+    return scale(a, Fraction(-1))
+
+
+@rule(op.mul, op.matmul, linalg.cross)
 def _(node: Call[Pair]) -> Dimension:
     (_, a), (_, b) = node.args
     return combine(a, b)
@@ -148,6 +167,16 @@ def _(node: Call[Pair]) -> Dimension:
     return container
 
 
+@dimensions_algebra.register(linalg.det)
+def _(
+    node: Call[Pair], *, shapes: Mapping[Symbol, tuple[int, ...]], **ctx: Any
+) -> Pair:
+    """The product of ``n`` entries, for an ``n`` by ``n`` matrix."""
+    ((value, dim),) = node.args
+    n, _ = shape(value, shapes)
+    return linalg.det(value), scale(dim, Fraction(n))
+
+
 @rule(op.pow)
 def _(node: Call[Pair]) -> Dimension:
     (_, base), (exponent, exponent_dim) = node.args
@@ -169,12 +198,19 @@ def _(node: Call[Pair]) -> Dimension:
     return scale(base, power)
 
 
+type Exponents = dict[str, int | Fraction]
+
+
 def dimensions(
     expr: Any,
     units: Mapping[Symbol, Mapping[str, Any]] | Mapping[str, Mapping[str, Any]],
     /,
-) -> dict[str, int | Fraction]:
+    shapes: Mapping[Any, Any] | None = None,
+) -> Exponents | list[Any]:
     """Dimension of ``expr``, given the dimension of each symbol.
+
+    For an array, the dimension of each entry, as (nested) lists. ``shapes``
+    gives the shapes of symbols that are arrays (see ``expand_arrays``).
 
     Dimensions map base units to exponents (integers, or ``Fraction`` for
     roots); ``{}`` is dimensionless. Raises
@@ -192,9 +228,22 @@ def dimensions(
     Traceback (most recent call last):
     ...
     ValueError: add of incompatible dimensions: m, s
+    >>> from symbolcat.linalg import vector
+    >>> dimensions(vector([x, v0]) * t, units)
+    [{'m': 1, 's': 1}, {'m': 1}]
     """
     normalized = {
         Symbol(k) if isinstance(k, str) else k: normalize(v) for k, v in units.items()
     }
-    _, dim = cata(dimensions_algebra, expr, units=normalized)
-    return {k: int(v) if v.denominator == 1 else v for k, v in dim.items()}
+    shapes = {
+        Symbol(k) if isinstance(k, str) else k: v for k, v in (shapes or {}).items()
+    }
+    expr = expand_arrays(expr, shapes)
+
+    def dimension(expr: Expr, /) -> Exponents:
+        _, dim = cata(dimensions_algebra, expr, units=normalized, shapes=shapes)
+        return {k: int(v) if v.denominator == 1 else v for k, v in dim.items()}
+
+    if isinstance(expr, Call) and isinstance(expr.func, Array):
+        return nest(expr.func.shape, [dimension(e) for e in expr.args])
+    return dimension(expr)

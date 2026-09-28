@@ -18,6 +18,10 @@ Rulesets come in two kinds:
 - ``GROW``: rules that reshape an expression and can make the e-graph grow
   without bound, so they run for a limited number of iterations.
 
+Terms can also be arrays, where operations apply entrywise: the scalar
+rules still hold entry by entry. The matrix functions have their own
+rules (``matrices``), valid for every shape.
+
 Rules are valid wherever the expression is defined: ``a / a -> 1`` and
 ``exp(log(a)) -> a`` only extend the domain. Rules that could change the
 value where the expression is defined, like ``log(a * b) -> log(a) +
@@ -58,18 +62,23 @@ from ._term import (
     atan,
     cos,
     cosh,
+    det,
     exp,
+    inv,
     is_integer,
     is_negative,
     is_nonnegative,
     is_nonzero,
     is_positive,
     log,
+    matmul,
     sin,
     sinh,
     sqrt,
     tan,
     tanh,
+    trace,
+    transpose,
 )
 
 type Rules = Iterator[RewriteOrRule]
@@ -735,7 +744,43 @@ def hyperbolic(a: Num, b: Num) -> Rules:
     yield rewrite(cosh(a) - cosh(b)).to(TWO * sinh(half_sum) * sinh(half_diff))
 
 
-SHRINK = (contradictions, fold, identities)
+@ruleset
+def matrices(a: Num, b: Num) -> Rules:
+    """Matrix identities that hold for any shape where both sides are
+    defined. ``det(a @ b) == det(a) * det(b)`` is left out: it needs square
+    factors, and ``a @ b`` can be square when ``a`` and ``b`` are not.
+
+    A literal 0 stands for a zero array of any shape.
+    """
+    yield rewrite(transpose(transpose(a))).to(a)
+    yield rewrite(inv(inv(a))).to(a)
+    yield rewrite(det(transpose(a))).to(det(a))
+    yield rewrite(trace(transpose(a))).to(trace(a))
+    yield replace(matmul(a, ZERO)).to(ZERO)
+    yield replace(matmul(ZERO, a)).to(ZERO)
+    yield replace(transpose(ZERO)).to(ZERO)
+    yield replace(trace(ZERO)).to(ZERO)
+
+
+@ruleset
+def matrix_algebra(a: Num, b: Num) -> Rules:
+    """Reshaping matrix expressions.
+
+    Without shapes, some identities only hold in one direction, and others
+    not at all: ``a @ b + a @ c -> a @ (b + c)`` fails when ``a @ b`` is a
+    scalar broadcast over the vector ``a @ c``.
+    """
+    # not backwards: transpose(v) @ transpose(w) is a dot product of vectors,
+    # but transpose(w @ v) the transpose of a scalar
+    yield rewrite(transpose(matmul(a, b))).to(matmul(transpose(b), transpose(a)))
+    yield birewrite(inv(transpose(a))).to(transpose(inv(a)))
+    yield rewrite(trace(matmul(a, b))).to(trace(matmul(b, a)))
+    yield rewrite(det(inv(a))).to(ONE / det(a))
+    yield rewrite(transpose(a) + transpose(b)).to(transpose(a + b))
+    yield rewrite(transpose(a) - transpose(b)).to(transpose(a - b))
+
+
+SHRINK = (contradictions, fold, identities, matrices)
 #: Costs for extraction, set once at the end: on an undefined input (two
 #: literals merged) they would conflict.
 COSTS = (literal_costs,)
@@ -754,5 +799,6 @@ GROW = (
     trigonometric,
     hyperbolic,
     trigonometric_expansions,
+    matrix_algebra,
     assumed,
 )

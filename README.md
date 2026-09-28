@@ -200,6 +200,9 @@ x * y - 1 * 0
 ```
 
 `evaluate` expands arrays first, so every backend gives the same result.
+So do `to_python` (arrays become lists, or `array=` calls), `series` and
+`dimensions` (per entry), and the e-graph, which also knows matrix identities
+like `transpose(a @ b) == transpose(b) @ transpose(a)`.
 Symbols are scalars, unless given a shape. Operations on symbols with an
 array shape are kept, and computed by the backend:
 
