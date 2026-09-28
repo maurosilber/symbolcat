@@ -32,6 +32,7 @@ from ..._core import (
     cata,
     name_of,
 )
+from ..._derivative import D
 from ...lib import operators as op
 from ...linalg import Array, nest
 from .._evaluate import evaluate
@@ -114,6 +115,15 @@ def rule(*funcs: Function | type) -> Callable[[Rule], Rule]:
         return dimension
 
     return decorator
+
+
+@dimensions_algebra.register(D)
+def _(node: Call[Pair], *, time: Dimension | None, **ctx: Any) -> Pair:
+    """The dimension of the argument, divided by time."""
+    ((value, dim),) = node.args
+    if time is None:
+        raise ValueError("dimensions: pass the dimension of `time` to use D")
+    return D(value), combine(dim, time, -1)
 
 
 @rule(
@@ -206,8 +216,13 @@ def dimensions(
     units: Mapping[Symbol, Mapping[str, Any]] | Mapping[str, Mapping[str, Any]],
     /,
     shapes: Mapping[Any, Any] | None = None,
+    *,
+    time: Mapping[str, Any] | None = None,
 ) -> Exponents | list[Any]:
     """Dimension of ``expr``, given the dimension of each symbol.
+
+    ``time`` is the dimension of time, needed for time derivatives: ``D(x)``
+    has the dimension of ``x`` divided by ``time``.
 
     For an array, the dimension of each entry, as (nested) lists. ``shapes``
     gives the shapes of symbols that are arrays (see ``expand_arrays``).
@@ -231,6 +246,9 @@ def dimensions(
     >>> from symbolcat.linalg import vector
     >>> dimensions(vector([x, v0]) * t, units)
     [{'m': 1, 's': 1}, {'m': 1}]
+    >>> from symbolcat import D
+    >>> dimensions(D(D(x)), units, time={"s": 1})
+    {'m': 1, 's': -2}
     """
     normalized = {
         Symbol(k) if isinstance(k, str) else k: normalize(v) for k, v in units.items()
@@ -241,7 +259,13 @@ def dimensions(
     expr = expand_arrays(expr, shapes)
 
     def dimension(expr: Expr, /) -> Exponents:
-        _, dim = cata(dimensions_algebra, expr, units=normalized, shapes=shapes)
+        _, dim = cata(
+            dimensions_algebra,
+            expr,
+            units=normalized,
+            shapes=shapes,
+            time=None if time is None else normalize(time),
+        )
         return {k: int(v) if v.denominator == 1 else v for k, v in dim.items()}
 
     if isinstance(expr, Call) and isinstance(expr.func, Array):

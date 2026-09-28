@@ -2,5 +2,7 @@
 symbolcat.ops._dae
 ~~~~~~~~~~~~~~~~~~
 
-Structural analysis of differential-algebraic equations (DAEs).
+Differential-algebraic equations (DAEs): index reduction (Pantelides' algorithm
+and dummy derivatives), consistent initialization and structural
+simplification.
 """

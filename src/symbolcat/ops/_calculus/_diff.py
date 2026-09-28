@@ -106,6 +106,8 @@ def _(args, dargs):
 @rule(op.truediv)
 def _(args, dargs):
     (a, b), (da, db) = args, dargs
+    if is_number(simplify_naive(db), 0):
+        return da / b
     return (da * b - a * db) / b**2
 
 

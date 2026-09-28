@@ -45,3 +45,34 @@ def substitute(expr: Any, mapping: Mapping[Any, Any], /) -> Expr:
     """
     mapping = {as_expr(k) if not callable(k) else k: v for k, v in mapping.items()}
     return cata(substitute_algebra, expr, mapping=mapping)
+
+
+def substitute_variables(expr: Any, mapping: Mapping[Any, Any], /) -> Expr:
+    """Replace variables (symbols, and time derivatives of them) or
+    sub-expressions, matching the original nodes.
+
+    Unlike ``substitute``, a variable is atomic: ``D(x)`` is independent of
+    ``x``, so replacing ``x`` leaves ``D(x)`` alone, and replacing ``D(x)``
+    leaves ``D(D(x))`` alone.
+
+    >>> from symbolcat import D, Symbol
+    >>> x, a, b = Symbol("x"), Symbol("a"), Symbol("b")
+    >>> print(substitute_variables(D(D(x)) + D(x) + x, {D(x): a, x: b}))
+    D(D(x)) + a + b
+    """
+    from ..._derivative import is_variable
+
+    mapping = {as_expr(k): as_expr(v) for k, v in mapping.items()}
+
+    def algebra(layer: Expr, /) -> tuple[Expr, Expr]:
+        if not isinstance(layer, Call):
+            return layer, mapping.get(layer, layer)
+        original = Call(layer.func, tuple(o for o, _ in layer.args))
+        if original in mapping:
+            return original, mapping[original]
+        if is_variable(original):
+            return original, original
+        return original, Call(layer.func, tuple(r for _, r in layer.args))
+
+    _, replaced = cata(algebra, expr)
+    return replaced

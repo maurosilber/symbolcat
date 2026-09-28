@@ -5,9 +5,9 @@ symbolcat.ops._dae._system
 Index-1 systems built from the result of Pantelides' algorithm.
 
 An ``IndexOneDAE`` is ``F(t, states, unknowns) = 0``, where the Jacobian of
-``F`` with respect to the unknowns is nonsingular: given the states, the
-equations determine the unknowns, and with them the derivatives of the
-states. Two constructions:
+``F`` with respect to the unknowns is (structurally) nonsingular: given the
+states, the equations determine the unknowns, and with them the derivatives
+of the states. Two constructions:
 
 - ``lower_index``: the equations that were differentiated the most, solved
   for the highest derivatives. The other equations (the constraints) are
@@ -21,16 +21,15 @@ states. Two constructions:
 
 from __future__ import annotations
 
-import random
-from collections.abc import Mapping, Sequence
-from dataclasses import dataclass
-from typing import Any
+from collections.abc import Iterable, Mapping, Sequence
+from dataclasses import dataclass, field
 
-from ..._core import Call, Expr, Literal, Symbol, cata
+from ..._core import Expr, Symbol
 from ..._derivative import D, Variable
+from .._algebraic._matching import augment, perfect_matching
+from .._algebraic._system import EquationSystem
 from .._analysis._inspect import free_symbols, variables
-from .._calculus._diff import diff
-from .._evaluate import evaluate
+from .._calculus._time import _base
 from ._pantelides import Pantelides
 
 
@@ -40,6 +39,9 @@ class IndexOneDAE:
     integrated, and the ``unknowns``, which the equations determine given
     the states. The derivative of each state, ``D(state)``, is a state or an
     unknown. ``parameters`` are the other symbols, besides the time ``t``.
+    ``observed`` holds unknowns that were eliminated, with their values.
+
+    Raises ``ValueError`` if the equations cannot be matched to the unknowns.
     """
 
     equations: tuple[Expr, ...]
@@ -47,16 +49,20 @@ class IndexOneDAE:
     unknowns: tuple[Variable, ...]
     parameters: tuple[Symbol, ...]
     t: Symbol | None = None
+    observed: Mapping[Symbol, Expr] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
-        if len(self.equations) != len(self.unknowns):
-            raise ValueError(
-                f"{len(self.equations)} equations for {len(self.unknowns)} unknowns"
-            )
         known = set(self.states) | set(self.unknowns)
         for state in self.states:
             if D(state) not in known:
                 raise ValueError(f"the derivative of the state {state} is missing")
+        if len(self.equations) != len(self.unknowns):
+            raise ValueError(
+                f"{len(self.equations)} equations for {len(self.unknowns)} unknowns"
+            )
+        system = EquationSystem(self.equations, self.unknowns)
+        if perfect_matching(system.incidence, len(self.unknowns)) is None:
+            raise ValueError("the equations are structurally singular in the unknowns")
 
 
 def _system(
@@ -103,10 +109,7 @@ def lower_index(result: Pantelides, /) -> IndexOneDAE:
 
 
 def dummy_derivatives(
-    result: Pantelides,
-    /,
-    *,
-    at: Mapping[Any, float] | None = None,
+    result: Pantelides, /, *, prefer: Iterable[Symbol] = ()
 ) -> IndexOneDAE:
     """Keep every equation, and make one derivative per differentiated
     equation a dummy: an algebraic unknown, instead of the derivative of a
@@ -114,11 +117,13 @@ def dummy_derivatives(
 
     Level by level, from the most differentiated equations down, the
     dummies are chosen among the derivatives of the unknowns chosen at the
-    level above, so that the Jacobian of the differentiated equations with
-    respect to them is nonsingular. The choice is made by pivoting on that
-    Jacobian evaluated ``at`` a point (a mapping of variables to values,
-    such as the initial conditions). Variables not given take random
-    values. The choice is only valid near that point.
+    level above, by matching each differentiated equation to one of them.
+    The matching is structural, so the Jacobian of those equations with
+    respect to the dummies is nonsingular for generic values, but it may be
+    singular somewhere: the choice is only valid away from there.
+
+    The derivatives of the unknowns in ``prefer`` are chosen last, so those
+    unknowns are kept as states when possible.
 
     >>> from symbolcat import D, Symbol
     >>> from symbolcat.ops import pantelides
@@ -127,7 +132,8 @@ def dummy_derivatives(
     >>> dae.states, dae.unknowns
     ((), (Symbol('x'), Symbol('y'), Call(D, (Symbol('x'),))))
     """
-    point = _Point(at or {})
+    prefer = set(prefer)
+    incidence = [set(variables(eq)) for eq in result.equations]
     eq_below = _inverse(result.equation_derivative)
     var_below = _inverse(result.variable_derivative)
     rows = [
@@ -142,14 +148,16 @@ def dummy_derivatives(
     ]
     dummies: set[int] = set()
     while rows:
-        matrix = [
-            [
-                point.value(diff(result.equations[e], result.variables[v]))
-                for v in columns
-            ]
+        columns.sort(key=lambda v: _base(result.variables[v]) in prefer)
+        graph = [
+            [c for c, v in enumerate(columns) if result.variables[v] in incidence[e]]
             for e in rows
         ]
-        chosen = [columns[c] for c in _pivot_columns(matrix)]
+        assign: dict[int, int] = {}
+        for r in range(len(rows)):
+            if not augment(r, graph, assign, lambda _: True, set(), set()):
+                raise ValueError("dummy_derivatives: structurally singular")
+        chosen = [columns[c] for c in sorted(assign)]
         dummies.update(chosen)
         rows = [
             below
@@ -161,9 +169,7 @@ def dummy_derivatives(
             for v in chosen
             if (below := var_below[v]) is not None and var_below[below] is not None
         ]
-    is_state = [
-        d is not None and d not in dummies for d in result.variable_derivative
-    ]
+    is_state = [d is not None and d not in dummies for d in result.variable_derivative]
     return _system(result, result.equations, is_state)
 
 
@@ -174,62 +180,3 @@ def _inverse(derivative: Sequence[int | None], /) -> list[int | None]:
         if d is not None:
             below[d] = i
     return below
-
-
-class _Point:
-    """Values of the variables, random where not given."""
-
-    def __init__(self, values: Mapping[Any, float], /) -> None:
-        self.values = dict(values)
-        self.random = random.Random(0)
-
-    def value(self, expr: Expr, /) -> float:
-        mapping: dict[Expr, Expr] = {}
-        for var in (*variables(expr), *free_symbols(expr)):
-            if var not in self.values:
-                self.values[var] = self.random.uniform(0.5, 1.5)
-            mapping[var] = Literal(float(self.values[var]))
-        return float(evaluate(rename(expr, mapping)))
-
-
-def _pivot_columns(matrix: list[list[float]], /) -> list[int]:
-    """Columns forming a nonsingular square submatrix, one per row: Gaussian
-    elimination, pivoting on the largest entry of each row."""
-    rows = [row[:] for row in matrix]
-    scale = max((abs(a) for row in rows for a in row), default=0.0) or 1.0
-    chosen: list[int] = []
-    for r, row in enumerate(rows):
-        candidates = [c for c in range(len(row)) if c not in chosen]
-        c = max(candidates, key=lambda c: abs(row[c]), default=None)
-        if c is None or abs(row[c]) <= 1e-12 * scale:
-            raise ValueError(
-                "dummy_derivatives: singular Jacobian; try another point `at`"
-            )
-        chosen.append(c)
-        for other in rows[r + 1 :]:
-            factor = other[c] / row[c]
-            for j in range(len(other)):
-                other[j] -= factor * row[j]
-    return chosen
-
-
-def rename(expr: Any, mapping: Mapping[Expr, Expr], /) -> Expr:
-    """Replace sub-expressions, matching the original nodes: unlike
-    ``substitute``, ``D(x)`` is not replaced inside ``D(D(x))``.
-
-    >>> from symbolcat import D, Symbol
-    >>> x, a, b = Symbol("x"), Symbol("a"), Symbol("b")
-    >>> print(rename(D(D(x)) + D(x), {D(x): a, D(D(x)): b}))
-    b + a
-    """
-
-    def algebra(layer: Expr, /) -> tuple[Expr, Expr]:
-        if not isinstance(layer, Call):
-            return layer, mapping.get(layer, layer)
-        original = Call(layer.func, tuple(o for o, _ in layer.args))
-        if original in mapping:
-            return original, mapping[original]
-        return original, Call(layer.func, tuple(r for _, r in layer.args))
-
-    _, renamed = cata(algebra, expr)
-    return renamed

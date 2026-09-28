@@ -17,17 +17,16 @@ differential-algebraic systems", SIAM J. Sci. Stat. Comput. 9 (1988).
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from ..._core import Call, Expr, Symbol, as_expr
+from ..._core import Call, Expr, Symbol
 from ..._derivative import D, Variable, is_variable
-from ...lib import operators as op
+from .._algebraic._matching import Graph, augment, perfect_matching
+from .._algebraic._system import residual
 from .._analysis._inspect import variables
 from .._calculus._time import _base, time_derivative
-
-type Graph = Sequence[Sequence[int]]  # equation -> incident variables
 
 
 @dataclass(frozen=True)
@@ -81,54 +80,13 @@ class Pantelides:
         return tuple(out)
 
 
-def residual(equation: Any, /) -> Expr:
-    """``lhs - rhs`` for ``op.eq(lhs, rhs)``; any other expression is
-    already a residual, equal to zero."""
-    equation = as_expr(equation)
-    if isinstance(equation, Call) and equation.func is op.eq:
-        lhs, rhs = equation.args
-        return lhs - rhs
-    return equation
-
-
-def _augment(
-    eq: int,
-    graph: Graph,
-    assign: dict[int, int],
-    allowed: Sequence[bool],
-    vcolor: set[int],
-    ecolor: set[int],
-) -> bool:
-    """Search an augmenting path from ``eq``, through ``allowed`` variables.
-
-    On success, ``assign`` (variable -> equation) is updated along the path.
-    The equations and variables visited are colored.
-    """
-    ecolor.add(eq)
-    candidates = [v for v in graph[eq] if allowed[v]]
-    for v in candidates:
-        if v not in assign:
-            assign[v] = eq
-            return True
-    for v in candidates:
-        if v not in vcolor:
-            vcolor.add(v)
-            if _augment(assign[v], graph, assign, allowed, vcolor, ecolor):
-                assign[v] = eq
-                return True
-    return False
-
-
 def _check_nonsingular(graph: Graph, n: int, /) -> None:
     """Pantelides terminates if the equations can be matched to the unknowns,
     identifying each unknown with its derivatives."""
     if len(graph) != n:
         raise ValueError(f"pantelides: {len(graph)} equations for {n} unknowns")
-    assign: dict[int, int] = {}
-    allowed = [True] * n
-    for eq in range(len(graph)):
-        if not _augment(eq, graph, assign, allowed, set(), set()):
-            raise ValueError("pantelides: the system is structurally singular")
+    if perfect_matching(graph, n) is None:
+        raise ValueError("pantelides: the system is structurally singular")
 
 
 def pantelides(
@@ -205,8 +163,11 @@ def pantelides(
         while True:
             vcolor: set[int] = set()
             ecolor: set[int] = set()
-            highest = [d is None for d in var_diff]
-            if _augment(i, graph, assign, highest, vcolor, ecolor):
+
+            def highest(v: int, /) -> bool:
+                return var_diff[v] is None
+
+            if augment(i, graph, assign, highest, vcolor, ecolor):
                 break
             for j in sorted(vcolor):
                 add_var(D(vars[j]))
@@ -220,9 +181,7 @@ def pantelides(
             assert next_eq is not None
             i = next_eq
 
-    matching = {
-        vars[v]: e for v, e in sorted(assign.items()) if var_diff[v] is None
-    }
+    matching = {vars[v]: e for v, e in sorted(assign.items()) if var_diff[v] is None}
     return Pantelides(
         equations=tuple(eqs),
         equation_derivative=tuple(eq_diff),

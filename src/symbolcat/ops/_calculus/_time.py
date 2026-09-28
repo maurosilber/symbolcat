@@ -8,16 +8,22 @@ The unknowns are functions of time, and their derivatives are written with
 ``D``. The total derivative is a directional derivative (``jvp``) whose seed
 maps each unknown ``x`` to ``D(x)``, each ``D(x)`` to ``D(D(x))``, and time
 to 1. Other symbols (parameters) are constant.
+
+``expand_derivatives`` rewrites ``D`` of an expression, ``D(x * y)``, as the
+time derivative of the expression, so that ``D`` is only applied to
+variables. ``change_variables`` substitutes the unknowns of differential
+equations by expressions of new unknowns, and expands the derivatives.
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 from typing import Any
 
-from ..._core import Call, Expr, Literal, Symbol
-from ..._derivative import D
+from ..._core import Call, Expr, Literal, Symbol, cata
+from ..._derivative import D, is_variable
 from .._analysis._inspect import variables
+from .._transform._substitute import substitute
 from ._diff import jvp
 
 
@@ -51,3 +57,52 @@ def time_derivative(
     if t is not None:
         seed[t] = Literal(1)
     return jvp(expr, seed)
+
+
+def expand_derivatives(
+    expr: Any, unknowns: Iterable[Symbol], /, t: Symbol | None = None
+) -> Expr:
+    """Rewrite ``D`` of expressions as their time derivatives, so that ``D``
+    is only applied to variables (symbols, or derivatives of them).
+
+    ``unknowns`` and ``t`` are as in ``time_derivative``.
+
+    >>> from symbolcat import D, Symbol
+    >>> x, y, k = Symbol("x"), Symbol("y"), Symbol("k")
+    >>> print(expand_derivatives(D(k * x * y) + D(D(x)), [x, y]))
+    k * D(x) * y + k * x * D(y) + D(D(x))
+    """
+    unknowns = tuple(unknowns)
+
+    def algebra(layer: Expr, /) -> Expr:
+        if not isinstance(layer, Call):
+            return layer
+        node = Call(layer.func, layer.args)
+        if node.func is D and not is_variable(node):
+            (arg,) = node.args
+            return time_derivative(arg, unknowns, t)
+        return node
+
+    return cata(algebra, expr)
+
+
+def change_variables(
+    equations: Iterable[Any],
+    mapping: Mapping[Symbol, Any],
+    unknowns: Iterable[Symbol],
+    /,
+    t: Symbol | None = None,
+) -> list[Expr]:
+    """Substitute each old unknown in ``mapping`` by an expression of the
+    new ``unknowns``, and expand the derivatives.
+
+    >>> from symbolcat import D, Symbol, real
+    >>> x, r, theta = Symbol("x"), Symbol("r"), Symbol("theta")
+    >>> (eq,) = change_variables([D(x)], {x: r * real.cos(theta)}, [r, theta])
+    >>> print(eq)
+    D(r) * cos(theta) + r * (-sin(theta) * D(theta))
+    """
+    unknowns = tuple(unknowns)
+    return [
+        expand_derivatives(substitute(eq, mapping), unknowns, t) for eq in equations
+    ]
