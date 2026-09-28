@@ -21,6 +21,8 @@ x + 3 * sin(y)
 The top level only has what you need to build expressions and act on them:
 
 - `Symbol`: a symbol; combine symbols with Python operators.
+- `D`: the time derivative of a symbol, `D(x)`, an unknown of its own
+  (for differential equations; see `ops.time_derivative`).
 - `real`: mathematical functions (`real.sin`) and constants
   (`real.constants.pi`).
 - `linalg`: vectors, matrices and linear algebra (`det`, `inv`, ...).

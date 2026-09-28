@@ -9,7 +9,17 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..._core import Algebra, Call, Constant, Literal, Symbol, cata, children
+from ..._core import (
+    Algebra,
+    Call,
+    Constant,
+    Literal,
+    Symbol,
+    as_expr,
+    cata,
+    children,
+)
+from ..._derivative import Variable, is_variable
 
 # Folds into an insertion-ordered set (a dict with None values).
 free_symbols_algebra = Algebra[dict[Symbol, None]]("free_symbols")
@@ -66,3 +76,27 @@ def depth(expr: Any, /) -> int:
     3
     """
     return cata(lambda node: 1 + max(children(node), default=0), expr)
+
+
+def variables(expr: Any, /) -> tuple[Variable, ...]:
+    """Symbols and time derivatives of symbols in ``expr``, in order of first
+    appearance. ``D(x)`` is a variable of its own: it does not add ``x``.
+
+    >>> from symbolcat import D, Symbol
+    >>> x, v = Symbol("x"), Symbol("v")
+    >>> variables(D(D(x)) + v * D(x))
+    (Call(D, (Call(D, (Symbol('x'),)),)), Symbol('v'), Call(D, (Symbol('x'),)))
+    """
+    out: dict[Variable, None] = {}
+    seen: set[int] = set()
+    stack = [as_expr(expr)]
+    while stack:
+        node = stack.pop()
+        if id(node) in seen:
+            continue
+        seen.add(id(node))
+        if is_variable(node):
+            out[node] = None
+        else:
+            stack.extend(reversed(children(node)))
+    return tuple(out)

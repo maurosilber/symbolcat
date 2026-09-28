@@ -15,11 +15,15 @@ Two subpackages are imported on demand:
 
 from ._analysis._dependencies import solve_dependencies
 from ._analysis._dimensions import dimensions
-from ._analysis._inspect import count_nodes, depth, free_symbols
+from ._analysis._inspect import count_nodes, depth, free_symbols, variables
 from ._analysis._polynomial import coefficients
-from ._calculus._diff import diff, gradient, hessian, jacobian
+from ._calculus._diff import diff, gradient, hessian, jacobian, jvp
 from ._calculus._reverse import reverse_gradient, vjp
 from ._calculus._series import series
+from ._calculus._time import time_derivative
+from ._dae._numeric import ODEFunction, to_ode
+from ._dae._pantelides import Pantelides, pantelides
+from ._dae._system import IndexOneDAE, dummy_derivatives, lower_index
 from ._evaluate import evaluate
 from ._printing._latex import to_latex
 from ._printing._mathml import to_mathml
@@ -32,18 +36,25 @@ from ._transform._simplify import simplify_naive
 from ._transform._substitute import substitute
 
 __all__ = [
+    "IndexOneDAE",
+    "ODEFunction",
+    "Pantelides",
     "coefficients",
     "count_nodes",
     "cse",
     "depth",
     "diff",
     "dimensions",
+    "dummy_derivatives",
     "evaluate",
     "expand_arrays",
     "free_symbols",
     "gradient",
     "hessian",
     "jacobian",
+    "jvp",
+    "lower_index",
+    "pantelides",
     "reverse_gradient",
     "series",
     "shape",
@@ -51,11 +62,14 @@ __all__ = [
     "simplify_naive",
     "solve_dependencies",
     "substitute",
+    "time_derivative",
     "to_graphviz",
     "to_latex",
     "to_mathml",
+    "to_ode",
     "to_python",
     "to_str",
     "tree_view",
+    "variables",
     "vjp",
 ]

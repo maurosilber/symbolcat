@@ -31,6 +31,7 @@ from ..._core import (
     name_of,
 )
 from ..._core.precedence import POSTFIX, POW
+from ..._derivative import D
 from ...lib import operators as op
 from ...linalg import Array, nest
 from ._base import Printed, Side, literal_precedence, needs_parens, result_ndim
@@ -254,6 +255,13 @@ def _(node: Call[Printed]) -> Printed:
     (arg,) = node.args
     text = arg.text if arg.precedence >= POSTFIX else paren(arg.text)
     return Printed(f"{text}!", POSTFIX)
+
+
+@latex_algebra.register(D)
+def _(node: Call[Printed]) -> Printed:
+    """Lagrange's notation: ``x'``, ``x''``."""
+    (arg,) = node.args
+    return Printed(f"{operand(arg, op.getitem, 'left')}'", POSTFIX, arg.ndim)
 
 
 @latex_algebra.register(Operator)

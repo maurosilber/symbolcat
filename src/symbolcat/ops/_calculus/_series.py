@@ -93,7 +93,7 @@ def div(a: Series, b: Series, /) -> Series:
 
 def derivative(expr: Expr, var: Symbol, /) -> Expr:
     # diff's own simplification folds 1 / 2 into 0.5; keep coefficients exact
-    _, result = cata(diff_algebra, expr, var=var)
+    _, result = cata(diff_algebra, expr, seed={var: Literal(1)})
     return simplify_exact(result)
 
 
