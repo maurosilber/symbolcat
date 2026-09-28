@@ -1,5 +1,5 @@
 """
-symbolcat.ops._diff
+symbolcat.ops._calculus._diff
 ~~~~~~~~~~~~~~~~~~~
 
 Symbolic differentiation.
@@ -15,12 +15,12 @@ from __future__ import annotations
 from collections.abc import Callable, Sequence
 from typing import Any
 
-from .. import linalg, real
-from .._core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata
-from ..lib import operators as op
-from ..linalg import Array, matrix, vector
-from ._inspect import free_symbols
-from ._simplify import is_number, simplify_naive
+from ... import linalg, real
+from ..._core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata
+from ...lib import operators as op
+from ...linalg import Array, matrix, vector
+from .._analysis._inspect import free_symbols
+from .._transform._simplify import is_number, simplify_naive
 
 type Dual = tuple[Expr, Expr]
 type Rule = Callable[[tuple[Expr, ...], tuple[Expr, ...]], Expr]

@@ -1,5 +1,5 @@
 """
-symbolcat.ops._substitute
+symbolcat.ops._transform._substitute
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Replace symbols, sub-expressions or functions.
@@ -13,7 +13,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from .._core import Algebra, Call, Expr, as_expr, cata
+from ..._core import Algebra, Call, Expr, as_expr, cata
 
 substitute_algebra = Algebra[Expr]("substitute")
 

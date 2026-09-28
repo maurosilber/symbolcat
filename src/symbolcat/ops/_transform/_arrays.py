@@ -1,5 +1,5 @@
 """
-symbolcat.ops._arrays
+symbolcat.ops._transform._arrays
 ~~~~~~~~~~~~~~~~~~~~~
 
 Shapes of expressions, and array operations computed entry by entry.
@@ -18,8 +18,8 @@ from functools import reduce
 from itertools import repeat
 from typing import Any
 
-from .. import linalg, real
-from .._core import (
+from ... import linalg, real
+from ..._core import (
     Algebra,
     Call,
     Constant,
@@ -30,8 +30,8 @@ from .._core import (
     cata,
     name_of,
 )
-from ..lib import operators as op
-from ..linalg import Array, array, matrix, nest, vector
+from ...lib import operators as op
+from ...linalg import Array, array, matrix, nest, vector
 
 type Shape = tuple[int, ...]
 type Pair = tuple[Expr, Shape]

@@ -1,5 +1,5 @@
 """
-symbolcat.ops._inspect
+symbolcat.ops._analysis._inspect
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Queries about the structure of an expression.
@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .._core import Algebra, Call, Constant, Literal, Symbol, cata, children
+from ..._core import Algebra, Call, Constant, Literal, Symbol, cata, children
 
 # Folds into an insertion-ordered set (a dict with None values).
 free_symbols_algebra = Algebra[dict[Symbol, None]]("free_symbols")

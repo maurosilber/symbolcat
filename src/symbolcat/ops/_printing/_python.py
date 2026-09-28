@@ -1,5 +1,5 @@
 """
-symbolcat.ops._python
+symbolcat.ops._printing._python
 ~~~~~~~~~~~~~~~~~~~~~
 
 Generate Python source for a function computing an expression.
@@ -10,12 +10,13 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from .._core import Algebra, Call, Expr, Symbol, cata, name_of
-from ..linalg import Array, nest
-from ._arrays import expand_arrays
-from ._inspect import free_symbols
-from ._printing import Printed, str_algebra
-from ._share import cse
+from ..._core import Algebra, Call, Expr, Symbol, cata, name_of
+from ...linalg import Array, nest
+from .._analysis._inspect import free_symbols
+from .._transform._arrays import expand_arrays
+from .._transform._share import cse
+from ._base import Printed
+from ._str import str_algebra
 
 
 def python_algebra(array: str | None, /) -> Algebra[Printed]:

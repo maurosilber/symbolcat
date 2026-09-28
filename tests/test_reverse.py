@@ -10,7 +10,7 @@ from symbolcat.ops import (
     reverse_gradient,
     vjp,
 )
-from symbolcat.ops._reverse import _postorder
+from symbolcat.ops._calculus._reverse import _postorder
 from symbolcat.ops.algebras import Literal
 
 x, y, z, A, B = Symbol("x"), Symbol("y"), Symbol("z"), Symbol("A"), Symbol("B")

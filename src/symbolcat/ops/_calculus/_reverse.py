@@ -1,5 +1,5 @@
 """
-symbolcat.ops._reverse
+symbolcat.ops._calculus._reverse
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Reverse-mode differentiation.
@@ -26,8 +26,8 @@ from collections.abc import Callable, Mapping, Sequence
 from itertools import product
 from typing import Any
 
-from .. import linalg, real
-from .._core import (
+from ... import linalg, real
+from ..._core import (
     Algebra,
     Call,
     Expr,
@@ -38,12 +38,12 @@ from .._core import (
     children,
     fmap,
 )
-from ..lib import operators as op
-from ..linalg import Array, array, identity, matrix, transpose, vector
-from ._arrays import Shape, _shapes, arrays_algebra, entries
-from ._inspect import free_symbols
-from ._share import share
-from ._simplify import simplify_naive
+from ...lib import operators as op
+from ...linalg import Array, array, identity, matrix, transpose, vector
+from .._analysis._inspect import free_symbols
+from .._transform._arrays import Shape, _shapes, arrays_algebra, entries
+from .._transform._share import share
+from .._transform._simplify import simplify_naive
 
 type Cotangents = tuple[Expr, ...]
 type Rule = Callable[..., Cotangents]

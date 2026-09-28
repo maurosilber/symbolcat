@@ -1,5 +1,5 @@
 """
-symbolcat.ops._dependencies
+symbolcat.ops._analysis._dependencies
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Order a system of definitions by their dependencies.
@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from .._core import Symbol, as_expr
+from ..._core import Symbol, as_expr
 from ._inspect import free_symbols
 
 

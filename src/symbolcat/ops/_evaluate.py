@@ -15,7 +15,7 @@ from typing import Any
 
 from .._core import Algebra, Call, Constant, Literal, Symbol, cata, name_of
 from ..linalg import Array, nest
-from ._arrays import expand_arrays
+from ._transform._arrays import expand_arrays
 
 evaluate_algebra = Algebra[Any]("evaluate")
 

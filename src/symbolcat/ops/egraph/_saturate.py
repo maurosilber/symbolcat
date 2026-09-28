@@ -21,7 +21,7 @@ from typing import Any, Literal
 from egglog import DagCostModel, EGraph, Schedule, back_off, eq, run, seq
 
 from ..._core import Expr
-from .._arrays import expand_arrays
+from .._transform._arrays import expand_arrays
 from . import _cost as cost
 from . import _rules as rules
 from ._assume import Assumption

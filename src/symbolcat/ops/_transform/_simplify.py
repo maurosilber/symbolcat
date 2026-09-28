@@ -1,5 +1,5 @@
 """
-symbolcat.ops._simplify
+symbolcat.ops._transform._simplify
 ~~~~~~~~~~~~~~~~~~~~~~~
 
 Constant folding and algebraic identities (``x + 0``, ``x * 1``, ...).
@@ -16,10 +16,10 @@ from collections.abc import Callable
 from fractions import Fraction
 from typing import Any
 
-from .. import linalg
-from .._core import Algebra, Call, Expr, Function, Literal, cata
-from ..lib import operators as op
-from ..lib.std import IMPL
+from ... import linalg
+from ..._core import Algebra, Call, Expr, Function, Literal, cata
+from ...lib import operators as op
+from ...lib.std import IMPL
 
 simplify_algebra = Algebra[Expr]("simplify")
 

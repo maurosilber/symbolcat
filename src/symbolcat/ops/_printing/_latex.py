@@ -1,5 +1,5 @@
 r"""
-symbolcat.ops._latex
+symbolcat.ops._printing._latex
 ~~~~~~~~~~~~~~~~~~~~
 
 Compile an expression to LaTeX.
@@ -18,8 +18,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from .. import linalg, real
-from .._core import (
+from ... import linalg, real
+from ..._core import (
     Algebra,
     Call,
     Constant,
@@ -30,10 +30,10 @@ from .._core import (
     cata,
     name_of,
 )
-from .._core.precedence import POSTFIX, POW
-from ..lib import operators as op
-from ..linalg import Array, nest
-from ._printing import Printed, Side, literal_precedence, needs_parens, result_ndim
+from ..._core.precedence import POSTFIX, POW
+from ...lib import operators as op
+from ...linalg import Array, nest
+from ._base import Printed, Side, literal_precedence, needs_parens, result_ndim
 
 GREEK = frozenset(
     [

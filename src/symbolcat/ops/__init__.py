@@ -13,23 +13,23 @@ Two subpackages are imported on demand:
   the optional ``egglog`` package.
 """
 
-from ._arrays import expand_arrays, shape
-from ._dependencies import solve_dependencies
-from ._diff import diff, gradient, hessian, jacobian
-from ._dimensions import dimensions
+from ._analysis._dependencies import solve_dependencies
+from ._analysis._dimensions import dimensions
+from ._analysis._inspect import count_nodes, depth, free_symbols
+from ._analysis._polynomial import coefficients
+from ._calculus._diff import diff, gradient, hessian, jacobian
+from ._calculus._reverse import reverse_gradient, vjp
+from ._calculus._series import series
 from ._evaluate import evaluate
-from ._inspect import count_nodes, depth, free_symbols
-from ._latex import to_latex
-from ._mathml import to_mathml
-from ._polynomial import coefficients
-from ._printing import to_str
-from ._python import to_python
-from ._reverse import reverse_gradient, vjp
-from ._series import series
-from ._share import cse, share
-from ._simplify import simplify_naive
-from ._substitute import substitute
-from ._views import to_graphviz, tree_view
+from ._printing._latex import to_latex
+from ._printing._mathml import to_mathml
+from ._printing._python import to_python
+from ._printing._str import to_str
+from ._printing._views import to_graphviz, tree_view
+from ._transform._arrays import expand_arrays, shape
+from ._transform._share import cse, share
+from ._transform._simplify import simplify_naive
+from ._transform._substitute import substitute
 
 __all__ = [
     "coefficients",

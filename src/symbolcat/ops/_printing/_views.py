@@ -1,5 +1,5 @@
 """
-symbolcat.ops._views
+symbolcat.ops._printing._views
 ~~~~~~~~~~~~~~~~~~~~
 
 Views of the structure of an expression: an indented tree and a Graphviz
@@ -11,8 +11,8 @@ from __future__ import annotations
 from itertools import count
 from typing import Any
 
-from .._core import Call, Constant, Expr, Literal, Operator, Symbol, cata, children
-from .._core import name_of as _name_of
+from ..._core import Call, Constant, Expr, Literal, Operator, Symbol, cata, children
+from ..._core import name_of as _name_of
 
 
 def label(node: Expr, /) -> str:

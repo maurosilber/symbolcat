@@ -1,5 +1,5 @@
 """
-symbolcat.ops._share
+symbolcat.ops._transform._share
 ~~~~~~~~~~~~~~~~~~~~
 
 Shared sub-expressions.
@@ -15,8 +15,8 @@ from collections import Counter
 from itertools import count
 from typing import Any
 
-from .._core import Call, Expr, Symbol, as_expr, cata, children, fmap
-from ._inspect import free_symbols
+from ..._core import Call, Expr, Symbol, as_expr, cata, children, fmap
+from .._analysis._inspect import free_symbols
 
 
 def share(expr: Any, /) -> Expr:

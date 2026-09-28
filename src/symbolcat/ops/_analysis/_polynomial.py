@@ -1,5 +1,5 @@
 """
-symbolcat.ops._polynomial
+symbolcat.ops._analysis._polynomial
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Polynomial coefficients.
@@ -13,9 +13,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from .._core import Algebra, Call, Constant, Expr, Literal, Symbol, cata
-from ..lib import operators as op
-from ._simplify import is_number, simplify_exact
+from ..._core import Algebra, Call, Constant, Expr, Literal, Symbol, cata
+from ...lib import operators as op
+from .._transform._simplify import is_number, simplify_exact
 
 type Poly = dict[int, Expr]
 type Pair = tuple[Expr, Poly | None]

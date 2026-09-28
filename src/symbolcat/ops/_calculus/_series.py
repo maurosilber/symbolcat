@@ -1,5 +1,5 @@
 """
-symbolcat.ops._series
+symbolcat.ops._calculus._series
 ~~~~~~~~~~~~~~~~~~~~~
 
 Taylor series.
@@ -17,8 +17,8 @@ from collections.abc import Callable, Mapping, Sequence
 from math import factorial
 from typing import Any
 
-from .. import linalg, real
-from .._core import (
+from ... import linalg, real
+from ..._core import (
     Algebra,
     Call,
     Constant,
@@ -29,11 +29,11 @@ from .._core import (
     as_expr,
     cata,
 )
-from ..lib import operators as op
-from ._arrays import entries, expand_arrays
+from ...lib import operators as op
+from .._transform._arrays import entries, expand_arrays
+from .._transform._simplify import as_fraction, is_number, simplify_exact
+from .._transform._substitute import substitute
 from ._diff import diff_algebra
-from ._simplify import as_fraction, is_number, simplify_exact
-from ._substitute import substitute
 
 type Series = list[Expr]
 

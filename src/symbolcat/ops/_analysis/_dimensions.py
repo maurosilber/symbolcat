@@ -1,5 +1,5 @@
 """
-symbolcat.ops._dimensions
+symbolcat.ops._analysis._dimensions
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Physical dimensions of an expression.
@@ -20,8 +20,8 @@ from collections.abc import Callable, Mapping
 from fractions import Fraction
 from typing import Any
 
-from .. import linalg, real
-from .._core import (
+from ... import linalg, real
+from ..._core import (
     Algebra,
     Call,
     Constant,
@@ -32,10 +32,10 @@ from .._core import (
     cata,
     name_of,
 )
-from ..lib import operators as op
-from ..linalg import Array, nest
-from ._arrays import expand_arrays, shape
-from ._evaluate import evaluate
+from ...lib import operators as op
+from ...linalg import Array, nest
+from .._evaluate import evaluate
+from .._transform._arrays import expand_arrays, shape
 
 type Dimension = dict[str, Fraction]
 type Pair = tuple[Expr, Dimension]
