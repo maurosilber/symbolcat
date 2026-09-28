@@ -22,6 +22,7 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
+from ... import complex as cx
 from ... import linalg, real
 from ..._core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata
 from ..._derivative import D, Variable, delay, is_variable
@@ -203,6 +204,50 @@ rule(real.atan)(chain(lambda a: 1 / (1 + a**2)))
 rule(real.sinh)(chain(real.cosh))
 rule(real.cosh)(chain(real.sinh))
 rule(real.tanh)(chain(lambda a: 1 - real.tanh(a) ** 2))
+rule(real.erf)(chain(lambda a: 2 / real.sqrt(real.constants.pi) * real.exp(-(a**2))))
+
+# Holomorphic complex functions: the complex derivative.
+rule(cx.exp)(chain(cx.exp))
+rule(cx.log)(chain(lambda a: 1 / a))
+rule(cx.log10)(chain(lambda a: 1 / (a * cx.log(10))))
+rule(cx.sqrt)(chain(lambda a: 1 / (2 * cx.sqrt(a))))
+rule(cx.sin)(chain(cx.cos))
+rule(cx.cos)(chain(lambda a: -cx.sin(a)))
+rule(cx.tan)(chain(lambda a: 1 / cx.cos(a) ** 2))
+rule(cx.asin)(chain(lambda a: 1 / cx.sqrt(1 - a**2)))
+rule(cx.acos)(chain(lambda a: -1 / cx.sqrt(1 - a**2)))
+rule(cx.atan)(chain(lambda a: 1 / (1 + a**2)))
+rule(cx.sinh)(chain(cx.cosh))
+rule(cx.cosh)(chain(cx.sinh))
+rule(cx.tanh)(chain(lambda a: 1 - cx.tanh(a) ** 2))
+
+
+# The others are not holomorphic, but have derivatives along real variables.
+
+
+# Real-linear: the function of the derivative.
+rule(cx.re)(lambda args, dargs: cx.re(dargs[0]))
+rule(cx.im)(lambda args, dargs: cx.im(dargs[0]))
+rule(cx.conj)(lambda args, dargs: cx.conj(dargs[0]))
+
+
+@rule(cx.abs)
+def _(args, dargs):
+    ((z,), (dz,)) = args, dargs
+    return cx.re(cx.conj(z) * dz) / cx.abs(z)
+
+
+@rule(cx.phase)
+def _(args, dargs):
+    ((z,), (dz,)) = args, dargs
+    return cx.im(cx.conj(z) * dz) / cx.abs(z) ** 2
+
+
+@rule(cx.rect)
+def _(args, dargs):
+    """``r * exp(I * phi)``."""
+    (r, phi), (dr, dphi) = args, dargs
+    return cx.rect(1, phi) * dr + cx.constants.I * cx.rect(r, phi) * dphi
 
 
 def diff(expr: Any, var: Variable, /) -> Expr:

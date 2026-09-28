@@ -7,6 +7,10 @@ Generate Julia source for a function computing an expression.
 Powers are ``^``, indices are 1-based, and explicit arrays are Julia array
 literals (``[a, b]``, ``[a b; c d]``). ``erf`` and ``gamma`` come from
 SpecialFunctions.jl.
+
+Complex functions whose real version throws outside its domain (``sqrt``,
+``log``, ...) are applied to ``complex(z)``, so they take the principal
+branch.
 """
 
 from __future__ import annotations
@@ -15,6 +19,7 @@ import math
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from ... import complex as cx
 from ... import real
 from ..._core import Call, Constant, Expr, Literal, Operator, Symbol, cata, name_of
 from ..._core.precedence import POSTFIX, POW
@@ -26,7 +31,15 @@ from .._transform._share import cse
 from ._base import Printed, indices, literal_precedence, operand
 from ._str import str_algebra
 
-FUNCTIONS = {real.atan2: "atan"}
+FUNCTIONS = {
+    real.atan2: "atan",
+    cx.re: "real",
+    cx.im: "imag",
+    cx.phase: "angle",
+}
+
+# Complex functions that throw a DomainError for some real arguments.
+PROMOTED = frozenset([cx.log, cx.log10, cx.sqrt, cx.asin, cx.acos])
 
 CONSTANTS = {
     real.constants.e: "ℯ",
@@ -34,6 +47,7 @@ CONSTANTS = {
     real.constants.tau: "(2pi)",
     real.constants.inf: "Inf",
     real.constants.nan: "NaN",
+    cx.constants.I: "im",
 }
 
 julia_algebra = str_algebra.copy("julia")
@@ -46,6 +60,8 @@ def _(node: Literal) -> Printed:
         return Printed("true" if value else "false")
     if isinstance(value, float) and math.isnan(value):
         return Printed("NaN")
+    if isinstance(value, complex):
+        return Printed(f"({value.real!r} + {value.imag!r}im)")
     if value in (float("inf"), float("-inf")):
         return Printed("Inf" if value > 0 else "-Inf", literal_precedence(value))
     return Printed(repr(value), literal_precedence(value))
@@ -59,6 +75,18 @@ def _(node: Constant) -> Printed:
 @julia_algebra.register(*FUNCTIONS)
 def _(node: Call[Printed]) -> Printed:
     return Printed(f"{FUNCTIONS[node.func]}({', '.join(a.text for a in node.args)})")
+
+
+@julia_algebra.register(*PROMOTED)
+def _(node: Call[Printed]) -> Printed:
+    (arg,) = node.args
+    return Printed(f"{name_of(node.func)}(complex({arg.text}))")
+
+
+@julia_algebra.register(cx.rect)
+def _(node: Call[Printed]) -> Printed:
+    r, phi = node.args
+    return Printed(f"{operand(r, op.mul, 'left')} * cis({phi.text})", op.mul.precedence)
 
 
 @julia_algebra.register(op.pow)

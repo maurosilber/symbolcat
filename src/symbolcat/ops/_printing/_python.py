@@ -10,13 +10,16 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from ... import complex as cx
 from ... import real
-from ..._core import Algebra, Call, Expr, Symbol, cata, name_of
+from ..._core import Algebra, Call, Constant, Expr, Symbol, cata, name_of
+from ..._core.precedence import POSTFIX
+from ...lib import operators as op
 from ...linalg import Array, nest
 from .._analysis._inspect import free_symbols
 from .._transform._arrays import expand_arrays
 from .._transform._share import cse
-from ._base import Printed
+from ._base import Printed, operand
 from ._str import str_algebra
 
 
@@ -39,6 +42,19 @@ def python_algebra(array: str | None, /) -> Algebra[Printed]:
         condition, a, b = (arg.text for arg in node.args)
         return Printed(f"({a} if {condition} else {b})")
 
+    @algebra.register(cx.re, cx.im, cx.conj)
+    def _(node: Call[Printed]) -> Printed:
+        (arg,) = node.args
+        method = {cx.re: "real", cx.im: "imag", cx.conj: "conjugate()"}[node.func]
+        text = operand(arg, op.getitem, "left")
+        if text[0].isdigit():  # 2.real is a syntax error
+            text = f"({text})"
+        return Printed(f"{text}.{method}", POSTFIX)
+
+    @algebra.register(Constant)
+    def _(node: Constant) -> Printed:
+        return Printed("1j" if node is cx.constants.I else name_of(node))
+
     return algebra
 
 
@@ -56,7 +72,10 @@ def to_python(
     Repeated sub-expressions are computed once, into temporaries (see
     ``cse``). ``args`` defaults to the free symbols of ``expr``. Functions
     and constants are written by name (``sin``, ``pi``), so the source runs
-    in a namespace that defines them, like ``vars(math)`` or ``vars(numpy)``.
+    in a namespace that defines them, like ``vars(math)`` or ``vars(numpy)``,
+    or ``vars(cmath)`` for complex functions. ``complex.re``, ``im`` and
+    ``conj`` are written as attributes (``z.real``), and the imaginary unit
+    as ``1j``.
 
     Operations on arrays are computed entry by entry (see ``expand_arrays``,
     which takes ``shapes``). Explicit arrays are written as nested lists, or

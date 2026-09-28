@@ -20,6 +20,7 @@ from collections.abc import Callable, Mapping
 from fractions import Fraction
 from typing import Any
 
+from ... import complex as cx
 from ... import linalg, real
 from ..._core import (
     Algebra,
@@ -127,7 +128,19 @@ def _(node: Call[Pair], *, time: Dimension | None, **ctx: Any) -> Pair:
 
 
 @rule(
-    op.add, op.sub, op.mod, op.pos, op.neg, real.abs, real.floor, real.ceil, real.hypot
+    op.add,
+    op.sub,
+    op.mod,
+    op.pos,
+    op.neg,
+    real.abs,
+    real.floor,
+    real.ceil,
+    real.hypot,
+    cx.re,
+    cx.im,
+    cx.conj,
+    cx.abs,
 )
 def _(node: Call[Pair]) -> Dimension:
     return same(node)
@@ -145,6 +158,19 @@ def _(node: Call[Pair]) -> Dimension:
 def _(node: Call[Pair]) -> Dimension:
     same(node)
     return DIMENSIONLESS
+
+
+@rule(cx.phase)
+def _(node: Call[Pair]) -> Dimension:
+    return DIMENSIONLESS
+
+
+@rule(cx.rect)
+def _(node: Call[Pair]) -> Dimension:
+    """The dimension of the modulus; the angle is dimensionless."""
+    (_, r), phi = node.args
+    dimensionless(Call(node.func, (phi,)))
+    return r
 
 
 @rule(Array, linalg.transpose, linalg.trace, linalg.sum, linalg.norm)
@@ -171,7 +197,7 @@ def _(node: Call[Pair]) -> Dimension:
     return combine(a, b, sign=-1)
 
 
-@rule(real.sqrt)
+@rule(real.sqrt, cx.sqrt)
 def _(node: Call[Pair]) -> Dimension:
     ((_, a),) = node.args
     return scale(a, Fraction(1, 2))

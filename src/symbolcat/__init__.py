@@ -9,7 +9,9 @@ A minimalistic symbolic package, organized around catamorphisms.
   ``delay(x, tau)`` and ``partial(u, x)`` build delay and partial
   differential equations.
 - ``real``: mathematical functions and constants.
+- ``complex``: complex functions and constants.
 - ``linalg``: vectors and matrices of expressions.
+- ``stats``: probability distributions, and propagation of uncertainty.
 - ``ops``: operations on expressions (printing, LaTeX, evaluation, ...).
 - ``models``: models of dynamical systems (DAEs, ODEs, SDEs, PDEs, reaction
   networks) and their analysis.
@@ -26,8 +28,20 @@ x + 3 \\cdot \\sin\\left(y\\right)
 1.0
 """
 
-from . import lib, linalg, models, ops, real
+from . import complex, lib, linalg, models, ops, real, stats
 from ._core import Symbol
 from ._derivative import D, delay, partial
 
-__all__ = ["D", "Symbol", "delay", "lib", "linalg", "models", "ops", "partial", "real"]
+__all__ = [
+    "D",
+    "Symbol",
+    "complex",
+    "delay",
+    "lib",
+    "linalg",
+    "models",
+    "ops",
+    "partial",
+    "real",
+    "stats",
+]

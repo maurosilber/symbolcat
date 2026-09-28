@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ... import complex as cx
 from ..._core import (
     Algebra,
     Call,
@@ -19,6 +20,7 @@ from ..._core import (
     cata,
     children,
 )
+from ..._core import Function as _Function
 from ..._derivative import Variable, is_variable
 
 # Folds into an insertion-ordered set (a dict with None values).
@@ -100,3 +102,52 @@ def variables(expr: Any, /) -> tuple[Variable, ...]:
         else:
             stack.extend(reversed(children(node)))
     return tuple(out)
+
+
+# Whether a node is complex, given whether its arguments are.
+complex_algebra = Algebra[bool]("complex")
+
+# Complex functions with a real result.
+REAL_VALUED = frozenset([cx.re, cx.im, cx.abs, cx.phase])
+
+
+@complex_algebra.register(Symbol)
+def _(node: Symbol) -> bool:
+    return False
+
+
+@complex_algebra.register(Constant)
+def _(node: Constant) -> bool:
+    return node is cx.constants.I
+
+
+@complex_algebra.register(Literal)
+def _(node: Literal) -> bool:
+    return isinstance(node.value, complex)
+
+
+@complex_algebra.register(Call)
+def _(node: Call[bool]) -> bool:
+    return any(node.args)
+
+
+@complex_algebra.register(
+    *(f for f in vars(cx).values() if isinstance(f, _Function) and f is not cx.conj)
+)
+def _(node: Call[bool]) -> bool:
+    return node.func not in REAL_VALUED
+
+
+def is_complex(expr: Any, /) -> bool:
+    """Whether ``expr`` may have a complex value.
+
+    Symbols are real, and so are the functions in ``real``, of real
+    arguments. The functions in ``complex`` are complex, except ``re``,
+    ``im``, ``abs`` and ``phase``.
+
+    >>> from symbolcat import Symbol, complex
+    >>> x = Symbol("x")
+    >>> is_complex(complex.exp(x)), is_complex(complex.abs(complex.exp(x)))
+    (True, False)
+    """
+    return cata(complex_algebra, as_expr(expr))

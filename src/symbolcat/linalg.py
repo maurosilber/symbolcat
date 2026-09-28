@@ -37,6 +37,7 @@ from dataclasses import KW_ONLY, dataclass
 from functools import cache
 from typing import Any
 
+from . import complex as _complex
 from . import real as _real
 from ._core import Call, Expr, Function, Operator
 from .lib import operators as _op
@@ -146,5 +147,6 @@ ENTRYWISE: frozenset[Function] = frozenset(
             if isinstance(f, Operator) and f not in (_op.matmul, _op.getitem)
         ),
         *(f for f in vars(_real).values() if isinstance(f, Function)),
+        *(f for f in vars(_complex).values() if isinstance(f, Function)),
     ]
 )

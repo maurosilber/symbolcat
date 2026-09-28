@@ -16,10 +16,12 @@ from collections.abc import Callable
 from fractions import Fraction
 from typing import Any
 
+from ... import complex as cx
 from ... import linalg, real
 from ..._core import Algebra, Call, Expr, Function, Literal, cata
 from ...lib import operators as op
 from ...lib.std import IMPL
+from .._analysis._inspect import is_complex
 
 simplify_algebra = Algebra[Expr]("simplify")
 
@@ -106,6 +108,9 @@ def fold(node: Expr, /, *, exact: bool = False) -> Expr:
         result = func(*values)
     except (ArithmeticError, ValueError, TypeError):
         return node
+    real_arguments = not any(isinstance(v, complex) for v in values)
+    if isinstance(result, complex) and not result.imag and real_arguments:
+        result = result.real  # cmath.exp(0) is 1
     if exact:
         if isinstance(result, float) and result.is_integer() and abs(result) < 2**53:
             result = int(result)
@@ -147,6 +152,8 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
         return a
     if is_number(a, -1):
         return simplify_algebra(-b, exact=exact)
+    if a is cx.constants.I and b is cx.constants.I:
+        return Literal(-1)
     return fold(node, exact=exact)
 
 
@@ -188,6 +195,25 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
     if a == b:
         return a
     return node
+
+
+@simplify_algebra.register(cx.re, cx.conj)
+def _(node: Call[Expr], *, exact: bool = False) -> Expr:
+    """Symbols are real, so ``re(x)`` and ``conj(x)`` are ``x``."""
+    (z,) = node.args
+    if node.func is cx.conj and isinstance(z, Call) and z.func is cx.conj:
+        return z.args[0]
+    if not is_complex(z):
+        return z
+    return fold(node, exact=exact)
+
+
+@simplify_algebra.register(cx.im)
+def _(node: Call[Expr], *, exact: bool = False) -> Expr:
+    (z,) = node.args
+    if not is_complex(z):
+        return Literal(0)
+    return fold(node, exact=exact)
 
 
 @simplify_algebra.register(op.pos)

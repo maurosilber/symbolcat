@@ -18,6 +18,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ... import complex as cx
 from ... import linalg, real
 from ..._core import (
     Algebra,
@@ -123,6 +124,21 @@ FUNCTION_NAMES = {
     real.gamma: r"\Gamma",
     linalg.trace: r"\operatorname{tr}",
     linalg.det: r"\det",
+    cx.re: r"\operatorname{Re}",
+    cx.im: r"\operatorname{Im}",
+    cx.phase: r"\arg",
+    cx.exp: r"\exp",
+    cx.log: r"\ln",
+    cx.log10: r"\log_{10}",
+    cx.sin: r"\sin",
+    cx.cos: r"\cos",
+    cx.tan: r"\tan",
+    cx.asin: r"\arcsin",
+    cx.acos: r"\arccos",
+    cx.atan: r"\arctan",
+    cx.sinh: r"\sinh",
+    cx.cosh: r"\cosh",
+    cx.tanh: r"\tanh",
 }
 
 # Functions rendered as delimiters around their single argument.
@@ -132,6 +148,9 @@ ENCLOSING = {
     real.ceil: (r"\left\lceil ", r"\right\rceil"),
     real.sqrt: (r"\sqrt{", "}"),
     linalg.norm: (r"\left\|", r"\right\|"),
+    cx.abs: (r"\left|", r"\right|"),
+    cx.sqrt: (r"\sqrt{", "}"),
+    cx.conj: (r"\overline{", "}"),
 }
 
 # Functions rendered as a superscript on their single argument.
@@ -146,6 +165,7 @@ CONSTANTS = {
     real.constants.tau: r"\tau",
     real.constants.inf: r"\infty",
     real.constants.nan: r"\mathrm{NaN}",
+    cx.constants.I: "i",
 }
 
 
@@ -175,7 +195,21 @@ def latex_name(name: str, /) -> str:
     return base
 
 
+def _integral(value: float, /) -> int | float:
+    """The parts of a complex number are floats: ``2.0`` is written ``2``."""
+    return int(value) if value.is_integer() else value
+
+
 def latex_number(value: Any, /) -> str:
+    if isinstance(value, complex):
+        real_part, imag_part = map(_integral, (value.real, value.imag))
+        imag = "i" if abs(imag_part) == 1 else f"{latex_number(abs(imag_part))} i"
+        if not real_part:
+            return (
+                imag if imag_part == 1 else paren(("-" if imag_part < 0 else "") + imag)
+            )
+        sign = "-" if imag_part < 0 else "+"
+        return paren(f"{latex_number(real_part)} {sign} {imag}")
     if isinstance(value, bool):
         return rf"\mathrm{{{value}}}"
     if isinstance(value, float):
@@ -248,6 +282,14 @@ def _(node: Call[Printed]) -> Printed:
     a, b = node.args
     text = rf"{operand(a, op.mul, 'left')} \times {operand(b, op.mul, 'right')}"
     return Printed(text, op.mul.precedence, ndim=1)
+
+
+@latex_algebra.register(cx.rect)
+def _(node: Call[Printed]) -> Printed:
+    """Polar form, ``r e^{i phi}``."""
+    r, phi = node.args
+    text = rf"{operand(r, op.mul, 'left')} e^{{i {operand(phi, op.mul, 'right')}}}"
+    return Printed(text, op.mul.precedence, result_ndim(cx.rect, node.args))
 
 
 @latex_algebra.register(real.ifelse)

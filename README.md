@@ -26,7 +26,11 @@ The top level only has what you need to build expressions and act on them:
   equations.
 - `real`: mathematical functions (`real.sin`, `real.ifelse`) and constants
   (`real.constants.pi`).
+- `complex`: complex functions (`complex.exp`, `complex.re`, `complex.conj`)
+  and the imaginary unit (`complex.constants.I`), named after `cmath`.
 - `linalg`: vectors, matrices and linear algebra (`det`, `inv`, ...).
+- `stats`: probability distributions (`stats.Normal(mu, sigma).logpdf(x)`),
+  and propagation of uncertainty (`stats.propagate`).
 - `ops`: operations on expressions, `ops.evaluate`, and one namespace per
   topic:
   - `ops.transform`: substitution, simplification, rewriting rules.

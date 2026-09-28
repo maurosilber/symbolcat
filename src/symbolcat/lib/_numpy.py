@@ -10,6 +10,7 @@ import math
 
 import numpy as np
 
+from .. import complex as cx
 from .. import linalg, real
 from ..linalg import Array
 from ._std import OPERATORS
@@ -52,4 +53,25 @@ IMPL = {
     linalg.norm: np.linalg.norm,
     linalg.sum: np.sum,
     linalg.cross: np.cross,
+    # np.emath returns complex results outside the real domain: sqrt(-1) = 1j
+    cx.re: np.real,
+    cx.im: np.imag,
+    cx.conj: np.conj,
+    cx.abs: np.abs,
+    cx.phase: np.angle,
+    cx.rect: lambda r, phi: r * np.exp(1j * np.asarray(phi)),
+    cx.exp: np.exp,
+    cx.log: np.emath.log,
+    cx.log10: np.emath.log10,
+    cx.sqrt: np.emath.sqrt,
+    cx.sin: np.sin,
+    cx.cos: np.cos,
+    cx.tan: np.tan,
+    cx.asin: np.emath.arcsin,
+    cx.acos: np.emath.arccos,
+    cx.atan: lambda z: np.arctan(np.asarray(z, dtype=complex)),
+    cx.sinh: np.sinh,
+    cx.cosh: np.cosh,
+    cx.tanh: np.tanh,
+    cx.constants.I: 1j,
 }

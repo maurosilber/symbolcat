@@ -7,6 +7,7 @@ Generate C source for a function computing an expression.
 Numbers are doubles, so integer literals are written with a decimal point
 (``1.0 / 2.0``, not the integer division ``1 / 2``). Powers use ``pow``, and
 ``ifelse`` the conditional operator. The functions come from ``<math.h>``.
+Complex functions and numbers are not supported.
 """
 
 from __future__ import annotations
@@ -15,6 +16,7 @@ import math
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from ... import complex as cx
 from ... import real
 from ..._core import (
     Call,
@@ -52,9 +54,18 @@ CONSTANTS = {
 c_algebra = str_algebra.copy("c")
 
 
+COMPLEX = [f for f in vars(cx).values() if isinstance(f, Function)]
+
+
+def _no_complex(node: Any, /) -> Printed:
+    raise NotImplementedError("to_c: C output uses doubles, not complex numbers")
+
+
 @c_algebra.register(Literal)
 def _(node: Literal) -> Printed:
     value = node.value
+    if isinstance(value, complex):
+        _no_complex(node)
     if isinstance(value, bool):
         return Printed("1" if value else "0")
     if isinstance(value, int):
@@ -68,7 +79,12 @@ def _(node: Literal) -> Printed:
 
 @c_algebra.register(Constant)
 def _(node: Constant) -> Printed:
+    if node is cx.constants.I:
+        _no_complex(node)
     return Printed(CONSTANTS.get(node) or name_of(node))
+
+
+c_algebra.register(*COMPLEX)(_no_complex)
 
 
 @c_algebra.register(Function)

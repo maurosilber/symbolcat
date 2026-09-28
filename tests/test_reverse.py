@@ -105,8 +105,8 @@ def test_shared_nodes_are_visited_once():
 
 
 def test_unknown_function():
-    with pytest.raises(NotImplementedError, match="reverse: no rule for erf"):
-        vjp(real.erf(x), (x,))
+    with pytest.raises(NotImplementedError, match="reverse: no rule for gamma"):
+        vjp(real.gamma(x), (x,))
 
 
 def test_unknown_function_of_constants_is_fine():

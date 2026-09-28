@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ... import complex as cx
 from ... import linalg, real
 from ..._core import (
     Algebra,
@@ -73,6 +74,13 @@ FUNCTION_NAMES = {
     real.atan: "arctan",
     real.gamma: "Γ",
     linalg.trace: "tr",
+    cx.re: "Re",
+    cx.im: "Im",
+    cx.phase: "arg",
+    cx.log: "ln",
+    cx.asin: "arcsin",
+    cx.acos: "arccos",
+    cx.atan: "arctan",
 }
 
 ENCLOSING = {
@@ -80,6 +88,7 @@ ENCLOSING = {
     real.floor: ("⌊", "⌋"),
     real.ceil: ("⌈", "⌉"),
     linalg.norm: ("‖", "‖"),
+    cx.abs: ("|", "|"),
 }
 
 # Functions rendered as a superscript on their single argument.
@@ -94,6 +103,7 @@ CONSTANTS = {
     real.constants.tau: "<mi>τ</mi>",
     real.constants.inf: "<mi>∞</mi>",
     real.constants.nan: "<mi>NaN</mi>",
+    cx.constants.I: "<mi>i</mi>",
 }
 
 
@@ -128,6 +138,19 @@ def mathml_name(name: str, /) -> str:
 
 
 def mathml_number(value: Any, /) -> str:
+    if isinstance(value, complex):
+        real_part, imag_part = (
+            int(v) if v.is_integer() else v for v in (value.real, value.imag)
+        )
+        imag = "<mi>i</mi>"
+        if abs(imag_part) != 1:
+            imag = mrow(mathml_number(abs(imag_part)), mo("⁢"), imag)
+        if not real_part:
+            if imag_part == 1:
+                return imag
+            return paren(mrow(mo("−"), imag) if imag_part < 0 else imag)
+        sign = "−" if imag_part < 0 else "+"
+        return paren(mrow(mathml_number(real_part), mo(sign), imag))
     if isinstance(value, bool):
         return f"<mi>{value}</mi>"
     if isinstance(value, int | float) and value < 0:
@@ -207,16 +230,31 @@ def _(node: Call[Printed]) -> Printed:
     return Printed(text, op.mul.precedence, ndim=1)
 
 
-@mathml_algebra.register(real.sqrt)
+@mathml_algebra.register(cx.conj)
+def _(node: Call[Printed]) -> Printed:
+    (arg,) = node.args
+    return Printed(f'<mover>{mrow(arg.text)}<mo accent="true">¯</mo></mover>')
+
+
+@mathml_algebra.register(cx.rect)
+def _(node: Call[Printed]) -> Printed:
+    """Polar form, ``r e^{i phi}``."""
+    r, phi = node.args
+    exponent = mrow("<mi>i</mi>", mo("⁢"), operand(phi, op.mul, "right"))
+    power = f"<msup><mi>e</mi>{exponent}</msup>"
+    return Printed(mrow(operand(r, op.mul, "left"), mo("⁢"), power), op.mul.precedence)
+
+
+@mathml_algebra.register(real.sqrt, cx.sqrt)
 def _(node: Call[Printed]) -> Printed:
     (arg,) = node.args
     return Printed(f"<msqrt>{arg.text}</msqrt>")
 
 
-@mathml_algebra.register(real.log10, real.log2)
+@mathml_algebra.register(real.log10, real.log2, cx.log10)
 def _(node: Call[Printed]) -> Printed:
     (arg,) = node.args
-    base = "10" if node.func is real.log10 else "2"
+    base = "2" if node.func is real.log2 else "10"
     log = f"<msub><mi>log</mi><mn>{base}</mn></msub>"
     return Printed(mrow(log, mo("⁡"), paren(arg.text)))
 

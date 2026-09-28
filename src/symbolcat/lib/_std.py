@@ -6,9 +6,11 @@ Python's standard library as implementation.
 """
 
 import builtins
+import cmath
 import math
 import operator
 
+from .. import complex as cx
 from .. import real
 from . import operators as op
 
@@ -68,4 +70,24 @@ IMPL = {
     real.constants.tau: math.tau,
     real.constants.inf: math.inf,
     real.constants.nan: math.nan,
+    cx.re: lambda z: z.real,
+    cx.im: lambda z: z.imag,
+    cx.conj: lambda z: z.conjugate(),
+    cx.abs: builtins.abs,
+    cx.phase: cmath.phase,
+    cx.rect: cmath.rect,
+    cx.exp: cmath.exp,
+    cx.log: cmath.log,
+    cx.log10: cmath.log10,
+    cx.sqrt: cmath.sqrt,
+    cx.sin: cmath.sin,
+    cx.cos: cmath.cos,
+    cx.tan: cmath.tan,
+    cx.asin: cmath.asin,
+    cx.acos: cmath.acos,
+    cx.atan: cmath.atan,
+    cx.sinh: cmath.sinh,
+    cx.cosh: cmath.cosh,
+    cx.tanh: cmath.tanh,
+    cx.constants.I: 1j,
 }

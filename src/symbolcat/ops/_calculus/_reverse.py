@@ -17,6 +17,12 @@ node is visited once, and the derivatives share sub-expressions.
 
 A rule receives the node, its cotangent ``g`` and the shapes of its
 arguments and result, and returns the cotangent of each argument.
+
+Complex nodes (``symbolcat.complex``) have complex cotangents, paired with
+tangents as ``re(g * dz)``. For a holomorphic function, the rule is then the
+same as for a real one: ``f'(a) * g``. Symbols are real, and so is the
+cotangent of every real node: where a complex node passes a cotangent to a
+real argument, only its real part is kept.
 """
 
 from __future__ import annotations
@@ -26,6 +32,7 @@ from collections.abc import Callable, Mapping, Sequence
 from itertools import product
 from typing import Any
 
+from ... import complex as cx
 from ... import linalg, real
 from ..._core import (
     Algebra,
@@ -40,7 +47,7 @@ from ..._core import (
 )
 from ...lib import operators as op
 from ...linalg import Array, array, identity, matrix, transpose, vector
-from .._analysis._inspect import free_symbols
+from .._analysis._inspect import complex_algebra, free_symbols
 from .._transform._arrays import Shape, _shapes, arrays_algebra, entries
 from .._transform._share import share
 from .._transform._simplify import simplify_naive
@@ -125,6 +132,45 @@ rule(real.atan)(chain(lambda a: 1 / (1 + a**2)))
 rule(real.sinh)(chain(real.cosh))
 rule(real.cosh)(chain(real.sinh))
 rule(real.tanh)(lambda node, g, shapes, shape: ((1 - node**2) * g,))
+rule(real.erf)(chain(lambda a: 2 / real.sqrt(real.constants.pi) * real.exp(-(a**2))))
+
+
+rule(cx.exp)(lambda node, g, shapes, shape: (node * g,))
+rule(cx.log)(chain(lambda a: 1 / a))
+rule(cx.log10)(chain(lambda a: 1 / (a * cx.log(10))))
+rule(cx.sqrt)(lambda node, g, shapes, shape: (g / (2 * node),))
+rule(cx.sin)(chain(cx.cos))
+rule(cx.cos)(chain(lambda a: -cx.sin(a)))
+rule(cx.tan)(chain(lambda a: 1 / cx.cos(a) ** 2))
+rule(cx.asin)(chain(lambda a: 1 / cx.sqrt(1 - a**2)))
+rule(cx.acos)(chain(lambda a: -1 / cx.sqrt(1 - a**2)))
+rule(cx.atan)(chain(lambda a: 1 / (1 + a**2)))
+rule(cx.sinh)(chain(cx.cosh))
+rule(cx.cosh)(chain(cx.sinh))
+rule(cx.tanh)(lambda node, g, shapes, shape: ((1 - node**2) * g,))
+
+# Not holomorphic. re, im, abs and phase are real, so their cotangent is.
+rule(cx.re)(lambda node, g, shapes, shape: (g,))
+rule(cx.im)(lambda node, g, shapes, shape: (-cx.constants.I * g,))
+rule(cx.conj)(lambda node, g, shapes, shape: (cx.conj(g),))
+
+
+@rule(cx.abs)
+def _(node, g, shapes, shape):
+    (z,) = node.args
+    return (g * cx.conj(z) / node,)
+
+
+@rule(cx.phase)
+def _(node, g, shapes, shape):
+    (z,) = node.args
+    return (-cx.constants.I * g * cx.conj(z) / cx.abs(z) ** 2,)
+
+
+@rule(cx.rect)
+def _(node, g, shapes, shape):
+    _, phi = node.args
+    return cx.re(g * cx.rect(1, phi)), cx.re(cx.constants.I * g * node)
 
 
 @rule(real.ifelse)
@@ -307,10 +353,12 @@ def vjp(
     # Forward pass: shapes, and the nodes that depend on a variable.
     targets = set(vars)
     shape_of: dict[int, Shape] = {}
+    is_complex: dict[int, bool] = {}
     active: set[int] = set()
     for node in order:
         layer = fmap(node, lambda c: (c, shape_of[id(c)]))
         _, shape_of[id(node)] = arrays_algebra(layer, shapes=symbol_shapes)
+        is_complex[id(node)] = complex_algebra(fmap(node, lambda c: is_complex[id(c)]))
         if (isinstance(node, Symbol) and node in targets) or any(
             id(c) in active for c in children(node)
         ):
@@ -333,6 +381,11 @@ def vjp(
                 continue
             if node.func in linalg.ENTRYWISE:
                 c = unbroadcast(c, s, shape)
+            if not is_complex[id(arg)]:
+                if node.func is cx.im or node.func is cx.phase:
+                    continue  # constant on the reals
+                if is_complex[id(node)]:
+                    c = cx.re(c)
             previous = adjoint.get(id(arg))
             adjoint[id(arg)] = c if previous is None else previous + c
 

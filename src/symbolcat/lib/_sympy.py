@@ -13,6 +13,7 @@ from typing import Any
 
 import sympy
 
+from .. import complex as cx
 from .. import linalg, real
 from .._core import Symbol, name_of
 from ..linalg import ENTRYWISE, Array
@@ -82,6 +83,26 @@ IMPL: dict[Any, Any] = {
     linalg.norm: lambda a: a.norm(),
     linalg.sum: lambda a: sum(a),
     linalg.cross: lambda a, b: a.cross(b),
+    cx.re: sympy.re,
+    cx.im: sympy.im,
+    cx.conj: sympy.conjugate,
+    cx.abs: sympy.Abs,
+    cx.phase: sympy.arg,
+    cx.rect: lambda r, phi: r * sympy.exp(sympy.I * phi),
+    cx.exp: sympy.exp,
+    cx.log: sympy.log,
+    cx.log10: lambda z: sympy.log(z, 10),
+    cx.sqrt: sympy.sqrt,
+    cx.sin: sympy.sin,
+    cx.cos: sympy.cos,
+    cx.tan: sympy.tan,
+    cx.asin: sympy.asin,
+    cx.acos: sympy.acos,
+    cx.atan: sympy.atan,
+    cx.sinh: sympy.sinh,
+    cx.cosh: sympy.cosh,
+    cx.tanh: sympy.tanh,
+    cx.constants.I: sympy.I,
     op.matmul: lambda a, b: a.dot(b) if a.shape == b.shape == (a.rows, 1) else a @ b,
 }
 IMPL.update({f: entrywise(IMPL[f]) for f in ENTRYWISE if f in IMPL})
