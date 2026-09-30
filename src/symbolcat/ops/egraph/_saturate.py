@@ -26,7 +26,7 @@ from typing import Any, Literal
 
 from egglog import DagCostModel, EGraph, Schedule, back_off, eq, run, seq
 
-from ..._core import Call, Constant, Expr, args_of, cata, func_of
+from ..._core import Call, Constant, Done, Expr, args_of, cata, func_of, hylo
 from .._analysis._inspect import count_nodes, is_complex
 from .._transform._arrays import expand_arrays
 from .._transform._complex import join, real_imag, uses_complex
@@ -230,15 +230,23 @@ def saturate_real(expr: Expr, /, **options: Any) -> Expr:
 
 def saturate_inside(expr: Expr, /, **options: Any) -> Expr:
     """A complex expression, with its real arguments simplified."""
-    if not isinstance(expr, Call):
-        return expr
-    args = [
-        saturate_inside(arg, **options)
-        if is_complex(arg)
-        else saturate_real(arg, **options)
-        for arg in args_of(expr)
-    ]
-    return simplify_algebra(func_of(expr)(*args), exact=True)
+
+    # Complex arguments are unfolded in turn; real ones are finished at once.
+    def coalgebra(node: Expr, /) -> Expr | Done[Expr]:
+        if not isinstance(node, Call):
+            return Done(node)
+        return Call(
+            func_of(node),
+            tuple(
+                arg if is_complex(arg) else Done(saturate_real(arg, **options))
+                for arg in args_of(node)
+            ),
+        )
+
+    def algebra(layer: Call[Expr], /) -> Expr:
+        return simplify_algebra(func_of(layer)(*args_of(layer)), exact=True)
+
+    return hylo(algebra, coalgebra, expr)
 
 
 def saturate_hidden(

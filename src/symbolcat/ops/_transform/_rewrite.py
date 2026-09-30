@@ -137,11 +137,9 @@ def _apply(rules: Iterable[Rule], node: Expr, /) -> Expr | None:
 
 
 def _postwalk(expr: Expr, rules: list[Rule], /) -> Expr:
+    # The layer is already a node: its children are rewritten expressions.
     def algebra(layer: Expr, /) -> Expr:
-        node = (
-            Call(func_of(layer), args_of(layer)) if isinstance(layer, Call) else layer
-        )
-        return _apply(rules, node) or node
+        return _apply(rules, layer) or layer
 
     return cata(algebra, expr)
 
