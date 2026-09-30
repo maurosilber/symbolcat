@@ -44,9 +44,10 @@ from .._sde._system import SDE
 type Complex = frozenset[tuple[Symbol, int]]
 
 
-def _stoichiometry(
-    species: Mapping[Symbol, int] | Iterable[Symbol], /
+def _stoichiometry[S: Symbol](
+    species: Mapping[S, int] | Iterable[S], /
 ) -> dict[Symbol, int]:
+    out: dict[Symbol, int]
     if isinstance(species, Mapping):
         out = {s: int(n) for s, n in species.items() if n}
     else:
@@ -80,11 +81,11 @@ class Reaction:
     products: Mapping[Symbol, int]
     mass_action: bool
 
-    def __init__(
+    def __init__[S: Symbol](
         self,
         rate: Any,
-        substrates: Mapping[Symbol, int] | Iterable[Symbol],
-        products: Mapping[Symbol, int] | Iterable[Symbol],
+        substrates: Mapping[S, int] | Iterable[S],
+        products: Mapping[S, int] | Iterable[S],
         /,
         *,
         mass_action: bool = True,

@@ -428,3 +428,22 @@ The other algebras are extended in the same way:
 ```
 
 A new operation is a new algebra. Nothing in the core has to change.
+
+Nodes, functions and algebras keep their data out of their namespace, and
+it is read with functions: `func_of(node)`, `args_of(node)`,
+`value_of(literal)`, `name_of(symbol)`, ... (in `symbolcat.ops.algebras`).
+Only `kind` is an attribute. So a library can subclass them, and define any
+attribute, without colliding with symbolcat's:
+
+```python
+>>> from symbolcat.ops.algebras import name_of
+>>> class Species(Symbol):
+...     def __init__(self, name, *, charge=0):
+...         super().__init__(name)
+...         self.name = f"species {name}"  # its own attribute
+...         self.charge = charge
+>>> na = Species("Na", charge=1)
+>>> na.name, name_of(na), str(2 * na)
+('species Na', 'Na', '2 * Na')
+
+```

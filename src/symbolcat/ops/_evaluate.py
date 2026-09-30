@@ -125,9 +125,9 @@ def fold(expr: Expr, /, **ctx: Any) -> Any:
     return done[id(expr)]
 
 
-def evaluate(
+def evaluate[S: Symbol](
     expr: Any,
-    env: Mapping[Symbol, Any] | Mapping[str, Any] | None = None,
+    env: Mapping[S, Any] | Mapping[str, Any] | None = None,
     /,
     *,
     lib: Mapping[Any, Any] | None = None,

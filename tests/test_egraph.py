@@ -8,7 +8,7 @@ from symbolcat import Symbol, complex, real
 from symbolcat.lib import Constant, Function
 from symbolcat.lib.std import IMPL
 from symbolcat.ops import evaluate
-from symbolcat.ops.algebras import Call, Literal, args_of, as_expr, func_of
+from symbolcat.ops.algebras import Call, Literal, args_of, as_expr, children, func_of
 from symbolcat.ops.egraph import (
     integer,
     negative,
@@ -294,7 +294,7 @@ def test_optimize_evaluates_polynomials_by_horner():
     from symbolcat.lib import operators as op
 
     result = optimize(sum(k * x**k for k in range(1, 6)))
-    funcs = [getattr(n, "func", None) for n in _walk(result)]
+    funcs = [(func_of(n) if isinstance(n, Call) else None) for n in _walk(result)]
     assert op.pow not in funcs
     assert funcs.count(op.mul) == 5
 
@@ -326,7 +326,11 @@ def test_square_root_of_negative_terminates():
 
 def test_optimize_shares_subexpressions():
     expr = optimize(real.sin(x) ** 2 + real.sin(x) * y)
-    sins = [node for node in _walk(expr) if getattr(node, "func", None) is real.sin]
+    sins = [
+        node
+        for node in _walk(expr)
+        if (func_of(node) if isinstance(node, Call) else None) is real.sin
+    ]
     assert len({id(node) for node in sins}) == 1
 
 
@@ -341,7 +345,11 @@ def test_optimize_uses_repeated_squaring(expr, multiplications):
     from symbolcat.lib import operators as op
 
     result = optimize(expr)
-    muls = {id(n) for n in _walk(result) if getattr(n, "func", None) is op.mul}
+    muls = {
+        id(n)
+        for n in _walk(result)
+        if (func_of(n) if isinstance(n, Call) else None) is op.mul
+    }
     assert len(muls) == multiplications
 
 
@@ -379,7 +387,7 @@ def _walk(expr):
             continue
         seen.add(id(node))
         yield node
-        stack.extend(getattr(node, "args", ()))
+        stack.extend(children(node))
 
 
 def _random_expr(rng, depth):

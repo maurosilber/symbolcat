@@ -122,9 +122,9 @@ def expand_derivatives(
     return cata(algebra, expr)
 
 
-def change_variables(
+def change_variables[S: Symbol](
     equations: Iterable[Any],
-    mapping: Mapping[Symbol, Any],
+    mapping: Mapping[S, Any],
     unknowns: Iterable[Symbol],
     /,
     t: Symbol | None = None,

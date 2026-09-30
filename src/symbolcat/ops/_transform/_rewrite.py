@@ -18,16 +18,26 @@ nothing changes (``fixpoint``).
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
-from dataclasses import dataclass, field
-from typing import Any
+from dataclasses import dataclass
+from typing import Any, NamedTuple
 
 from ..._core import Call, Expr, Symbol, ana, args_of, as_expr, cata, func_of, name_of
+from ..._core.expr import _init
+from ..._core.kinds import Kind, Real
 from ._substitute import substitute
 
 type Bindings = dict[str, Expr]
 
 
-@dataclass(frozen=True, repr=False)
+_REAL = Real()
+
+
+class _WildData(NamedTuple):
+    name: str
+    kind: Kind
+    predicate: Callable[[Expr], bool] | None
+
+
 class Wild(Symbol):
     """A pattern variable. ``predicate``, if given, restricts what it
     matches.
@@ -38,7 +48,21 @@ class Wild(Symbol):
     ({'n': Literal(2)}, None)
     """
 
-    predicate: Callable[[Expr], bool] | None = field(default=None, compare=False)
+    __slots__ = ()
+
+    def __init__(
+        self,
+        name: str = "",
+        *,
+        kind: Kind = _REAL,
+        predicate: Callable[[Expr], bool] | None = None,
+    ) -> None:
+        _init(self, _WildData(name, kind, predicate))
+
+
+def predicate_of(wild: Wild, /) -> Callable[[Expr], bool] | None:
+    """The predicate that restricts what ``wild`` matches, if any."""
+    return wild.__symbolcat__.predicate
 
 
 def match(
@@ -55,7 +79,8 @@ def match(
     pattern, expr = as_expr(pattern), as_expr(expr)
     bindings = {} if bindings is None else bindings
     if isinstance(pattern, Wild):
-        if pattern.predicate is not None and not pattern.predicate(expr):
+        predicate = predicate_of(pattern)
+        if predicate is not None and not predicate(expr):
             return None
         if name_of(pattern) in bindings:
             return bindings if bindings[name_of(pattern)] == expr else None

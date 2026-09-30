@@ -8,10 +8,10 @@ Expression nodes and symbolic functions.
 from __future__ import annotations
 
 import numbers
-from dataclasses import KW_ONLY, dataclass, field
-from typing import TYPE_CHECKING, Any, Generic, cast, overload
+from typing import TYPE_CHECKING, Any, Generic, NamedTuple, cast, overload
 
 from .kinds import Boolean, Complex, Kind, Real
+from .opaque import _init, _Opaque
 from .overloads import Overloads
 
 if TYPE_CHECKING:
@@ -28,7 +28,7 @@ else:
     _K_co = TypeVar("_K_co", bound=Kind, covariant=True)
 
 
-class Expr[K: Kind](Overloads[K]):
+class Expr[K: Kind](Overloads[K], _Opaque):
     """Base class of expression nodes. Provides the operator overloads.
 
     ``==`` and ``hash`` are structural, so expressions can be used as
@@ -44,7 +44,7 @@ class Expr[K: Kind](Overloads[K]):
     __slots__ = ()
 
     if TYPE_CHECKING:
-        # read-only, as the frozen dataclasses define it
+
         @property
         def kind(self) -> K: ...
 
@@ -184,23 +184,21 @@ class _Named:
     __slots__ = ()
 
     if TYPE_CHECKING:
-        # read-only, as the frozen dataclasses define it
-        @property
-        def name(self) -> str: ...
+        __symbolcat__: Any
 
     def __set_name__(self, owner: type, name: str) -> None:
-        if not self.name:
-            object.__setattr__(self, "name", name)
+        data = self.__symbolcat__
+        if not data.name:
+            object.__setattr__(self, "__symbolcat__", data._replace(name=name))
 
     def __repr__(self) -> str:
+        name = self.__symbolcat__.name
         return (
-            f"{type(self).__name__}({self.name!r})"
-            if self.name
-            else f"{type(self).__name__}()"
+            f"{type(self).__name__}({name!r})" if name else f"{type(self).__name__}()"
         )
 
 
-def name_of(obj: Symbol | Constant | Function, /) -> str:
+def name_of(obj: Symbol | Constant | Function | Algebra, /) -> str:
     """The name of ``obj``, or a clear error if it never got one.
 
     >>> name_of(Symbol("x"))
@@ -210,20 +208,28 @@ def name_of(obj: Symbol | Constant | Function, /) -> str:
     ...
     ValueError: Symbol has no name: pass one to the constructor, or assign it in a class body
     """
-    if not obj.name:
+    name = obj.__symbolcat__.name
+    if not name:
         raise ValueError(
             f"{type(obj).__name__} has no name: pass one to the constructor, "
             "or assign it in a class body"
         )
-    return obj.name
+    return name
 
 
 def _label(obj: Symbol | Constant | Function, /) -> str:
     """The name for messages, which must not fail on unnamed objects."""
-    return obj.name or "<unnamed>"
+    return obj.__symbolcat__.name or "<unnamed>"
 
 
-@dataclass(frozen=True, repr=False)
+class _LeafData(NamedTuple):
+    name: str
+    kind: Kind
+
+
+_REAL: Any = Real()
+
+
 class Symbol[K: Kind](_Named, Expr[K]):
     """A user-defined named leaf. Compares by name and kind.
 
@@ -243,25 +249,35 @@ class Symbol[K: Kind](_Named, Expr[K]):
     (Symbol('x'), Symbol('why'))
     """
 
-    name: str = ""
-    kind: K = field(default=cast(Any, Real()), kw_only=True)
+    __slots__ = ()
 
-    if TYPE_CHECKING:
+    @overload
+    def __init__(self: Symbol[Real], name: str = "") -> None: ...
+    @overload
+    def __init__(self, name: str = "", *, kind: K) -> None: ...
+    def __init__(self, name: str = "", *, kind: Any = _REAL) -> None:
+        _init(self, _LeafData(name, kind))
 
-        @overload
-        def __init__(self: Symbol[Real], name: str = "") -> None: ...
-        @overload
-        def __init__(self, name: str = "", *, kind: K) -> None: ...
-        def __init__(self, name: str = "", *, kind: Any = None) -> None: ...
+    @property
+    def kind(self) -> K:
+        return self.__symbolcat__.kind
+
+    def __eq__(self, other: object) -> bool:
+        if type(other) is not type(self):
+            return False
+        return self.__symbolcat__[:2] == cast(Any, other).__symbolcat__[:2]
+
+    def __hash__(self) -> int:
+        return hash(self.__symbolcat__[:2])
 
     def __repr__(self) -> str:
-        if self.kind == Real():
+        name, kind = self.__symbolcat__[:2]
+        if kind == Real():
             return super().__repr__()
-        name = repr(self.name) if self.name else ""
-        return f"Symbol({name}{', ' if name else ''}kind={self.kind!r})"
+        name = repr(name) if name else ""
+        return f"Symbol({name}{', ' if name else ''}kind={kind!r})"
 
 
-@dataclass(frozen=True, repr=False, eq=False)
 class Constant[K: Kind](_Named, Expr[K]):
     """A library-defined named leaf, such as ``real.constants.pi``.
 
@@ -271,19 +287,20 @@ class Constant[K: Kind](_Named, Expr[K]):
     unless given.
     """
 
-    name: str = ""
-    kind: K = field(default=cast(Any, Real()), kw_only=True)
+    __slots__ = ()
 
-    if TYPE_CHECKING:
+    @overload
+    def __init__(self: Constant[Real], name: str = "") -> None: ...
+    @overload
+    def __init__(self, name: str = "", *, kind: K) -> None: ...
+    def __init__(self, name: str = "", *, kind: Any = _REAL) -> None:
+        _init(self, _LeafData(name, kind))
 
-        @overload
-        def __init__(self: Constant[Real], name: str = "") -> None: ...
-        @overload
-        def __init__(self, name: str = "", *, kind: K) -> None: ...
-        def __init__(self, name: str = "", *, kind: Any = None) -> None: ...
+    @property
+    def kind(self) -> K:
+        return self.__symbolcat__.kind
 
 
-@dataclass(frozen=True, repr=False, eq=False)
 class Literal[K: Kind](Expr[K]):
     """A leaf wrapping a plain Python value.
 
@@ -297,50 +314,55 @@ class Literal[K: Kind](Expr[K]):
     (Boolean(), Real(), Complex())
     """
 
-    value: Any
+    __slots__ = ()
 
-    if TYPE_CHECKING:
-
-        @overload
-        def __init__(self: Literal[Boolean], value: bool) -> None: ...
-        @overload
-        def __init__(self: Literal[Real], value: float | numbers.Real) -> None: ...
-        @overload
-        def __init__(
-            self: Literal[Complex], value: complex | numbers.Complex
-        ) -> None: ...
-        @overload
-        def __init__(self: Literal[Any], value: Any) -> None: ...
-        def __init__(self, value: Any) -> None: ...
+    @overload
+    def __init__(self: Literal[Boolean], value: bool) -> None: ...
+    @overload
+    def __init__(self: Literal[Real], value: float | numbers.Real) -> None: ...
+    @overload
+    def __init__(self: Literal[Complex], value: complex | numbers.Complex) -> None: ...
+    @overload
+    def __init__(self: Literal[Any], value: Any) -> None: ...
+    def __init__(self, value: Any) -> None:
+        _init(self, value)
 
     def __repr__(self) -> str:
-        return f"Literal({self.value!r})"
+        return f"Literal({self.__symbolcat__!r})"
 
     @property
     def kind(self) -> K:
+        value = self.__symbolcat__
         kind: Kind
-        if isinstance(self.value, bool):
+        if isinstance(value, bool):
             kind = Boolean()
-        elif isinstance(self.value, numbers.Complex) and not isinstance(
-            self.value, numbers.Real
-        ):
+        elif isinstance(value, numbers.Complex) and not isinstance(value, numbers.Real):
             kind = Complex()
         else:
             kind = Real()
         return cast(K, kind)
 
     def __eq__(self, other: object) -> bool:
-        return (
-            isinstance(other, Literal)
-            and type(self.value) is type(other.value)
-            and self.value == other.value
-        )
+        if not isinstance(other, Literal):
+            return False
+        a, b = self.__symbolcat__, other.__symbolcat__
+        return type(a) is type(b) and a == b
 
     def __hash__(self) -> int:
-        return hash((type(self.value), self.value))
+        value = self.__symbolcat__
+        return hash((type(value), value))
 
 
-@dataclass(frozen=True, repr=False)
+class _CallData(NamedTuple):
+    func: Function
+    args: tuple[Any, ...]
+    kind: Kind
+
+
+# The default kind of a Call: to be inferred from its arguments.
+_INFER: Any = Kind()
+
+
 class Call(Expr[_K_co], Generic[_T_co, _K_co]):  # noqa: UP046 (for the default)
     """A function applied to arguments of type ``T``, with a result of kind
     ``K`` (any, if not given).
@@ -352,22 +374,37 @@ class Call(Expr[_K_co], Generic[_T_co, _K_co]):  # noqa: UP046 (for the default)
     if not given. The kind is derived, so it is not compared.
     """
 
-    func: Function
-    args: tuple[_T_co, ...]
-    kind: _K_co = field(default_factory=lambda: cast(Any, _INFER), compare=False)
+    __slots__ = ()
 
-    def __post_init__(self) -> None:
-        if self.kind is not _INFER:
-            return
-        args: tuple[Any, ...] = self.args
-        if all(isinstance(arg, Expr) for arg in args):
-            kind = _infer(self.func, args)
-        else:
-            kind = Kind()  # a layer, like the seeds of an unfold
-        object.__setattr__(self, "kind", kind)
+    def __init__(
+        self,
+        func: Function,
+        args: tuple[_T_co, ...],
+        kind: _K_co = _INFER,
+    ) -> None:
+        inferred: Kind = kind
+        if kind is _INFER:
+            if all(isinstance(arg, Expr) for arg in args):
+                inferred = _infer(func, cast(tuple[Any, ...], args))
+            else:
+                inferred = Kind()  # a layer, like the seeds of an unfold
+        _init(self, _CallData(func, args, inferred))
+
+    @property
+    def kind(self) -> _K_co:
+        return self.__symbolcat__.kind
+
+    def __eq__(self, other: object) -> bool:
+        if type(other) is not type(self):
+            return False
+        return self.__symbolcat__[:2] == cast(Any, other).__symbolcat__[:2]
+
+    def __hash__(self) -> int:
+        return hash(self.__symbolcat__[:2])
 
     def __repr__(self) -> str:
-        return f"Call({_label(self.func)}, {self.args!r})"
+        func, args, _ = self.__symbolcat__
+        return f"Call({_label(func)}, {args!r})"
 
 
 # Accessors. Nodes and functions keep their data out of their namespace, so
@@ -382,7 +419,7 @@ def func_of(node: Call[Any, Any], /) -> Function:
     >>> func_of(real.sin(Symbol("x"))) is real.sin
     True
     """
-    return node.func
+    return node.__symbolcat__.func
 
 
 def args_of[T](node: Call[T, Any], /) -> tuple[T, ...]:
@@ -392,7 +429,7 @@ def args_of[T](node: Call[T, Any], /) -> tuple[T, ...]:
     >>> args_of(Symbol("x") + 1)
     (Symbol('x'), Literal(1))
     """
-    return node.args
+    return node.__symbolcat__.args
 
 
 def value_of(node: Literal[Any], /) -> Any:
@@ -401,27 +438,27 @@ def value_of(node: Literal[Any], /) -> Any:
     >>> value_of(Literal(2))
     2
     """
-    return node.value
+    return node.__symbolcat__
 
 
 def arity_of(func: Function, /) -> int | None:
     """The number of arguments of a function, or ``None`` if any."""
-    return func.arity
+    return func.__symbolcat__.arity
 
 
 def fmt_of(op: Operator, /) -> str:
     """The Python spelling of an operator, as a format string (``"{} + {}"``)."""
-    return op.fmt
+    return op.__symbolcat__.fmt
 
 
 def precedence_of(op: Operator, /) -> int:
     """The precedence of an operator, following Python (higher binds tighter)."""
-    return op.precedence
+    return op.__symbolcat__.precedence
 
 
 def assoc_of(op: Operator, /) -> str:
     """The associativity of an operator: ``"left"``, ``"right"`` or ``"none"``."""
-    return op.assoc
+    return op.__symbolcat__.assoc
 
 
 def as_expr(value: Any, /) -> Expr:
@@ -431,8 +468,12 @@ def as_expr(value: Any, /) -> Expr:
     return Literal(value)
 
 
-@dataclass(frozen=True, repr=False, eq=False)
-class Function[**P, R: Kind](_Named):
+class _FunctionData(NamedTuple):
+    name: str
+    arity: int | None
+
+
+class Function[**P, R: Kind](_Named, _Opaque):
     """A symbolic function. Calling it builds a ``Call`` node.
 
     Functions compare by identity, so they can be used as registry keys
@@ -452,30 +493,32 @@ class Function[**P, R: Kind](_Named):
     >>> outer: Function[[Expr[Vector], Expr[Vector]], Matrix] = Function("outer")
     """
 
-    name: str = ""
-    arity: int | None = field(default=None, kw_only=True)
+    __slots__ = ()
 
-    if TYPE_CHECKING:
-
-        def __init__(
-            self: Function[..., Any], name: str = "", *, arity: int | None = None
-        ) -> None: ...
+    def __init__(
+        self: Function[..., Any], name: str = "", *, arity: int | None = None
+    ) -> None:
+        _init(self, _FunctionData(name, arity))
 
     def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Call[Expr, R]:
         if kwargs:
             raise TypeError(f"{_label(self)} takes no keyword arguments")
-        if self.arity is not None and len(args) != self.arity:
+        arity = self.__symbolcat__.arity
+        if arity is not None and len(args) != arity:
             raise TypeError(
-                f"{_label(self)} expected {self.arity} arguments, got {len(args)}"
+                f"{_label(self)} expected {arity} arguments, got {len(args)}"
             )
         return Call(self, tuple(map(as_expr, args)))
 
 
-# The default kind of a Call: to be inferred from its arguments.
-_INFER = Kind()
+class _OperatorData(NamedTuple):
+    name: str
+    arity: int | None
+    fmt: str
+    precedence: int
+    assoc: str
 
 
-@dataclass(frozen=True, repr=False, eq=False)
 class Operator(Function):
     """A function written in infix/prefix notation.
 
@@ -483,13 +526,24 @@ class Operator(Function):
     (higher binds tighter) and ``assoc`` is ``"left"`` or ``"right"``.
     """
 
-    _: KW_ONLY
-    fmt: str = ""
-    precedence: int = 0
-    assoc: str = "left"
+    __slots__ = ()
+
+    def __init__(
+        self,
+        name: str = "",
+        *,
+        arity: int | None = None,
+        fmt: str = "",
+        precedence: int = 0,
+        assoc: str = "left",
+    ) -> None:
+        _init(self, _OperatorData(name, arity, fmt, precedence, assoc))
 
 
 # Kind inference and Expr's operator overloads need the algebra and the
 # operator definitions, which in turn need the classes above.
 from ..lib import operators as _op
 from .infer import infer as _infer
+
+if TYPE_CHECKING:
+    from .algebra import Algebra

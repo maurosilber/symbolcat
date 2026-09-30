@@ -356,7 +356,8 @@ def optimize(
     >>> from symbolcat.ops.algebras import cata
     >>> visited = []
     >>> _ = cata(visited.append, expr)
-    >>> sum(getattr(node, "func", None) is real.sin for node in visited)
+    >>> from symbolcat.ops.algebras import Call, func_of
+    >>> sum(isinstance(node, Call) and func_of(node) is real.sin for node in visited)
     1
     """
     return saturate(

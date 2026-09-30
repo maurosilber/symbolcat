@@ -246,9 +246,9 @@ def _(node: Call[Pair]) -> Dimension:
 type Exponents = dict[str, int | Fraction]
 
 
-def dimensions(
+def dimensions[S: Symbol](
     expr: Any,
-    units: Mapping[Symbol, Mapping[str, Any]] | Mapping[str, Mapping[str, Any]],
+    units: Mapping[S, Mapping[str, Any]] | Mapping[str, Mapping[str, Any]],
     /,
     *,
     time: Mapping[str, Any] | None = None,

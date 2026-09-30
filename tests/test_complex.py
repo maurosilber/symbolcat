@@ -9,7 +9,7 @@ from symbolcat.lib import Function
 from symbolcat.lib import numpy as np_lib
 from symbolcat.lib import sympy as sympy_lib
 from symbolcat.ops import evaluate
-from symbolcat.ops.algebras import Literal
+from symbolcat.ops.algebras import Call, Literal, func_of
 from symbolcat.ops.calculus import diff, series, vjp
 from symbolcat.ops.inspect import dimensions, is_complex, shape
 from symbolcat.ops.printing import to_c, to_julia, to_latex, to_mathml, to_python
@@ -262,7 +262,10 @@ def test_real_imag(expr):
     assert not is_complex(re) and not is_complex(im)
     for u, v in GRID:
         point = {x: u, y: v}
-        on_cut = getattr(expr, "func", None) in (complex.asin, complex.acos)
+        on_cut = (func_of(expr) if isinstance(expr, Call) else None) in (
+            complex.asin,
+            complex.acos,
+        )
         if on_cut and v == 0 and abs(u) > 1:
             continue  # asin and acos on their branch cut: cmath uses the sign of 0
         try:

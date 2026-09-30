@@ -8,14 +8,20 @@ Algebras assembled from rules registered per node type or function.
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, NamedTuple
 
 from .kinds import Kind
+from .opaque import _init, _Opaque
 
 
-@dataclass
-class Algebra[A]:
+class _AlgebraData(NamedTuple):
+    name: str
+    by_func: dict[Key[Function], Callable[..., Any]]
+    by_kind: dict[Key[type], Callable[..., Any]]
+    by_node: dict[Key[type], Callable[..., Any]]
+
+
+class Algebra[A](_Opaque):
     """An algebra assembled from handlers registered per node or function.
 
     A handler receives a single layer (children already folded) plus any
@@ -54,16 +60,13 @@ class Algebra[A]:
     ('scalar', 'vector of 3')
     """
 
-    name: str
-    _by_func: dict[Key[Function], Callable[..., A]] = field(
-        default_factory=dict, init=False
-    )
-    _by_kind: dict[Key[type], Callable[..., A]] = field(
-        default_factory=dict, init=False
-    )
-    _by_node: dict[Key[type], Callable[..., A]] = field(
-        default_factory=dict, init=False
-    )
+    __slots__ = ()
+
+    def __init__(self, name: str, /) -> None:
+        _init(self, _AlgebraData(name, {}, {}, {}))
+
+    def __repr__(self) -> str:
+        return f"Algebra({self.__symbolcat__.name!r})"
 
     def register(
         self, *keys: Function | type, kind: type[Kind] | None = None
@@ -75,13 +78,14 @@ class Algebra[A]:
             # a local import: rules are registered while ``expr`` loads
             from .expr import Expr, Function
 
+            data = self.__symbolcat__
             for key in keys:
                 if isinstance(key, Function):
-                    self._by_func[key, kind] = handler
+                    data.by_func[key, kind] = handler
                 elif issubclass(key, Function):
-                    self._by_kind[key, kind] = handler
+                    data.by_kind[key, kind] = handler
                 elif issubclass(key, Expr):
-                    self._by_node[key, kind] = handler
+                    data.by_node[key, kind] = handler
                 else:
                     raise TypeError(f"Cannot register {key!r}")
             return handler
@@ -91,25 +95,26 @@ class Algebra[A]:
     def copy(self, name: str, /) -> Algebra[A]:
         """A new algebra that starts with the same handlers."""
         new = Algebra[A](name)
-        new._by_func.update(self._by_func)
-        new._by_kind.update(self._by_kind)
-        new._by_node.update(self._by_node)
+        data, new_data = self.__symbolcat__, new.__symbolcat__
+        new_data.by_func.update(data.by_func)
+        new_data.by_kind.update(data.by_kind)
+        new_data.by_node.update(data.by_node)
         return new
 
     def handler_for(self, node: Expr, /) -> Callable[..., A]:
+        data = self.__symbolcat__
         kinds = (*type(node.kind).__mro__[:-1], None)  # without object
         if isinstance(node, Call):
+            func = func_of(node)
             for kind in kinds:
-                if (handler := self._by_func.get((func_of(node), kind))) is not None:
+                if (handler := data.by_func.get((func, kind))) is not None:
                     return handler
-            if (
-                handler := _lookup(self._by_kind, type(func_of(node)), kinds)
-            ) is not None:
+            if (handler := _lookup(data.by_kind, type(func), kinds)) is not None:
                 return handler
-        if (handler := _lookup(self._by_node, type(node), kinds)) is not None:
+        if (handler := _lookup(data.by_node, type(node), kinds)) is not None:
             return handler
         what = _label(func_of(node)) if isinstance(node, Call) else type(node).__name__
-        raise NotImplementedError(f"{self.name}: no rule for {what}")
+        raise NotImplementedError(f"{data.name}: no rule for {what}")
 
     def __call__(self, node: Expr, **ctx: Any) -> A:
         return self.handler_for(node)(node, **ctx)

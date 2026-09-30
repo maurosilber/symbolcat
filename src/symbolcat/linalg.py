@@ -40,28 +40,35 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable, Sequence
-from dataclasses import KW_ONLY, dataclass
 from functools import cache
-from typing import Any, overload
+from typing import Any, NamedTuple, overload
 
 from . import complex as _complex
 from . import real as _real
 from ._core import Call, Expr, Function, Operator, args_of, func_of, name_of
+from ._core.expr import _init
 from ._core.infer import kind_algebra
 from ._core.kinds import Kind, Matrix, Real, Scalar, Vector, array_kind, join
 from ._core.signatures import Transpose
 from .lib import operators as _op
 
 
-@dataclass(frozen=True, repr=False, eq=False)
+class _ArrayData(NamedTuple):
+    name: str
+    arity: int | None
+    shape: tuple[int, ...]
+
+
 class Array(Function):
     """The function building an array of a given ``shape`` from its entries.
 
     Only vectors (one dimension) and matrices (two dimensions) are supported.
     """
 
-    _: KW_ONLY
-    shape: tuple[int, ...] = ()
+    __slots__ = ()
+
+    def __init__(self, name: str, *, shape: tuple[int, ...]) -> None:
+        _init(self, _ArrayData(name, math.prod(shape), shape))
 
 
 def array_shape(func: Array, /) -> tuple[int, ...]:
@@ -70,7 +77,7 @@ def array_shape(func: Array, /) -> tuple[int, ...]:
     >>> array_shape(array((2, 3)))
     (2, 3)
     """
-    return func.shape
+    return func.__symbolcat__.shape
 
 
 @cache
@@ -79,7 +86,7 @@ def array(shape: tuple[int, ...], /) -> Array:
     if len(shape) not in (1, 2):
         raise ValueError(f"arrays must have 1 or 2 dimensions, got shape {shape}")
     name = "vector" if len(shape) == 1 else "matrix"
-    return Array(name, arity=math.prod(shape), shape=shape)
+    return Array(name, shape=shape)
 
 
 def vector(entries: Iterable[Any], /) -> Call[Expr, Vector]:

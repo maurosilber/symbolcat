@@ -31,6 +31,7 @@ from ..._core import (
     args_of,
     cata,
     func_of,
+    name_of,
     value_of,
 )
 from ...lib import operators as op
@@ -43,13 +44,15 @@ class KindPreserving(Algebra[Expr]):
     """An algebra into expressions, whose results keep the kind of the
     node: a scalar result for an array is broadcast to its shape."""
 
+    __slots__ = ()
+
     def __call__(self, node: Expr, **ctx: Any) -> Expr:
         result = super().__call__(node, **ctx)
         shape = node.kind.shape
         if result.kind.shape == shape:
             return result
         if result.kind.shape:
-            raise AssertionError(f"{self.name}: {node} changed shape to {result}")
+            raise AssertionError(f"{name_of(self)}: {node} changed shape to {result}")
         return linalg.full(shape, result)
 
 

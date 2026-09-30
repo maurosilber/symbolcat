@@ -24,7 +24,8 @@ def fmap(node: Any, f: Callable[[Any], Any], /) -> Any:
 
     >>> from symbolcat import Symbol
     >>> x, y = Symbol("x"), Symbol("y")
-    >>> fmap(x + y, lambda child: child.name)
+    >>> from symbolcat.ops.algebras import name_of
+    >>> fmap(x + y, name_of)
     Call(add, ('x', 'y'))
     """
     raise TypeError(f"{type(node).__name__} is not an expression node")

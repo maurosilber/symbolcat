@@ -14,7 +14,9 @@ from ..._core import Symbol, as_expr, name_of
 from ._inspect import free_symbols
 
 
-def solve_dependencies(system: Mapping[Symbol, Any], /) -> list[tuple[Symbol, ...]]:
+def solve_dependencies[S: Symbol](
+    system: Mapping[S, Any], /
+) -> list[tuple[Symbol, ...]]:
     """Layers of ``system`` that can be computed in order.
 
     ``system`` maps symbols to their definitions. Each layer holds the
