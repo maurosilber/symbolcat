@@ -41,21 +41,23 @@ evaluate_algebra = Algebra[Any]("evaluate")
 
 
 @evaluate_algebra.register(Symbol)
-def _(node: Symbol, *, env: Mapping[Symbol | str, Any], lib: Mapping[Any, Any]) -> Any:
+def _(
+    node: Symbol, *, env: Mapping[Symbol | str, Any], backend: Mapping[Any, Any]
+) -> Any:
     name_of(node)  # unnamed symbols would all compare equal
     if node in env:
         return env[node]
     if name_of(node) in env:  # given by name
         return env[name_of(node)]
-    if Symbol in lib:
-        return lib[Symbol](node)
+    if Symbol in backend:
+        return backend[Symbol](node)
     raise NameError(f"No value for symbol {name_of(node)!r}")
 
 
 @evaluate_algebra.register(Constant)
-def _(node: Constant, *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> Any:
+def _(node: Constant, *, env: Mapping[Symbol, Any], backend: Mapping[Any, Any]) -> Any:
     try:
-        return lib[node]
+        return backend[node]
     except KeyError:
         raise NotImplementedError(f"No value for {name_of(node)!r}") from None
 
@@ -66,9 +68,9 @@ def _(node: Literal, **ctx: Any) -> Any:
 
 
 @evaluate_algebra.register(Call)
-def _(node: Call[Any], *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> Any:
+def _(node: Call[Any], *, env: Mapping[Symbol, Any], backend: Mapping[Any, Any]) -> Any:
     try:
-        func = lib[func_of(node)]
+        func = backend[func_of(node)]
     except KeyError:
         raise NotImplementedError(
             f"No implementation for {name_of(func_of(node))!r}"
@@ -77,11 +79,11 @@ def _(node: Call[Any], *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> 
 
 
 @evaluate_algebra.register(Array)
-def _(node: Call[Any], *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> Any:
-    """Nested lists of the entries, or ``lib[Array]`` applied to them."""
+def _(node: Call[Any], *, env: Mapping[Symbol, Any], backend: Mapping[Any, Any]) -> Any:
+    """Nested lists of the entries, or ``backend[Array]`` applied to them."""
     assert isinstance(func_of(node), Array)
     rows = nest(node.kind.shape, args_of(node))
-    return lib[Array](rows) if Array in lib else rows
+    return backend[Array](rows) if Array in backend else rows
 
 
 def is_scalar_bool(value: Any, /) -> bool:
@@ -130,16 +132,16 @@ def evaluate[S: Symbol](
     env: Mapping[S, Any] | Mapping[str, Any] | None = None,
     /,
     *,
-    lib: Mapping[Any, Any] | None = None,
+    backend: Mapping[Any, Any] | None = None,
 ) -> Any:
-    """Evaluate ``expr`` with values for its symbols and a library.
+    """Evaluate ``expr`` with values for its symbols and a backend.
 
     ``env`` maps symbols (or their names) to values.
-    ``lib`` defaults to ``symbolcat.lib.std.IMPL``.
+    ``backend`` defaults to ``symbolcat.backends.std.IMPL``.
     Operations on explicit arrays are first computed entry by entry
     (``expand_arrays``), so every backend gives the same result. Arrays
-    evaluate to nested lists, unless ``lib`` maps ``Array`` to a constructor
-    taking them. Operations on symbols of an array kind are left to ``lib``.
+    evaluate to nested lists, unless ``backend`` maps ``Array`` to a constructor
+    taking them. Operations on symbols of an array kind are left to ``backend``.
 
     >>> from symbolcat import Symbol, real
     >>> x = Symbol("x")
@@ -150,6 +152,6 @@ def evaluate[S: Symbol](
     >>> evaluate(real.ifelse(x > 0, real.log(x), 0), {x: -1})
     0
     """
-    if lib is None:
-        from ..lib.std import IMPL as lib
-    return fold(as_expr(expand_arrays(expr)), env=env or {}, lib=lib)
+    if backend is None:
+        from ..backends.std import IMPL as backend
+    return fold(as_expr(expand_arrays(expr)), env=env or {}, backend=backend)

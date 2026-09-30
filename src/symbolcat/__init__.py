@@ -5,6 +5,7 @@ symbolcat
 A minimalistic symbolic package, organized around catamorphisms.
 
 - ``Symbol``: create symbols and combine them with Python operators.
+- ``Function``, ``Constant``: define new symbolic functions and constants.
 - ``D``: the time derivative of a symbol, ``D(x)``, as an unknown of its own.
   ``delay(x, tau)`` and ``partial(u, x)`` build delay and partial
   differential equations.
@@ -15,7 +16,9 @@ A minimalistic symbolic package, organized around catamorphisms.
 - ``ops``: operations on expressions (printing, LaTeX, evaluation, ...).
 - ``models``: models of dynamical systems (DAEs, ODEs, SDEs, PDEs, reaction
   networks) and their analysis.
-- ``lib``: defining new functions, and implementation libraries.
+- ``operators``: the operators produced by Python syntax (``x + y``, ...).
+- ``backends``: implementation libraries for ``ops.evaluate`` (``std``,
+  ``numpy``, ``sympy``).
 
 >>> from symbolcat import Symbol, ops, real
 >>> x, y = Symbol("x"), Symbol("y")
@@ -28,18 +31,21 @@ x + 3 \\cdot \\sin\\left(y\\right)
 1.0
 """
 
-from . import complex, lib, linalg, models, ops, real, stats
-from ._core import Symbol
+from . import backends, complex, linalg, models, operators, ops, real, stats
+from ._core import Constant, Function, Symbol
 from ._derivative import D, delay, partial
 
 __all__ = [
+    "Constant",
     "D",
+    "Function",
     "Symbol",
+    "backends",
     "complex",
     "delay",
-    "lib",
     "linalg",
     "models",
+    "operators",
     "ops",
     "partial",
     "real",

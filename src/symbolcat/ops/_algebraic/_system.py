@@ -11,9 +11,9 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
+from ... import operators as op
 from ..._core import Call, Expr, args_of, as_expr, func_of
 from ..._derivative import Variable, is_variable
-from ...lib import operators as op
 from .._analysis._inspect import variables
 
 
@@ -22,7 +22,7 @@ def residual(equation: Any, /) -> Expr:
     already a residual, equal to zero.
 
     >>> from symbolcat import Symbol
-    >>> from symbolcat.lib import operators as op
+    >>> from symbolcat import operators as op
     >>> x = Symbol("x")
     >>> print(residual(op.eq(x, 1)))
     x - 1

@@ -4,7 +4,7 @@ from typing import Any
 import pytest
 
 from symbolcat import D, Symbol, real
-from symbolcat.lib import operators as op
+from symbolcat import operators as op
 from symbolcat.models.dae import (
     IndexOneDAE,
     Pantelides,

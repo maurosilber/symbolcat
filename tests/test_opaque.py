@@ -5,9 +5,8 @@ import pickle
 
 import pytest
 
-from symbolcat import Symbol, linalg, real
-from symbolcat.lib import Constant, Function
-from symbolcat.lib import operators as op
+from symbolcat import Constant, Function, Symbol, linalg, real
+from symbolcat import operators as op
 from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Algebra, Literal, args_of, name_of
 

@@ -50,11 +50,15 @@ def hylo[S, A](
     trees do not hit the recursion limit.
 
     >>> from symbolcat.ops.algebras import Call, Literal, args_of
-    >>> from symbolcat.lib import operators as op
+    >>> from symbolcat import operators as op
     >>> def halves(n):  # n as a sum of halves, down to 1
     ...     return Literal(n) if n <= 1 else Call(op.add, (n // 2, n - n // 2))
-    >>> hylo(lambda layer: 1 if isinstance(layer, Literal) else sum(args_of(layer)),
-    ...      halves, 5, key=lambda n: n)
+    >>> hylo(
+    ...     lambda layer: 1 if isinstance(layer, Literal) else sum(args_of(layer)),
+    ...     halves,
+    ...     5,
+    ...     key=lambda n: n,
+    ... )
     5
     """
     done: dict[Hashable, A] = {}
@@ -80,9 +84,7 @@ def hylo[S, A](
             done[k] = layer.value
             continue
         pending = [
-            c
-            for c in children(layer)
-            if not isinstance(c, Done) and key(c) not in done
+            c for c in children(layer) if not isinstance(c, Done) and key(c) not in done
         ]
         if pending:
             stack.extend(pending)
@@ -106,7 +108,7 @@ def ana[S](
     ``Done`` holds a finished sub-expression.
 
     >>> from symbolcat.ops.algebras import Call, Literal, args_of
-    >>> from symbolcat.lib import operators as op
+    >>> from symbolcat import operators as op
     >>> def halves(n):
     ...     return Literal(n) if n <= 1 else Call(op.add, (n // 2, n - n // 2))
     >>> expr = ana(halves, 5, key=lambda n: n)

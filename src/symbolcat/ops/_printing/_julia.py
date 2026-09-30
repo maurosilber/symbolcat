@@ -20,6 +20,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from ... import complex as cx
+from ... import operators as op
 from ... import real
 from ..._core import (
     Call,
@@ -37,7 +38,6 @@ from ..._core import (
     value_of,
 )
 from ..._core.precedence import POSTFIX, POW
-from ...lib import operators as op
 from ...linalg import Array, nest
 from .._analysis._inspect import free_symbols
 from .._transform._arrays import expand_arrays

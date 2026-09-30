@@ -3,10 +3,9 @@ from typing import Any
 
 import pytest
 
-from symbolcat import D, Symbol, complex, linalg, real
+from symbolcat import Constant, D, Function, Symbol, complex, linalg, real
+from symbolcat import operators as op
 from symbolcat.kinds import Boolean, Complex, Kind, Matrix, Real, Vector
-from symbolcat.lib import Constant, Function
-from symbolcat.lib import operators as op
 from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Algebra, Call, Expr, Literal, args_of, fmap
 from symbolcat.ops.transform import cse, simplify_naive, substitute
@@ -187,7 +186,7 @@ def test_cse_temporaries_keep_the_kind():
 
 def test_evaluate_by_name():
     np = pytest.importorskip("numpy")
-    from symbolcat.lib.numpy import IMPL
+    from symbolcat.backends.numpy import IMPL
 
     s = np.array([[1.0, 2.0], [3.0, 4.0]])
-    assert evaluate(linalg.det(S), {"S": s}, lib=IMPL) == pytest.approx(-2.0)
+    assert evaluate(linalg.det(S), {"S": s}, backend=IMPL) == pytest.approx(-2.0)

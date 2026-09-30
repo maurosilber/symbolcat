@@ -1,6 +1,6 @@
 """
-symbolcat.lib._numpy
-~~~~~~~~~~~~~~~~~~~~
+symbolcat.backends._numpy
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 NumPy as implementation. Operators are shared with ``std``, as NumPy
 arrays already overload them.

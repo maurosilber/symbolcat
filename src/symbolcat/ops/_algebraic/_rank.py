@@ -18,9 +18,9 @@ from collections.abc import Sequence
 from fractions import Fraction
 from typing import Any
 
+from ... import operators as op
 from ..._core import Call, Expr, func_of
-from ...lib import operators as op
-from ...lib.std import IMPL
+from ...backends.std import IMPL
 from ...linalg import Array, to_list
 from .._analysis._inspect import free_symbols, variables
 from .._evaluate import evaluate
@@ -130,7 +130,7 @@ def generic_rank(matrix: Any, /, *, seed: int = 0) -> int:
             for var in (*variables(entry), *free_symbols(entry)):
                 if var not in point:
                     point[var] = Fraction(rng.randint(1, 10**9), rng.randint(1, 10**9))
-            value = evaluate(substitute_variables(entry, point), lib=EXACT)
+            value = evaluate(substitute_variables(entry, point), backend=EXACT)
             if not isinstance(value, (int, Fraction)) or isinstance(value, bool):
                 raise TypeError("generic_rank: entries must be rational functions")
             out.append(Fraction(value))

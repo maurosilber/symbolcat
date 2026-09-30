@@ -1,6 +1,6 @@
 """
-symbolcat.lib._sympy
-~~~~~~~~~~~~~~~~~~~~
+symbolcat.backends._sympy
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
 SymPy as implementation. Free symbols become ``sympy.Symbol``.
 
@@ -15,9 +15,9 @@ import sympy
 
 from .. import complex as cx
 from .. import linalg, real
+from .. import operators as op
 from .._core import Symbol, name_of
 from ..linalg import ENTRYWISE, Array
-from . import operators as op
 from ._std import OPERATORS
 
 

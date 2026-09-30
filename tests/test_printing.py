@@ -1,7 +1,7 @@
 import pytest
 
 from symbolcat import Symbol, real
-from symbolcat.lib import operators as op
+from symbolcat import operators as op
 from symbolcat.linalg import matrix, vector
 from symbolcat.ops.printing import to_latex, to_str
 

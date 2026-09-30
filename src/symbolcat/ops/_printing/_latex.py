@@ -20,6 +20,7 @@ from typing import Any
 
 from ... import complex as cx
 from ... import linalg, real
+from ... import operators as op
 from ..._core import (
     Algebra,
     Call,
@@ -38,7 +39,6 @@ from ..._core import (
 )
 from ..._core.precedence import POSTFIX, POW
 from ..._derivative import D
-from ...lib import operators as op
 from ...linalg import Array, nest
 from ._base import Printed, Side, literal_precedence, needs_parens, with_ndim
 

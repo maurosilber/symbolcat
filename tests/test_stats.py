@@ -6,7 +6,7 @@ import sympy
 import sympy.stats as ss
 
 from symbolcat import Symbol, linalg, real, stats
-from symbolcat.lib import numpy as np_lib
+from symbolcat.backends import numpy as np_lib
 from symbolcat.ops import evaluate
 from symbolcat.ops.calculus import diff
 from symbolcat.ops.printing import to_latex
@@ -157,7 +157,7 @@ def test_numpy_backend():
 
     values = np.array([-1.0, 0.0, 2.0])
     result = evaluate(
-        stats.Normal(a, b).pdf(x), {x: values, a: 0.0, b: 1.0}, lib=np_lib.IMPL
+        stats.Normal(a, b).pdf(x), {x: values, a: 0.0, b: 1.0}, backend=np_lib.IMPL
     )
     expected = np.exp(-(values**2) / 2) / np.sqrt(2 * np.pi)
     assert result == pytest.approx(expected)
@@ -280,9 +280,9 @@ def test_propagate_nothing():
 
 
 def test_sympy_backend():
-    from symbolcat.lib import sympy as sympy_lib
+    from symbolcat.backends import sympy as sympy_lib
 
-    value = evaluate(stats.Normal().pdf(x), lib=sympy_lib.IMPL)
+    value = evaluate(stats.Normal().pdf(x), backend=sympy_lib.IMPL)
     assert float(value.subs(sympy.Symbol("x"), 0.7)) == pytest.approx(
         math.exp(-(0.7**2) / 2) / math.sqrt(2 * math.pi)
     )

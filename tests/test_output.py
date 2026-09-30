@@ -3,8 +3,7 @@ import xml.dom.minidom
 
 import pytest
 
-from symbolcat import Symbol, real
-from symbolcat.lib import Function
+from symbolcat import Function, Symbol, real
 from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Call, Literal, args_of, cata
 from symbolcat.ops.printing import to_graphviz, to_mathml, to_python, tree_view

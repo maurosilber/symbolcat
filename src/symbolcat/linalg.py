@@ -44,13 +44,13 @@ from functools import cache
 from typing import Any, NamedTuple, overload
 
 from . import complex as _complex
+from . import operators as _op
 from . import real as _real
 from ._core import Call, Expr, Function, Operator, args_of, func_of, name_of
 from ._core.expr import _init
 from ._core.infer import kind_algebra
 from ._core.kinds import Kind, Matrix, Real, Scalar, Vector, array_kind, join
 from ._core.signatures import Transpose
-from .lib import operators as _op
 
 
 class _ArrayData(NamedTuple):

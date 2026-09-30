@@ -20,6 +20,7 @@ from itertools import repeat
 from typing import Any
 
 from ... import linalg, real
+from ... import operators as op
 from ..._core import (
     Algebra,
     Call,
@@ -31,7 +32,6 @@ from ..._core import (
     func_of,
     value_of,
 )
-from ...lib import operators as op
 from ...linalg import Array, array, matrix, nest, vector
 
 type Shape = tuple[int, ...]

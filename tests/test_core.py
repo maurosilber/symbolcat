@@ -2,9 +2,8 @@ import sys
 
 import pytest
 
-from symbolcat import Symbol, real
-from symbolcat.lib import Constant, Function
-from symbolcat.lib import operators as op
+from symbolcat import Constant, Function, Symbol, real
+from symbolcat import operators as op
 from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import (
     Algebra,

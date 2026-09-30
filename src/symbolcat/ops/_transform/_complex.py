@@ -26,6 +26,7 @@ from collections.abc import Callable
 from typing import Any
 
 from ... import complex as cx
+from ... import operators as op
 from ... import real
 from ..._core import (
     Algebra,
@@ -40,7 +41,6 @@ from ..._core import (
     func_of,
     value_of,
 )
-from ...lib import operators as op
 from ...linalg import Array
 from .._analysis._inspect import is_complex
 from ._simplify import is_number, simplify_algebra

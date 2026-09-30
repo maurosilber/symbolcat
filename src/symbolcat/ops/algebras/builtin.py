@@ -6,7 +6,7 @@ The algebras behind ``symbolcat.ops``. Register a rule on one of them to
 teach an operation about a new function:
 
 >>> from symbolcat import Symbol
->>> from symbolcat.lib import Function
+>>> from symbolcat import Function
 >>> from symbolcat.ops.algebras import Printed, args_of
 >>> from symbolcat.ops.algebras.builtin import latex_algebra
 >>> from symbolcat.ops.printing import to_latex

@@ -4,9 +4,8 @@ pytest.importorskip("egglog")
 
 from egglog import EGraph
 
-from symbolcat import Symbol, complex, real
-from symbolcat.lib import Constant, Function
-from symbolcat.lib.std import IMPL
+from symbolcat import Constant, Function, Symbol, complex, real
+from symbolcat.backends.std import IMPL
 from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Call, Literal, args_of, as_expr, children, func_of
 from symbolcat.ops.egraph import (
@@ -291,7 +290,7 @@ def test_horner_is_reachable(degree, ascending):
 
 def test_optimize_evaluates_polynomials_by_horner():
     """One multiplication per degree, and no powers."""
-    from symbolcat.lib import operators as op
+    from symbolcat import operators as op
 
     result = optimize(sum(k * x**k for k in range(1, 6)))
     funcs = [(func_of(n) if isinstance(n, Call) else None) for n in _walk(result)]
@@ -303,8 +302,8 @@ def test_max_nodes_stops_early():
     expr = (x + y + z) ** 4 - real.sin(x + y) ** 2
     result = simplify(expr, max_nodes=1)
     env = {x: 0.3, y: -1.7, z: 0.9}
-    assert evaluate(result, env, lib=IMPL) == pytest.approx(
-        evaluate(expr, env, lib=IMPL)
+    assert evaluate(result, env, backend=IMPL) == pytest.approx(
+        evaluate(expr, env, backend=IMPL)
     )
 
 
@@ -342,7 +341,7 @@ def test_optimize_shares_subexpressions():
     ],
 )
 def test_optimize_uses_repeated_squaring(expr, multiplications):
-    from symbolcat.lib import operators as op
+    from symbolcat import operators as op
 
     result = optimize(expr)
     muls = {
@@ -374,8 +373,8 @@ def test_optimize_avoids_expensive_operations():
 @pytest.mark.parametrize("env", [{x: 0.3, y: -1.7}, {x: -0.8, y: 0.4}])
 def test_equivalent_values(expr, transform, env):
     """Rules must not change values, including at negative points."""
-    assert evaluate(transform(expr), env, lib=IMPL) == pytest.approx(
-        evaluate(expr, env, lib=IMPL)
+    assert evaluate(transform(expr), env, backend=IMPL) == pytest.approx(
+        evaluate(expr, env, backend=IMPL)
     )
 
 
@@ -432,7 +431,7 @@ def _value(expr, env):
     import math
 
     try:
-        v = evaluate(expr, env, lib=IMPL)
+        v = evaluate(expr, env, backend=IMPL)
     except (ValueError, ZeroDivisionError, OverflowError, TypeError):
         return None
     return v if isinstance(v, float | int) and math.isfinite(v) else None
@@ -490,7 +489,7 @@ def test_complex_is_not_real():
 def test_complex_is_hidden_from_real_rules():
     f = Function("f", arity=1)
     expr = f(I * x) * f(I * x)
-    assert evaluate(simplify(expr), {x: 1.0}, lib={**IMPL, f: lambda v: v}) == -1
+    assert evaluate(simplify(expr), {x: 1.0}, backend={**IMPL, f: lambda v: v}) == -1
 
 
 def test_complex_assumptions():

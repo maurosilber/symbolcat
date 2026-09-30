@@ -94,7 +94,7 @@ def test_shape_errors_when_built(build, match):
 
 
 def test_functions_take_scalars_by_default():
-    from symbolcat.lib import Function
+    from symbolcat import Function
 
     f = Function("f", arity=1)
     with pytest.raises(ValueError, match="f needs scalar arguments"):
@@ -157,9 +157,9 @@ def test_expand_cross():
 BACKENDS = ["std", "numpy", "sympy"]
 
 
-def lib(name):
+def load_backend(name):
     pytest.importorskip(name if name != "std" else "math")
-    module = __import__(f"symbolcat.lib.{name}", fromlist=["IMPL"])
+    module = __import__(f"symbolcat.backends.{name}", fromlist=["IMPL"])
     return module.IMPL
 
 
@@ -183,7 +183,7 @@ def as_lists(value):
     ],
 )
 def test_evaluate_is_backend_independent(backend, expr, expected):
-    result = as_lists(evaluate(expr, {x: 3, y: 2}, lib=lib(backend)))
+    result = as_lists(evaluate(expr, {x: 3, y: 2}, backend=load_backend(backend)))
     vector_result = isinstance(expected, list) and not isinstance(expected[0], list)
     if backend == "sympy" and vector_result:  # vectors are sympy columns
         expected = [[e] for e in expected]
@@ -192,24 +192,24 @@ def test_evaluate_is_backend_independent(backend, expr, expected):
 
 def test_evaluate_numpy_values():
     np = pytest.importorskip("numpy")
-    from symbolcat.lib.numpy import IMPL
+    from symbolcat.backends.numpy import IMPL
 
     a = np.array([[1.0, 2.0], [3.0, 4.0]])
     env = {A: a, x: 2.0, y: 0.0}
-    assert evaluate(A * m, env, lib=IMPL) == pytest.approx(a * [[2, 1], [0, 0]])
-    assert evaluate(A @ A, env, lib=IMPL) == pytest.approx(a @ a)
-    assert evaluate(det(A), env, lib=IMPL) == pytest.approx(-2.0)
-    assert evaluate(inv(A) @ A, env, lib=IMPL) == pytest.approx(np.eye(2))
+    assert evaluate(A * m, env, backend=IMPL) == pytest.approx(a * [[2, 1], [0, 0]])
+    assert evaluate(A @ A, env, backend=IMPL) == pytest.approx(a @ a)
+    assert evaluate(det(A), env, backend=IMPL) == pytest.approx(-2.0)
+    assert evaluate(inv(A) @ A, env, backend=IMPL) == pytest.approx(np.eye(2))
 
 
 def test_evaluate_sympy_values_are_entrywise():
     sympy = pytest.importorskip("sympy")
-    from symbolcat.lib.sympy import IMPL
+    from symbolcat.backends.sympy import IMPL
 
     a = sympy.Matrix([[1, 2], [3, 4]])
-    assert evaluate(A * A, {A: a}, lib=IMPL) == sympy.Matrix([[1, 4], [9, 16]])
-    assert evaluate(A @ A, {A: a}, lib=IMPL) == a @ a
-    assert evaluate(real.exp(A), {A: a}, lib=IMPL) == a.applyfunc(sympy.exp)
+    assert evaluate(A * A, {A: a}, backend=IMPL) == sympy.Matrix([[1, 4], [9, 16]])
+    assert evaluate(A @ A, {A: a}, backend=IMPL) == a @ a
+    assert evaluate(real.exp(A), {A: a}, backend=IMPL) == a.applyfunc(sympy.exp)
 
 
 # diff
@@ -234,7 +234,7 @@ def test_diff_of_arrays_is_entrywise():
 def test_diff_matches_finite_differences(func):
     """Differentiate a matrix symbol A + x B, and evaluate with NumPy."""
     np = pytest.importorskip("numpy")
-    from symbolcat.lib.numpy import IMPL
+    from symbolcat.backends.numpy import IMPL
 
     rng = np.random.default_rng(0)
     env = {A3: rng.normal(size=(3, 3)), B3: rng.normal(size=(3, 3))}
@@ -242,10 +242,10 @@ def test_diff_matches_finite_differences(func):
     x0, h = 0.3, 1e-6
 
     def f(value):
-        return evaluate(expr, {**env, x: value}, lib=IMPL)
+        return evaluate(expr, {**env, x: value}, backend=IMPL)
 
     numeric = (f(x0 + h) - f(x0 - h)) / (2 * h)
-    symbolic = evaluate(diff(expr, x), {**env, x: x0}, lib=IMPL)
+    symbolic = evaluate(diff(expr, x), {**env, x: x0}, backend=IMPL)
     assert symbolic == pytest.approx(numeric, rel=1e-5)
 
 
@@ -344,7 +344,7 @@ def test_series_of_an_array():
 
 def test_series_of_matrix_products():
     np = pytest.importorskip("numpy")
-    from symbolcat.lib.numpy import IMPL
+    from symbolcat.backends.numpy import IMPL
     from symbolcat.ops.calculus import series
 
     expr = transpose(A + x * B) @ (A + x * B)
@@ -352,8 +352,8 @@ def test_series_of_matrix_products():
     rng = np.random.default_rng(1)
     env = {A: rng.normal(size=(2, 2)), B: rng.normal(size=(2, 2)), x: 0.7}
     # the product is quadratic in x, so the series is exact
-    assert evaluate(polynomial, env, lib=IMPL) == pytest.approx(
-        evaluate(expr, env, lib=IMPL)
+    assert evaluate(polynomial, env, backend=IMPL) == pytest.approx(
+        evaluate(expr, env, backend=IMPL)
     )
 
 
@@ -440,7 +440,7 @@ def test_egraph_does_not_transpose_scalars():
 def test_egraph_keeps_values_of_matrix_expressions():
     np = pytest.importorskip("numpy")
     egraph = pytest.importorskip("symbolcat.ops.egraph")
-    from symbolcat.lib.numpy import IMPL
+    from symbolcat.backends.numpy import IMPL
 
     rng = np.random.default_rng(2)
     env = {A3: rng.normal(size=(3, 3)), B3: rng.normal(size=(3, 3)), x: 0.4}
@@ -450,6 +450,6 @@ def test_egraph_keeps_values_of_matrix_expressions():
         det(inv(A3) @ B3) * trace(A3 @ B3 @ A3),
     ]:
         for simplified in [egraph.simplify(expr), egraph.optimize(expr)]:
-            assert evaluate(simplified, env, lib=IMPL) == pytest.approx(
-                evaluate(expr, env, lib=IMPL)
+            assert evaluate(simplified, env, backend=IMPL) == pytest.approx(
+                evaluate(expr, env, backend=IMPL)
             )

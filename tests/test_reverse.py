@@ -77,13 +77,13 @@ def test_array_cotangent():
 )
 def test_matrix_variable_matches_finite_differences(func):
     np = pytest.importorskip("numpy")
-    from symbolcat.lib.numpy import IMPL
+    from symbolcat.backends.numpy import IMPL
 
     rng = np.random.default_rng(0)
     a0, b0 = rng.normal(size=(3, 3)), rng.normal(size=(3, 3))
     expr = func(A @ B)
     (grad,) = vjp(expr, (A,))
-    symbolic = evaluate(grad, {A: a0, B: b0}, lib=IMPL)
+    symbolic = evaluate(grad, {A: a0, B: b0}, backend=IMPL)
 
     h = 1e-6
     numeric = np.zeros((3, 3))
@@ -91,8 +91,8 @@ def test_matrix_variable_matches_finite_differences(func):
         for j in range(3):
             step = np.zeros((3, 3))
             step[i, j] = h
-            plus = evaluate(expr, {A: a0 + step, B: b0}, lib=IMPL)
-            minus = evaluate(expr, {A: a0 - step, B: b0}, lib=IMPL)
+            plus = evaluate(expr, {A: a0 + step, B: b0}, backend=IMPL)
+            minus = evaluate(expr, {A: a0 - step, B: b0}, backend=IMPL)
             numeric[i, j] = (plus - minus) / (2 * h)
     assert symbolic == pytest.approx(numeric, rel=1e-5, abs=1e-8)
 

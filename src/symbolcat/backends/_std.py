@@ -1,6 +1,6 @@
 """
-symbolcat.lib._std
-~~~~~~~~~~~~~~~~~~
+symbolcat.backends._std
+~~~~~~~~~~~~~~~~~~~~~~~
 
 Python's standard library as implementation.
 """
@@ -12,8 +12,8 @@ import operator
 from typing import Any
 
 from .. import complex as cx
+from .. import operators as op
 from .. import real
-from . import operators as op
 
 
 def gammainc(a: float, x: float, /) -> float:

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ... import operators as op
 from ..._core import (
     Algebra,
     Call,
@@ -25,7 +26,6 @@ from ..._core import (
     func_of,
     value_of,
 )
-from ...lib import operators as op
 from .._transform._simplify import is_number, simplify_exact
 
 type Poly = dict[int, Expr]

@@ -34,6 +34,7 @@ from typing import Any
 
 from ... import complex as cx
 from ... import linalg, real
+from ... import operators as op
 from ..._core import (
     Algebra,
     Call,
@@ -50,7 +51,6 @@ from ..._core import (
 )
 from ..._core.infer import kind_algebra
 from ..._core.kinds import Kind
-from ...lib import operators as op
 from ...linalg import Array, array, identity, matrix, transpose, vector
 from .._analysis._inspect import free_symbols, is_complex
 from .._transform._arrays import Shape, entries

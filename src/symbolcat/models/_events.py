@@ -96,7 +96,7 @@ class DiscreteEvent:
     in ``affect`` to their new values.
 
     >>> from symbolcat import Symbol
-    >>> from symbolcat.lib import operators as op
+    >>> from symbolcat import operators as op
     >>> t, k = Symbol("t"), Symbol("k")
     >>> event = DiscreteEvent(op.eq(t, 2), {k: 2 * k})
     >>> print(event.condition)

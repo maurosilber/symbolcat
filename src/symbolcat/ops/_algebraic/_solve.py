@@ -21,10 +21,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from ... import operators as op
 from ... import real
 from ..._core import Call, Expr, Literal, Symbol, args_of, func_of, name_of
 from ..._derivative import Variable, is_variable
-from ...lib import operators as op
 from .._analysis._polynomial import coefficients
 from .._transform._simplify import is_number, simplify_exact
 from .._transform._substitute import substitute_variables
@@ -47,7 +47,7 @@ def solve(equation: Any, unknown: Variable, /) -> list[Expr]:
     Raises ``NotImplementedError`` if no strategy applies.
 
     >>> from symbolcat import Symbol, real
-    >>> from symbolcat.lib import operators as op
+    >>> from symbolcat import operators as op
     >>> x, a = Symbol("x"), Symbol("a")
     >>> [str(s) for s in solve(x**2 - a, x)]
     ['-sqrt(a)', 'sqrt(a)']

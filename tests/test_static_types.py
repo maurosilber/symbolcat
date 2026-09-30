@@ -8,9 +8,8 @@ reports an unused ``type: ignore`` in this file (see pyproject.toml).
 
 from typing import Any, assert_type
 
-from symbolcat import D, Symbol, complex, delay, linalg, real
+from symbolcat import Constant, D, Function, Symbol, complex, delay, linalg, real
 from symbolcat.kinds import Boolean, Complex, Matrix, Real, Vector
-from symbolcat.lib import Constant, Function
 from symbolcat.ops.algebras import Call, Expr, Literal, args_of, kind_algebra
 
 x = Symbol("x")

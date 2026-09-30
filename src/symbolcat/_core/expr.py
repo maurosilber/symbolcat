@@ -542,7 +542,7 @@ class Operator(Function):
 
 # Kind inference and Expr's operator overloads need the algebra and the
 # operator definitions, which in turn need the classes above.
-from ..lib import operators as _op
+from .. import operators as _op
 from .infer import infer as _infer
 
 if TYPE_CHECKING:

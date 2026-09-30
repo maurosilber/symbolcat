@@ -24,8 +24,8 @@ Top-down traversals unfold with a coalgebra instead: ``ana`` builds an
 expression from a seed, and ``hylo`` folds the layers as they are unfolded.
 ``Done`` stops the unfolding with a finished value.
 
-The other node types are ``symbolcat.Symbol``, and ``symbolcat.lib.Function``
-and ``symbolcat.lib.Constant``.
+The other node types are ``symbolcat.Symbol``, and ``symbolcat.Function``
+and ``symbolcat.Constant``.
 
 ``kind_algebra`` gives the kind of a call (``symbolcat.kinds``) from the
 kinds of its arguments. ``entrywise(element)`` builds a rule for a function

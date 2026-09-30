@@ -4,10 +4,9 @@ import math
 
 import pytest
 
-from symbolcat import Symbol, complex, linalg, real
-from symbolcat.lib import Function
-from symbolcat.lib import numpy as np_lib
-from symbolcat.lib import sympy as sympy_lib
+from symbolcat import Function, Symbol, complex, linalg, real
+from symbolcat.backends import numpy as np_lib
+from symbolcat.backends import sympy as sympy_lib
 from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Call, Literal, func_of
 from symbolcat.ops.calculus import diff, series, vjp
@@ -56,10 +55,10 @@ def test_principal_branch():
 def test_backends_agree(func):
     expr = func(z)
     expected = evaluate(expr, POINT)
-    assert builtins.complex(evaluate(expr, POINT, lib=np_lib.IMPL)) == pytest.approx(
-        expected
-    )
-    value = evaluate(expr, POINT, lib=sympy_lib.IMPL)
+    assert builtins.complex(
+        evaluate(expr, POINT, backend=np_lib.IMPL)
+    ) == pytest.approx(expected)
+    value = evaluate(expr, POINT, backend=sympy_lib.IMPL)
     assert builtins.complex(value.evalf()) == pytest.approx(expected)
 
 
@@ -67,7 +66,9 @@ def test_backends_agree(func):
 def test_numpy_outside_the_real_domain(func):
     """NumPy's real functions give nan for sqrt(-1): these give complex."""
     expected = evaluate(func(x), {x: -2.0})
-    assert builtins.complex(evaluate(func(x), {x: -2.0}, lib=np_lib.IMPL)) == expected
+    assert (
+        builtins.complex(evaluate(func(x), {x: -2.0}, backend=np_lib.IMPL)) == expected
+    )
 
 
 def test_entrywise():

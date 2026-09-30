@@ -19,6 +19,7 @@ from __future__ import annotations
 from math import prod
 from typing import Any
 
+from ... import operators as op
 from ..._core import (
     Algebra,
     Call,
@@ -32,7 +33,6 @@ from ..._core import (
     name_of,
     value_of,
 )
-from ...lib import operators as op
 
 canonical_algebra = Algebra[Expr]("canonical")
 

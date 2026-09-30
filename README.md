@@ -47,9 +47,10 @@ The top level only has what you need to build expressions and act on them:
   `models.dae` (index reduction, structural simplification), `models.ode`,
   `models.dynamics` (linearization, identifiability, ...),
   `models.stochastic`, `models.pde` and `models.reactions`.
-- `lib`: `Function` and `Constant` to define new ones, the Python-syntax
-  `operators`, and the backends for `ops.evaluate` (`lib.std`, `lib.numpy`,
-  `lib.sympy`).
+- `Function` and `Constant`: define new functions and constants.
+- `operators`: the operators produced by Python syntax (`x + y`, ...).
+- `backends`: the backends for `ops.evaluate` (`backends.std`,
+  `backends.numpy`, `backends.sympy`).
 
 Everything else lives in private (underscore) modules, so autocompletion
 only shows the public names.
@@ -197,8 +198,8 @@ child arrives as text *plus its precedence*. Expressions also define
 >>> from symbolcat.ops import evaluate
 >>> evaluate(expr, {x: 1, y: 0})
 1.0
->>> from symbolcat.lib import sympy as libsympy  # doctest: +SKIP
->>> evaluate(3 * real.cos(x), lib=libsympy.IMPL)  # doctest: +SKIP
+>>> from symbolcat.backends import sympy as libsympy  # doctest: +SKIP
+>>> evaluate(3 * real.cos(x), backend=libsympy.IMPL)  # doctest: +SKIP
 3*cos(x)
 
 ```
@@ -209,10 +210,10 @@ is passed to it as context. User-defined functions just need an entry in the
 mapping:
 
 ```python
->>> from symbolcat.lib import Function
->>> from symbolcat.lib.std import IMPL
+>>> from symbolcat import Function
+>>> from symbolcat.backends.std import IMPL
 >>> f = Function("f", arity=1)
->>> evaluate(f(x) + 1, {x: -3}, lib={**IMPL, f: lambda v: 2 * abs(v)})
+>>> evaluate(f(x) + 1, {x: -3}, backend={**IMPL, f: lambda v: 2 * abs(v)})
 7
 
 ```

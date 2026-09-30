@@ -13,7 +13,7 @@ vectors of different lengths) is an error when it is built.
 Functions declare their rule by registering it, like for any algebra:
 
 >>> from symbolcat import Symbol
->>> from symbolcat.lib import Function
+>>> from symbolcat import Function
 >>> from symbolcat.ops.algebras import args_of, kind_algebra
 >>> from symbolcat.kinds import Vector
 >>> double = Function("double", arity=1)

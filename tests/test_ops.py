@@ -3,10 +3,9 @@ from typing import Any
 
 import pytest
 
-from symbolcat import Symbol, real
-from symbolcat.lib import Function
-from symbolcat.lib import operators as op
-from symbolcat.lib.std import IMPL
+from symbolcat import Function, Symbol, real
+from symbolcat import operators as op
+from symbolcat.backends.std import IMPL
 from symbolcat.linalg import matrix, to_list, vector
 from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Literal
@@ -44,23 +43,23 @@ def test_evaluate_missing_implementation():
     f = Function("f", arity=1)
     with pytest.raises(NotImplementedError, match="'f'"):
         evaluate(f(1))
-    assert evaluate(f(x), {x: 2}, lib={**IMPL, f: lambda v: v * 10}) == 20
+    assert evaluate(f(x), {x: 2}, backend={**IMPL, f: lambda v: v * 10}) == 20
 
 
 def test_evaluate_numpy():
     np = pytest.importorskip("numpy")
-    from symbolcat.lib.numpy import IMPL as NP
+    from symbolcat.backends.numpy import IMPL as NP
 
     values = np.linspace(0, 1, 5)
-    result = evaluate(real.exp(x) * real.constants.pi, {x: values}, lib=NP)
+    result = evaluate(real.exp(x) * real.constants.pi, {x: values}, backend=NP)
     np.testing.assert_allclose(result, np.exp(values) * np.pi)
 
 
 def test_evaluate_sympy():
     sympy = pytest.importorskip("sympy")
-    from symbolcat.lib.sympy import IMPL as SP
+    from symbolcat.backends.sympy import IMPL as SP
 
-    result = evaluate(real.sin(x) ** 2 + real.cos(x) ** 2, lib=SP)
+    result = evaluate(real.sin(x) ** 2 + real.cos(x) ** 2, backend=SP)
     assert sympy.simplify(result) == 1
 
 
@@ -202,9 +201,9 @@ def test_evaluate_arrays():
     m = matrix([[x, 1], [0, 2 * x]])
     assert evaluate(m, {x: 3}) == [[3, 1], [0, 6]]
     np = pytest.importorskip("numpy")
-    from symbolcat.lib.numpy import IMPL as NUMPY
+    from symbolcat.backends.numpy import IMPL as NUMPY
 
-    assert (evaluate(m, {x: 3}, lib=NUMPY) == np.array([[3, 1], [0, 6]])).all()
+    assert (evaluate(m, {x: 3}, backend=NUMPY) == np.array([[3, 1], [0, 6]])).all()
 
 
 def test_diff_array_entrywise():
@@ -224,12 +223,12 @@ def test_ifelse_only_evaluates_the_branch_taken():
 def test_ifelse_with_array_conditions_needs_both_branches():
     import numpy as np
 
-    from symbolcat.lib import numpy as np_lib
+    from symbolcat.backends import numpy as np_lib
 
     values = np.array([-1.0, 4.0])
     expr = real.ifelse(x > 0, real.sqrt(x), 0)
     with np.errstate(invalid="ignore"):
-        result = evaluate(expr, {x: values}, lib=np_lib.IMPL)
+        result = evaluate(expr, {x: values}, backend=np_lib.IMPL)
     assert list(result) == [0, 2]
 
 

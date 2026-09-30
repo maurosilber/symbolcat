@@ -8,7 +8,7 @@ from typing import Any
 import pytest
 
 from symbolcat import D, Symbol, real
-from symbolcat.lib import operators as op
+from symbolcat import operators as op
 from symbolcat.linalg import vector
 from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Call, Literal, args_of, value_of
@@ -73,9 +73,11 @@ def test_ifelse_simplify():
 
 def test_ifelse_numpy():
     np = pytest.importorskip("numpy")
-    from symbolcat.lib.numpy import IMPL
+    from symbolcat.backends.numpy import IMPL
 
-    result = evaluate(real.ifelse(x < 0, -x, x), {x: np.array([-1.0, 2.0])}, lib=IMPL)
+    result = evaluate(
+        real.ifelse(x < 0, -x, x), {x: np.array([-1.0, 2.0])}, backend=IMPL
+    )
     assert result.tolist() == [1.0, 2.0]
 
 

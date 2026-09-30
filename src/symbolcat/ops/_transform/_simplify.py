@@ -22,6 +22,7 @@ from typing import Any
 
 from ... import complex as cx
 from ... import linalg, real
+from ... import operators as op
 from ..._core import (
     Algebra,
     Call,
@@ -34,8 +35,7 @@ from ..._core import (
     name_of,
     value_of,
 )
-from ...lib import operators as op
-from ...lib.std import IMPL
+from ...backends.std import IMPL
 from ...linalg import Array
 from .._analysis._inspect import is_complex
 
