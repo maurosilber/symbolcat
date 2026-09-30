@@ -17,7 +17,7 @@ from __future__ import annotations
 import builtins
 import cmath
 import linecache
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from itertools import count
 from types import FunctionType
 from typing import Any
@@ -37,6 +37,7 @@ from .._core import (
     name_of,
     value_of,
 )
+from ..backends._resolve import Backend, as_mapping
 from ..backends._std import IMPL as STD
 from ..backends._std import OPERATORS
 from ..linalg import Array, nest
@@ -62,16 +63,17 @@ def compile[S: Symbol](
     args: Sequence[S] | None = None,
     /,
     *,
-    backend: Mapping[Any, Any] | None = None,
+    backend: Backend | None = None,
     name: str = "f",
 ) -> FunctionType:
     """A Python function ``name(*args)`` computing ``expr`` with ``backend``.
 
     It computes what ``evaluate`` does, once the source is compiled:
     ``compile(expr, [x, y])(1, 2)`` is ``evaluate(expr, {x: 1, y: 2})``.
-    ``args`` defaults to the free symbols of ``expr``, and ``backend`` to
-    ``symbolcat.backends.std.IMPL``. Repeated sub-expressions are computed
-    once (see ``cse``), and ``inspect.getsource`` gives the source.
+    ``args`` defaults to the free symbols of ``expr``. ``backend`` is a
+    module of ``symbolcat.backends`` (the default is ``std``), or a mapping
+    like their ``IMPL``. Repeated sub-expressions are computed once (see
+    ``cse``), and ``inspect.getsource`` gives the source.
 
     >>> from symbolcat import Symbol, real
     >>> x, y = Symbol("x"), Symbol("y")
@@ -90,8 +92,7 @@ def compile[S: Symbol](
     >>> compile(real.ifelse(x > 0, real.log(x), 0))(-1.0)
     0
     """
-    if backend is None:
-        backend = STD
+    backend = as_mapping(backend)
     expr = expand_arrays(as_expr(expr))
     params = parameters(expr, args, name)
     assignments, result = cse(expr, prefix="_")

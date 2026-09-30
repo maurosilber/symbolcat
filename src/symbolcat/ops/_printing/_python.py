@@ -88,11 +88,15 @@ def to_python(
     Repeated sub-expressions are computed once, into temporaries (see
     ``cse``). ``args`` defaults to the free symbols of ``expr``. Functions
     and constants are written by name (``sin``, ``pi``), so the source runs
-    in a namespace that defines them, like ``vars(math)`` or ``vars(numpy)``,
-    or ``vars(cmath)`` for complex functions. ``symbolcat.ops.compile``
-    binds them to a backend instead. ``complex.re``, ``im`` and
-    ``conj`` are written as attributes (``z.real``), and the imaginary unit
-    as ``1j``.
+    in a namespace that defines them, like ``vars(math)`` or ``vars(numpy)``.
+    ``complex.re``, ``im`` and ``conj`` are written as attributes
+    (``z.real``), and the imaginary unit as ``1j``.
+
+    The names are not qualified: ``real.sin`` and ``complex.sin`` are both
+    ``sin``, so an expression with both has no namespace to run in, and a
+    name the namespace lacks (``gammainc`` in ``math``) fails when called.
+    To run an expression, ``symbolcat.ops.compile`` binds each function to
+    its implementation in a backend instead.
 
     Operations on explicit arrays are computed entry by entry (see
     ``expand_arrays``). Explicit arrays are written as nested lists, or

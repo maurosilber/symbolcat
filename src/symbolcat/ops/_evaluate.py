@@ -34,6 +34,7 @@ from .._core import (
     name_of,
     value_of,
 )
+from ..backends._resolve import Backend, as_mapping
 from ..linalg import Array, nest
 from ._transform._arrays import expand_arrays
 
@@ -132,12 +133,13 @@ def evaluate[S: Symbol](
     env: Mapping[S, Any] | Mapping[str, Any] | None = None,
     /,
     *,
-    backend: Mapping[Any, Any] | None = None,
+    backend: Backend | None = None,
 ) -> Any:
     """Evaluate ``expr`` with values for its symbols and a backend.
 
     ``env`` maps symbols (or their names) to values.
-    ``backend`` defaults to ``symbolcat.backends.std.IMPL``.
+    ``backend`` is a module of ``symbolcat.backends`` (the default is
+    ``std``), or a mapping like their ``IMPL``.
     Operations on explicit arrays are first computed entry by entry
     (``expand_arrays``), so every backend gives the same result. Arrays
     evaluate to nested lists, unless ``backend`` maps ``Array`` to a constructor
@@ -152,6 +154,6 @@ def evaluate[S: Symbol](
     >>> evaluate(real.ifelse(x > 0, real.log(x), 0), {x: -1})
     0
     """
-    if backend is None:
-        from ..backends.std import IMPL as backend
-    return fold(as_expr(expand_arrays(expr)), env=env or {}, backend=backend)
+    return fold(
+        as_expr(expand_arrays(expr)), env=env or {}, backend=as_mapping(backend)
+    )

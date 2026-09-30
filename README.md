@@ -198,16 +198,16 @@ child arrives as text *plus its precedence*. Expressions also define
 >>> from symbolcat.ops import evaluate
 >>> evaluate(expr, {x: 1, y: 0})
 1.0
->>> from symbolcat.backends import sympy as libsympy  # doctest: +SKIP
->>> evaluate(3 * real.cos(x), backend=libsympy.IMPL)  # doctest: +SKIP
+>>> from symbolcat import backends
+>>> evaluate(3 * real.cos(x), backend=backends.sympy)  # doctest: +SKIP
 3*cos(x)
 
 ```
 
-A backend is a plain mapping from abstract functions (`real.cos`) to concrete
-ones (`math.cos`). The algebra is the same for every backend, and the backend
-is passed to it as context. User-defined functions just need an entry in the
-mapping:
+A backend is a module whose `IMPL` is a plain mapping from abstract functions
+(`real.cos`) to concrete ones (`math.cos`). The algebra is the same for every backend, and the backend
+is passed to it as context. User-defined functions just need an entry in
+the mapping, which can be passed instead of the module:
 
 ```python
 >>> from symbolcat import Function

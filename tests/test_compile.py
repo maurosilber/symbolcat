@@ -84,3 +84,23 @@ def test_compile_non_python_operators():
     assert "eq(x, y)" in inspect.getsource(f)
     a, b = sympy.symbols("a b")
     assert f(a, b) == sympy.Eq(a, b)
+
+
+def test_backend_modules():
+    from symbolcat import backends
+
+    assert compile(real.cos(x), backend=backends.std)(0.0) == 1.0
+    assert evaluate(real.cos(x), {x: 0.0}, backend=backends.std) == 1.0
+    with pytest.raises(TypeError, match="not a backend"):
+        evaluate(x, {x: 0}, backend=math)
+    with pytest.raises(AttributeError):
+        backends.jax  # noqa: B018
+
+
+def test_backend_modules_are_lazy():
+    np = pytest.importorskip("numpy")
+    from symbolcat import backends
+
+    result = compile(real.exp(x), backend=backends.numpy)(np.zeros(2))
+    np.testing.assert_allclose(result, [1.0, 1.0])
+    assert "numpy" in dir(backends)
