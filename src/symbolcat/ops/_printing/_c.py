@@ -39,7 +39,7 @@ from .._transform._share import cse
 from ._base import Printed, indices, literal_precedence, operand
 from ._str import str_algebra
 
-FUNCTIONS = {
+FUNCTIONS: dict[Function, str] = {
     real.abs: "fabs",
     real.gamma: "tgamma",
     real.atan2: "atan2",

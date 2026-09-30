@@ -7,6 +7,7 @@ arrays already overload them.
 """
 
 import math
+from typing import Any
 
 import numpy as np
 
@@ -15,7 +16,7 @@ from .. import linalg, real
 from ..linalg import Array
 from ._std import OPERATORS, gammainc
 
-IMPL = {
+IMPL: dict[Any, Any] = {
     **OPERATORS,
     Array: np.array,
     real.abs: np.abs,

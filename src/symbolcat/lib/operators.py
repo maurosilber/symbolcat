@@ -12,6 +12,8 @@ Precedences follow Python (higher binds tighter). Comparisons are non-associativ
 ``a < b < c`` means something else in Python.
 """
 
+from __future__ import annotations
+
 from .._core import precedence as _p
 from .._core.expr import Call as _Call
 from .._core.expr import Function as _Function

@@ -86,5 +86,5 @@ def entrywise(element: ElementRule, /) -> Callable[[Call[Kind]], Kind]:
 
 def real_arguments(func: Function, /, *kinds: Scalar) -> None:
     """Raise for a complex argument, where only real ones are defined."""
-    if any(isinstance(kind, Complex) for kind in kinds):
+    if any(type(kind) is Complex for kind in kinds):
         raise TypeError(f"{_label(func)} needs real arguments, got a complex one")

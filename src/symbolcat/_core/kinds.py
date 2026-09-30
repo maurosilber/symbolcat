@@ -35,7 +35,13 @@ class Kind:
 @dataclass(frozen=True, repr=False)
 class Scalar(Kind):
     """Base class of the scalar kinds, ordered ``Boolean < Real < Complex``:
-    each one holds the values of the previous ones."""
+    each one holds the values of the previous ones.
+
+    The classes follow that order, ``Boolean`` subclasses ``Real``, which
+    subclasses ``Complex``, so a real expression is accepted where a complex
+    one is expected (statically, and by ``Algebra.register(..., kind=...)``).
+    Instances compare by exact class: ``Real() != Complex()``.
+    """
 
     rank: ClassVar[int]
 
@@ -48,24 +54,24 @@ class Scalar(Kind):
 
 
 @dataclass(frozen=True, repr=False)
-class Boolean(Scalar):
-    """A truth value, as produced by comparisons."""
+class Complex(Scalar):
+    """A complex number."""
 
-    rank = 0
+    rank = 2
 
 
 @dataclass(frozen=True, repr=False)
-class Real(Scalar):
+class Real(Complex):
     """A real number."""
 
     rank = 1
 
 
 @dataclass(frozen=True, repr=False)
-class Complex(Scalar):
-    """A complex number."""
+class Boolean(Real):
+    """A truth value, as produced by comparisons."""
 
-    rank = 2
+    rank = 0
 
 
 @dataclass(frozen=True, repr=False)

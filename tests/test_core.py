@@ -92,7 +92,7 @@ def test_functions_compare_by_identity():
 
 def test_arity_is_checked():
     with pytest.raises(TypeError):
-        real.sin(x, y)
+        real.sin(x, y)  # type: ignore  # invalid on purpose
 
 
 def test_fmap_replaces_children():

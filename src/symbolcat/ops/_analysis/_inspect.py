@@ -121,4 +121,4 @@ def is_complex(expr: Any, /) -> bool:
     >>> is_complex(complex.exp(x)), is_complex(complex.abs(complex.exp(x)))
     (True, False)
     """
-    return isinstance(as_expr(expr).kind.element, Complex)
+    return type(as_expr(expr).kind.element) is Complex

@@ -28,13 +28,13 @@ from __future__ import annotations
 from typing import Any, TypeGuard
 
 from ._core import Call, Expr, Symbol
-from ._core.expr import Function
 from ._core.infer import kind_algebra
 from ._core.kinds import Kind, Real, array_kind, join
+from ._core.signatures import Delay, Derivative
 
-D = Function("D", arity=1)
-delay = Function("delay", arity=2)
-partial = Function("partial", arity=2)
+D = Derivative("D", arity=1)
+delay = Delay("delay", arity=2)
+partial = Delay("partial", arity=2)
 
 
 @kind_algebra.register(D, delay, partial)

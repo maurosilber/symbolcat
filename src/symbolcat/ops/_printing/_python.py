@@ -12,7 +12,7 @@ from typing import Any
 
 from ... import complex as cx
 from ... import real
-from ..._core import Algebra, Call, Constant, Expr, Symbol, cata, name_of
+from ..._core import Algebra, Call, Constant, Expr, Function, Symbol, cata, name_of
 from ..._core.precedence import POSTFIX
 from ...lib import operators as op
 from ...linalg import Array, nest
@@ -45,7 +45,12 @@ def python_algebra(array: str | None, /) -> Algebra[Printed]:
     @algebra.register(cx.re, cx.im, cx.conj)
     def _(node: Call[Printed]) -> Printed:
         (arg,) = node.args
-        method = {cx.re: "real", cx.im: "imag", cx.conj: "conjugate()"}[node.func]
+        methods: dict[Function, str] = {
+            cx.re: "real",
+            cx.im: "imag",
+            cx.conj: "conjugate()",
+        }
+        method = methods[node.func]
         text = operand(arg, op.getitem, "left")
         if text[0].isdigit():  # 2.real is a syntax error
             text = f"({text})"

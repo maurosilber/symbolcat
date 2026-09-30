@@ -57,3 +57,8 @@ python = ".pixi/envs/default"
 [[tool.ty.overrides]]
 include = ["src/symbolcat/ops/egraph/_term.py"]
 rules = { empty-body = "ignore" }
+
+# each "type: ignore" there marks an expected static error
+[[tool.ty.overrides]]
+include = ["tests/test_static_types.py"]
+rules = { unused-type-ignore-comment = "error" }

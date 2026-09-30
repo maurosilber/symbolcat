@@ -21,7 +21,17 @@ from typing import Any
 
 from ... import complex as cx
 from ... import real
-from ..._core import Call, Constant, Expr, Literal, Operator, Symbol, cata, name_of
+from ..._core import (
+    Call,
+    Constant,
+    Expr,
+    Function,
+    Literal,
+    Operator,
+    Symbol,
+    cata,
+    name_of,
+)
 from ..._core.precedence import POSTFIX, POW
 from ...lib import operators as op
 from ...linalg import Array, nest
@@ -31,7 +41,7 @@ from .._transform._share import cse
 from ._base import Printed, indices, literal_precedence, operand
 from ._str import str_algebra
 
-FUNCTIONS = {
+FUNCTIONS: dict[Function, str] = {
     real.atan2: "atan",
     cx.re: "real",
     cx.im: "imag",

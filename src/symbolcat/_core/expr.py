@@ -9,19 +9,36 @@ from __future__ import annotations
 
 import numbers
 from dataclasses import KW_ONLY, dataclass, field
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Generic, cast, overload
 
 from .kinds import Boolean, Complex, Kind, Real
+from .overloads import Overloads
+
+if TYPE_CHECKING:
+    from typing_extensions import TypeVar
+
+    # unparameterized, a Call has any kind (Python 3.13 would write
+    # ``class Call[T, K: Kind = Any]``)
+    _T_co = TypeVar("_T_co", covariant=True)
+    _K_co = TypeVar("_K_co", bound=Kind, covariant=True, default=Any)
+else:
+    from typing import TypeVar
+
+    _T_co = TypeVar("_T_co", covariant=True)
+    _K_co = TypeVar("_K_co", bound=Kind, covariant=True)
 
 
-class Expr:
+class Expr[K: Kind](Overloads[K]):
     """Base class of expression nodes. Provides the operator overloads.
 
     ``==`` and ``hash`` are structural, so expressions can be used as
     dictionary keys. Use ``operators.eq`` and ``operators.ne`` to build
     symbolic comparisons: ``operators.eq(x, 1)``.
 
-    Every expression has a ``kind`` (see ``symbolcat.kinds``).
+    Every expression has a ``kind`` (see ``symbolcat.kinds``), which is also
+    its type parameter for static type checkers: ``Symbol("x")`` is an
+    ``Expr[Real]``, and ``x < 1`` an ``Expr[Boolean]``. Unparameterized,
+    ``Expr`` is an expression of any kind.
     """
 
     __slots__ = ()
@@ -29,7 +46,7 @@ class Expr:
     if TYPE_CHECKING:
         # read-only, as the frozen dataclasses define it
         @property
-        def kind(self) -> Kind: ...
+        def kind(self) -> K: ...
 
     def __str__(self) -> str:
         from ..ops._printing._str import to_str
@@ -41,112 +58,113 @@ class Expr:
 
         return f"${to_latex(self)}$"
 
-    # Comparisons
-    def __lt__(self, other: Any) -> Call[Expr]:
-        return _op.lt(self, other)
+    if not TYPE_CHECKING:  # typed in overloads.pyi
+        # Comparisons
+        def __lt__(self, other: Any) -> Any:
+            return _op.lt(self, other)
 
-    def __le__(self, other: Any) -> Call[Expr]:
-        return _op.le(self, other)
+        def __le__(self, other: Any) -> Any:
+            return _op.le(self, other)
 
-    def __gt__(self, other: Any) -> Call[Expr]:
-        return _op.gt(self, other)
+        def __gt__(self, other: Any) -> Any:
+            return _op.gt(self, other)
 
-    def __ge__(self, other: Any) -> Call[Expr]:
-        return _op.ge(self, other)
+        def __ge__(self, other: Any) -> Any:
+            return _op.ge(self, other)
 
-    # Containers
-    def __getitem__(self, key: Any) -> Call[Expr]:
-        return _op.getitem(self, key)
+        # Containers
+        def __getitem__(self, key: Any) -> Any:
+            return _op.getitem(self, key)
 
-    # Arithmetic
-    def __add__(self, other: Any) -> Call[Expr]:
-        return _op.add(self, other)
+        # Arithmetic
+        def __add__(self, other: Any) -> Any:
+            return _op.add(self, other)
 
-    def __radd__(self, other: Any) -> Call[Expr]:
-        return _op.add(other, self)
+        def __radd__(self, other: Any) -> Any:
+            return _op.add(other, self)
 
-    def __sub__(self, other: Any) -> Call[Expr]:
-        return _op.sub(self, other)
+        def __sub__(self, other: Any) -> Any:
+            return _op.sub(self, other)
 
-    def __rsub__(self, other: Any) -> Call[Expr]:
-        return _op.sub(other, self)
+        def __rsub__(self, other: Any) -> Any:
+            return _op.sub(other, self)
 
-    def __mul__(self, other: Any) -> Call[Expr]:
-        return _op.mul(self, other)
+        def __mul__(self, other: Any) -> Any:
+            return _op.mul(self, other)
 
-    def __rmul__(self, other: Any) -> Call[Expr]:
-        return _op.mul(other, self)
+        def __rmul__(self, other: Any) -> Any:
+            return _op.mul(other, self)
 
-    def __matmul__(self, other: Any) -> Call[Expr]:
-        return _op.matmul(self, other)
+        def __matmul__(self, other: Any) -> Any:
+            return _op.matmul(self, other)
 
-    def __rmatmul__(self, other: Any) -> Call[Expr]:
-        return _op.matmul(other, self)
+        def __rmatmul__(self, other: Any) -> Any:
+            return _op.matmul(other, self)
 
-    def __truediv__(self, other: Any) -> Call[Expr]:
-        return _op.truediv(self, other)
+        def __truediv__(self, other: Any) -> Any:
+            return _op.truediv(self, other)
 
-    def __rtruediv__(self, other: Any) -> Call[Expr]:
-        return _op.truediv(other, self)
+        def __rtruediv__(self, other: Any) -> Any:
+            return _op.truediv(other, self)
 
-    def __floordiv__(self, other: Any) -> Call[Expr]:
-        return _op.floordiv(self, other)
+        def __floordiv__(self, other: Any) -> Any:
+            return _op.floordiv(self, other)
 
-    def __rfloordiv__(self, other: Any) -> Call[Expr]:
-        return _op.floordiv(other, self)
+        def __rfloordiv__(self, other: Any) -> Any:
+            return _op.floordiv(other, self)
 
-    def __mod__(self, other: Any) -> Call[Expr]:
-        return _op.mod(self, other)
+        def __mod__(self, other: Any) -> Any:
+            return _op.mod(self, other)
 
-    def __rmod__(self, other: Any) -> Call[Expr]:
-        return _op.mod(other, self)
+        def __rmod__(self, other: Any) -> Any:
+            return _op.mod(other, self)
 
-    def __pow__(self, other: Any) -> Call[Expr]:
-        return _op.pow(self, other)
+        def __pow__(self, other: Any) -> Any:
+            return _op.pow(self, other)
 
-    def __rpow__(self, other: Any) -> Call[Expr]:
-        return _op.pow(other, self)
+        def __rpow__(self, other: Any) -> Any:
+            return _op.pow(other, self)
 
-    # Bitwise
-    def __and__(self, other: Any) -> Call[Expr]:
-        return _op.and_(self, other)
+        # Bitwise
+        def __and__(self, other: Any) -> Any:
+            return _op.and_(self, other)
 
-    def __rand__(self, other: Any) -> Call[Expr]:
-        return _op.and_(other, self)
+        def __rand__(self, other: Any) -> Any:
+            return _op.and_(other, self)
 
-    def __or__(self, other: Any) -> Call[Expr]:
-        return _op.or_(self, other)
+        def __or__(self, other: Any) -> Any:
+            return _op.or_(self, other)
 
-    def __ror__(self, other: Any) -> Call[Expr]:
-        return _op.or_(other, self)
+        def __ror__(self, other: Any) -> Any:
+            return _op.or_(other, self)
 
-    def __xor__(self, other: Any) -> Call[Expr]:
-        return _op.xor(self, other)
+        def __xor__(self, other: Any) -> Any:
+            return _op.xor(self, other)
 
-    def __rxor__(self, other: Any) -> Call[Expr]:
-        return _op.xor(other, self)
+        def __rxor__(self, other: Any) -> Any:
+            return _op.xor(other, self)
 
-    def __lshift__(self, other: Any) -> Call[Expr]:
-        return _op.lshift(self, other)
+        def __lshift__(self, other: Any) -> Any:
+            return _op.lshift(self, other)
 
-    def __rlshift__(self, other: Any) -> Call[Expr]:
-        return _op.lshift(other, self)
+        def __rlshift__(self, other: Any) -> Any:
+            return _op.lshift(other, self)
 
-    def __rshift__(self, other: Any) -> Call[Expr]:
-        return _op.rshift(self, other)
+        def __rshift__(self, other: Any) -> Any:
+            return _op.rshift(self, other)
 
-    def __rrshift__(self, other: Any) -> Call[Expr]:
-        return _op.rshift(other, self)
+        def __rrshift__(self, other: Any) -> Any:
+            return _op.rshift(other, self)
 
-    # Unary
-    def __neg__(self) -> Call[Expr]:
-        return _op.neg(self)
+        # Unary
+        def __neg__(self) -> Any:
+            return _op.neg(self)
 
-    def __pos__(self) -> Call[Expr]:
-        return _op.pos(self)
+        def __pos__(self) -> Any:
+            return _op.pos(self)
 
-    def __invert__(self) -> Call[Expr]:
-        return _op.invert(self)
+        def __invert__(self) -> Any:
+            return _op.invert(self)
 
 
 class _Named:
@@ -206,7 +224,7 @@ def _label(obj: Symbol | Constant | Function, /) -> str:
 
 
 @dataclass(frozen=True, repr=False)
-class Symbol(_Named, Expr):
+class Symbol[K: Kind](_Named, Expr[K]):
     """A user-defined named leaf. Compares by name and kind.
 
     Symbols are real, unless another ``kind`` is given:
@@ -226,7 +244,15 @@ class Symbol(_Named, Expr):
     """
 
     name: str = ""
-    kind: Kind = field(default=Real(), kw_only=True)
+    kind: K = field(default=cast(Any, Real()), kw_only=True)
+
+    if TYPE_CHECKING:
+
+        @overload
+        def __init__(self: Symbol[Real], name: str = "") -> None: ...
+        @overload
+        def __init__(self, name: str = "", *, kind: K) -> None: ...
+        def __init__(self, name: str = "", *, kind: Any = None) -> None: ...
 
     def __repr__(self) -> str:
         if self.kind == Real():
@@ -236,7 +262,7 @@ class Symbol(_Named, Expr):
 
 
 @dataclass(frozen=True, repr=False, eq=False)
-class Constant(_Named, Expr):
+class Constant[K: Kind](_Named, Expr[K]):
     """A library-defined named leaf, such as ``real.constants.pi``.
 
     Like ``Function``, constants compare by identity, so they never collide
@@ -246,11 +272,19 @@ class Constant(_Named, Expr):
     """
 
     name: str = ""
-    kind: Kind = field(default=Real(), kw_only=True)
+    kind: K = field(default=cast(Any, Real()), kw_only=True)
+
+    if TYPE_CHECKING:
+
+        @overload
+        def __init__(self: Constant[Real], name: str = "") -> None: ...
+        @overload
+        def __init__(self, name: str = "", *, kind: K) -> None: ...
+        def __init__(self, name: str = "", *, kind: Any = None) -> None: ...
 
 
 @dataclass(frozen=True, repr=False, eq=False)
-class Literal(Expr):
+class Literal[K: Kind](Expr[K]):
     """A leaf wrapping a plain Python value.
 
     Equality also compares the value type, so ``1``, ``1.0`` and ``True``
@@ -265,18 +299,35 @@ class Literal(Expr):
 
     value: Any
 
+    if TYPE_CHECKING:
+
+        @overload
+        def __init__(self: Literal[Boolean], value: bool) -> None: ...
+        @overload
+        def __init__(self: Literal[Real], value: float | numbers.Real) -> None: ...
+        @overload
+        def __init__(
+            self: Literal[Complex], value: complex | numbers.Complex
+        ) -> None: ...
+        @overload
+        def __init__(self: Literal[Any], value: Any) -> None: ...
+        def __init__(self, value: Any) -> None: ...
+
     def __repr__(self) -> str:
         return f"Literal({self.value!r})"
 
     @property
-    def kind(self) -> Kind:
+    def kind(self) -> K:
+        kind: Kind
         if isinstance(self.value, bool):
-            return Boolean()
-        if isinstance(self.value, numbers.Complex) and not isinstance(
+            kind = Boolean()
+        elif isinstance(self.value, numbers.Complex) and not isinstance(
             self.value, numbers.Real
         ):
-            return Complex()
-        return Real()
+            kind = Complex()
+        else:
+            kind = Real()
+        return cast(K, kind)
 
     def __eq__(self, other: object) -> bool:
         return (
@@ -290,8 +341,9 @@ class Literal(Expr):
 
 
 @dataclass(frozen=True, repr=False)
-class Call[T](Expr):
-    """A function applied to arguments of type ``T``.
+class Call(Expr[_K_co], Generic[_T_co, _K_co]):  # noqa: UP046 (for the default)
+    """A function applied to arguments of type ``T``, with a result of kind
+    ``K`` (any, if not given).
 
     ``kind`` is the kind of the result. When the arguments are expressions,
     it is inferred from their kinds (see ``kind_algebra``), and an invalid
@@ -301,8 +353,8 @@ class Call[T](Expr):
     """
 
     func: Function
-    args: tuple[T, ...]
-    kind: Kind = field(default_factory=lambda: _INFER, compare=False)
+    args: tuple[_T_co, ...]
+    kind: _K_co = field(default_factory=lambda: cast(Any, _INFER), compare=False)
 
     def __post_init__(self) -> None:
         if self.kind is not _INFER:
@@ -326,7 +378,7 @@ def as_expr(value: Any, /) -> Expr:
 
 
 @dataclass(frozen=True, repr=False, eq=False)
-class Function(_Named):
+class Function[**P, R: Kind](_Named):
     """A symbolic function. Calling it builds a ``Call`` node.
 
     Functions compare by identity, so they can be used as registry keys
@@ -337,12 +389,27 @@ class Function(_Named):
     ...     f = Function(arity=1)
     >>> Model.f
     Function('f')
+
+    For static type checkers, ``Function[P, R]`` takes the arguments ``P``
+    and returns an expression of kind ``R``. Unparameterized, it takes any
+    arguments, and returns an expression of any kind:
+
+    >>> from symbolcat.kinds import Matrix, Vector
+    >>> outer: Function[[Expr[Vector], Expr[Vector]], Matrix] = Function("outer")
     """
 
     name: str = ""
     arity: int | None = field(default=None, kw_only=True)
 
-    def __call__(self, *args: Any) -> Call[Expr]:
+    if TYPE_CHECKING:
+
+        def __init__(
+            self: Function[..., Any], name: str = "", *, arity: int | None = None
+        ) -> None: ...
+
+    def __call__(self, *args: P.args, **kwargs: P.kwargs) -> Call[Expr, R]:
+        if kwargs:
+            raise TypeError(f"{_label(self)} takes no keyword arguments")
         if self.arity is not None and len(args) != self.arity:
             raise TypeError(
                 f"{_label(self)} expected {self.arity} arguments, got {len(args)}"

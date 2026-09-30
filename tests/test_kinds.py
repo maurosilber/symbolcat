@@ -93,13 +93,13 @@ def test_inferred(expr, kind):
 @pytest.mark.parametrize(
     "build, error, match",
     [
-        (lambda: real.sin(z), TypeError, "sin needs real arguments"),
-        (lambda: z < 1, TypeError, "lt needs real arguments"),
-        (lambda: z // 2, TypeError, "floordiv needs real arguments"),
-        (lambda: complex.rect(z, 1), TypeError, "rect needs real arguments"),
-        (lambda: real.ifelse(z, 1, 2), TypeError, "ifelse needs real arguments"),
+        (lambda: real.sin(z), TypeError, "sin needs real arguments"),  # type: ignore  # invalid on purpose
+        (lambda: z < 1, TypeError, "lt needs real arguments"),  # type: ignore  # invalid on purpose
+        (lambda: z // 2, TypeError, "floordiv needs real arguments"),  # type: ignore  # invalid on purpose
+        (lambda: complex.rect(z, 1), TypeError, "rect needs real arguments"),  # type: ignore  # invalid on purpose
+        (lambda: real.ifelse(z, 1, 2), TypeError, "ifelse needs real arguments"),  # type: ignore  # invalid on purpose
         (lambda: v + S[0], ValueError, "add of incompatible shapes"),
-        (lambda: v[v], ValueError, "index must be a scalar"),
+        (lambda: v[v], ValueError, "index must be a scalar"),  # type: ignore  # invalid on purpose
         (lambda: D(D(v) + S[0]), ValueError, "add of incompatible shapes"),
         (lambda: Function("f")(v), ValueError, "f needs scalar arguments"),
     ],

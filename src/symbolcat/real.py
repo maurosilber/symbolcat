@@ -28,36 +28,34 @@ from ._core.infer import real_arguments as _real_arguments
 from ._core.kinds import Real as _Real
 from ._core.kinds import Scalar as _Scalar
 from ._core.kinds import join as _join
+from ._core.signatures import IfElse as _IfElse
+from ._core.signatures import RealFunction as _RealFunction
+from ._core.signatures import RealFunction2 as _RealFunction2
 
-
-def _fn(name: str, /, *, arity: int = 1) -> _Function:
-    return _Function(name, arity=arity)
-
-
-abs = _fn("abs")
-ceil = _fn("ceil")
-floor = _fn("floor")
-sqrt = _fn("sqrt")
-exp = _fn("exp")
-log = _fn("log")
-log2 = _fn("log2")
-log10 = _fn("log10")
-sin = _fn("sin")
-cos = _fn("cos")
-tan = _fn("tan")
-asin = _fn("asin")
-acos = _fn("acos")
-atan = _fn("atan")
-atan2 = _fn("atan2", arity=2)
-sinh = _fn("sinh")
-cosh = _fn("cosh")
-tanh = _fn("tanh")
-erf = _fn("erf")
-gamma = _fn("gamma")
-gammainc = _fn("gammainc", arity=2)
-factorial = _fn("factorial")
-hypot = _fn("hypot", arity=2)
-ifelse = _fn("ifelse", arity=3)
+abs = _RealFunction("abs", arity=1)
+ceil = _RealFunction("ceil", arity=1)
+floor = _RealFunction("floor", arity=1)
+sqrt = _RealFunction("sqrt", arity=1)
+exp = _RealFunction("exp", arity=1)
+log = _RealFunction("log", arity=1)
+log2 = _RealFunction("log2", arity=1)
+log10 = _RealFunction("log10", arity=1)
+sin = _RealFunction("sin", arity=1)
+cos = _RealFunction("cos", arity=1)
+tan = _RealFunction("tan", arity=1)
+asin = _RealFunction("asin", arity=1)
+acos = _RealFunction("acos", arity=1)
+atan = _RealFunction("atan", arity=1)
+atan2 = _RealFunction2("atan2", arity=2)
+sinh = _RealFunction("sinh", arity=1)
+cosh = _RealFunction("cosh", arity=1)
+tanh = _RealFunction("tanh", arity=1)
+erf = _RealFunction("erf", arity=1)
+gamma = _RealFunction("gamma", arity=1)
+gammainc = _RealFunction2("gammainc", arity=2)
+factorial = _RealFunction("factorial", arity=1)
+hypot = _RealFunction2("hypot", arity=2)
+ifelse = _IfElse("ifelse", arity=3)
 
 
 class constants:

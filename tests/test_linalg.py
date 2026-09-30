@@ -73,18 +73,18 @@ def test_shape_of_symbols():
     "build, match",
     [
         (lambda: v + vector([x, y, 1]), "add of incompatible shapes"),
-        (lambda: m * v, "mul of incompatible shapes"),
-        (lambda: x @ v, "matmul needs arrays"),
+        (lambda: m * v, "mul of incompatible shapes"),  # type: ignore  # invalid on purpose
+        (lambda: x @ v, "matmul needs arrays"),  # type: ignore  # invalid on purpose
         (lambda: rect @ rect, "matmul of incompatible shapes"),
         (lambda: det(rect), "det needs a square matrix"),
-        (lambda: det(v), "det needs a square matrix"),
-        (lambda: trace(x), "trace needs a square matrix"),
-        (lambda: norm(x), "norm needs a vector or a matrix"),
-        (lambda: transpose(x), "transpose needs a vector or a matrix"),
+        (lambda: det(v), "det needs a square matrix"),  # type: ignore  # invalid on purpose
+        (lambda: trace(x), "trace needs a square matrix"),  # type: ignore  # invalid on purpose
+        (lambda: norm(x), "norm needs a vector or a matrix"),  # type: ignore  # invalid on purpose
+        (lambda: transpose(x), "transpose needs a vector or a matrix"),  # type: ignore  # invalid on purpose
         (lambda: cross(v, v), "cross needs two vectors of length 3"),
         (lambda: vector([v, x]), "array entries must be scalars"),
-        (lambda: real.atan2(v, 1) + real.hypot(m, 1), "incompatible shapes"),
-        (lambda: m[v], "must be a scalar"),
+        (lambda: real.atan2(v, 1) + real.hypot(m, 1), "incompatible shapes"),  # type: ignore  # invalid on purpose
+        (lambda: m[v], "must be a scalar"),  # type: ignore  # invalid on purpose
         (lambda: A + A3, "add of incompatible shapes"),
     ],
 )

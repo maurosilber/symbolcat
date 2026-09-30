@@ -42,13 +42,14 @@ import math
 from collections.abc import Iterable, Sequence
 from dataclasses import KW_ONLY, dataclass
 from functools import cache
-from typing import Any
+from typing import Any, overload
 
 from . import complex as _complex
 from . import real as _real
 from ._core import Call, Expr, Function, Operator
 from ._core.infer import kind_algebra
 from ._core.kinds import Kind, Matrix, Real, Scalar, Vector, array_kind, join
+from ._core.signatures import Transpose
 from .lib import operators as _op
 
 
@@ -72,7 +73,7 @@ def array(shape: tuple[int, ...], /) -> Array:
     return Array(name, arity=math.prod(shape), shape=shape)
 
 
-def vector(entries: Iterable[Any], /) -> Call[Expr]:
+def vector(entries: Iterable[Any], /) -> Call[Expr, Vector]:
     """A vector of expressions.
 
     >>> from symbolcat import Symbol
@@ -84,7 +85,7 @@ def vector(entries: Iterable[Any], /) -> Call[Expr]:
     return array((len(entries),))(*entries)
 
 
-def matrix(rows: Iterable[Iterable[Any]], /) -> Call[Expr]:
+def matrix(rows: Iterable[Iterable[Any]], /) -> Call[Expr, Matrix]:
     """A matrix of expressions, given as a sequence of rows.
 
     >>> from symbolcat import Symbol
@@ -99,7 +100,7 @@ def matrix(rows: Iterable[Iterable[Any]], /) -> Call[Expr]:
     return array((len(table), ncols))(*(entry for row in table for entry in row))
 
 
-def identity(n: int, /) -> Call[Expr]:
+def identity(n: int, /) -> Call[Expr, Matrix]:
     """The ``n`` by ``n`` identity matrix.
 
     >>> print(identity(2))
@@ -108,6 +109,12 @@ def identity(n: int, /) -> Call[Expr]:
     return matrix([int(i == j) for j in range(n)] for i in range(n))
 
 
+@overload
+def zeros(shape: int | tuple[int], /) -> Call[Expr, Vector]: ...
+@overload
+def zeros(shape: tuple[int, int], /) -> Call[Expr, Matrix]: ...
+@overload
+def zeros(shape: tuple[int, ...], /) -> Call[Expr]: ...
 def zeros(shape: int | tuple[int, ...], /) -> Call[Expr]:
     """An array of zeros.
 
@@ -117,6 +124,12 @@ def zeros(shape: int | tuple[int, ...], /) -> Call[Expr]:
     return full(shape, 0)
 
 
+@overload
+def full(shape: int | tuple[int], value: Any, /) -> Call[Expr, Vector]: ...
+@overload
+def full(shape: tuple[int, int], value: Any, /) -> Call[Expr, Matrix]: ...
+@overload
+def full(shape: tuple[int, ...], value: Any, /) -> Call[Expr]: ...
 def full(shape: int | tuple[int, ...], value: Any, /) -> Call[Expr]:
     """An array with every entry equal to ``value``.
 
@@ -149,13 +162,16 @@ def to_list(expr: Call[Any], /) -> list[Any]:
     return nest(expr.func.shape, expr.args)
 
 
-transpose = Function("transpose", arity=1)
-trace = Function("trace", arity=1)
-det = Function("det", arity=1)
-inv = Function("inv", arity=1)
-norm = Function("norm", arity=1)  # Euclidean for vectors, Frobenius for matrices
-sum = Function("sum", arity=1)  # of all the entries
-cross = Function("cross", arity=2)
+type _Array = Expr[Vector] | Expr[Matrix]
+
+transpose = Transpose("transpose", arity=1)
+trace: Function[[Expr[Matrix]], Real] = Function("trace", arity=1)
+det: Function[[Expr[Matrix]], Real] = Function("det", arity=1)
+inv: Function[[Expr[Matrix]], Matrix] = Function("inv", arity=1)
+# Euclidean for vectors, Frobenius for matrices
+norm: Function[[_Array], Real] = Function("norm", arity=1)
+sum: Function[[_Array], Real] = Function("sum", arity=1)  # of all the entries
+cross: Function[[Expr[Vector], Expr[Vector]], Vector] = Function("cross", arity=2)
 
 # Functions applied entry by entry, broadcasting scalars.
 ENTRYWISE: frozenset[Function] = frozenset(

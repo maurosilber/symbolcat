@@ -31,7 +31,7 @@ def solve_dependencies(system: Mapping[Symbol, Any], /) -> list[tuple[Symbol, ..
     ...
     ValueError: Cyclic dependencies among x, y
     """
-    pending = {
+    pending: dict[Symbol, set[Symbol]] = {
         symbol: (set() if as_expr(value) == symbol else set(free_symbols(value)))
         & system.keys()
         for symbol, value in system.items()

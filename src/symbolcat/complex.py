@@ -39,31 +39,30 @@ from ._core.kinds import Complex as _Complex
 from ._core.kinds import Real as _Real
 from ._core.kinds import Scalar as _Scalar
 from ._core.kinds import join as _join
+from ._core.signatures import ComplexFunction as _ComplexFunction
+from ._core.signatures import ComplexToReal as _ComplexToReal
+from ._core.signatures import Conjugate as _Conjugate
+from ._core.signatures import Polar as _Polar
 
-
-def _fn(name: str, /, *, arity: int = 1) -> _Function:
-    return _Function(name, arity=arity)
-
-
-re = _fn("re")
-im = _fn("im")
-conj = _fn("conj")
-abs = _fn("abs")
-phase = _fn("phase")
-rect = _fn("rect", arity=2)
-exp = _fn("exp")
-log = _fn("log")
-log10 = _fn("log10")
-sqrt = _fn("sqrt")
-sin = _fn("sin")
-cos = _fn("cos")
-tan = _fn("tan")
-asin = _fn("asin")
-acos = _fn("acos")
-atan = _fn("atan")
-sinh = _fn("sinh")
-cosh = _fn("cosh")
-tanh = _fn("tanh")
+re = _ComplexToReal("re", arity=1)
+im = _ComplexToReal("im", arity=1)
+conj = _Conjugate("conj", arity=1)
+abs = _ComplexToReal("abs", arity=1)
+phase = _ComplexToReal("phase", arity=1)
+rect = _Polar("rect", arity=2)
+exp = _ComplexFunction("exp", arity=1)
+log = _ComplexFunction("log", arity=1)
+log10 = _ComplexFunction("log10", arity=1)
+sqrt = _ComplexFunction("sqrt", arity=1)
+sin = _ComplexFunction("sin", arity=1)
+cos = _ComplexFunction("cos", arity=1)
+tan = _ComplexFunction("tan", arity=1)
+asin = _ComplexFunction("asin", arity=1)
+acos = _ComplexFunction("acos", arity=1)
+atan = _ComplexFunction("atan", arity=1)
+sinh = _ComplexFunction("sinh", arity=1)
+cosh = _ComplexFunction("cosh", arity=1)
+tanh = _ComplexFunction("tanh", arity=1)
 
 
 class constants:

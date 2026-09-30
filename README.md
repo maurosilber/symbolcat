@@ -144,6 +144,14 @@ Inferring a kind is one more algebra, `kind_algebra`, applied to one layer
 when a call is built: `expr.kind` is `cata(kind_algebra, expr)`, computed
 incrementally.
 
+Type checkers (ty, pyrefly, mypy, ...) see the same kinds, as the type
+parameter of `Expr`: `Symbol("x")` is an `Expr[Real]`, `x < 1` an
+`Expr[Boolean]` and `A @ v` an `Expr[Vector]`, so `real.log(complex.constants.I)`
+or `x @ v` are flagged in the editor, before running the code. The shapes of
+arrays (`Vector(3)` or `Vector(2)`) and the kinds of their entries are only
+checked at runtime. A real is also a complex (`Real` subclasses `Complex`),
+and a boolean a real.
+
 ## Operations
 
 | function | algebra folds each node into |
@@ -400,6 +408,10 @@ By default, a function takes scalars and returns a real; a rule in
 Matrix(3, 2)
 
 ```
+
+For type checkers, a `Function` takes any arguments and returns an
+expression of any kind, unless annotated:
+`Function[[Expr[Vector], Expr[Vector]], Matrix]`.
 
 The other algebras are extended in the same way:
 

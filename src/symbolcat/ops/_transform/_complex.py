@@ -22,6 +22,7 @@ can be the conjugate of ``cmath``'s value. For real arguments, like
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any
 
 from ... import complex as cx
@@ -198,7 +199,7 @@ def power(z: Pair, w: Pair, /) -> Pair:
     return exp(mul(w, log(z)))
 
 
-HOLOMORPHIC = {
+HOLOMORPHIC: dict[Function, Callable[[Pair], Pair]] = {
     cx.exp: exp,
     cx.log: log,
     cx.log10: lambda z: div(log(z), (real.log(10), ZERO)),

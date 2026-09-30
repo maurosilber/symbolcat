@@ -38,8 +38,9 @@ class Algebra[A]:
     >>> cata(depth, (x + 1) * 2)
     3
 
-    ``kind`` restricts a handler to nodes of that kind (``symbolcat.kinds``).
-    For the same key, it takes precedence over a handler without ``kind``:
+    ``kind`` restricts a handler to nodes of that kind (``symbolcat.kinds``),
+    including its subclasses (``kind=Real`` also matches booleans). For the
+    same key, it takes precedence over a handler without ``kind``:
 
     >>> from symbolcat.kinds import Vector
     >>> describe = Algebra("describe")

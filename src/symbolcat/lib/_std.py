@@ -9,6 +9,7 @@ import builtins
 import cmath
 import math
 import operator
+from typing import Any
 
 from .. import complex as cx
 from .. import real
@@ -57,7 +58,7 @@ def gammainc(a: float, x: float, /) -> float:
     return 1 - math.exp(log_prefactor) * h
 
 
-OPERATORS = {
+OPERATORS: dict[Any, Any] = {
     op.eq: operator.eq,
     op.ne: operator.ne,
     op.lt: operator.lt,
@@ -83,7 +84,7 @@ OPERATORS = {
     op.getitem: operator.getitem,
 }
 
-IMPL = {
+IMPL: dict[Any, Any] = {
     **OPERATORS,
     real.abs: builtins.abs,
     real.ceil: math.ceil,
