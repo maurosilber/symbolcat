@@ -38,10 +38,12 @@ evaluate_algebra = Algebra[Any]("evaluate")
 
 
 @evaluate_algebra.register(Symbol)
-def _(node: Symbol, *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> Any:
+def _(node: Symbol, *, env: Mapping[Symbol | str, Any], lib: Mapping[Any, Any]) -> Any:
     name_of(node)  # unnamed symbols would all compare equal
     if node in env:
         return env[node]
+    if node.name in env:  # given by name
+        return env[node.name]
     if Symbol in lib:
         return lib[Symbol](node)
     raise NameError(f"No value for symbol {node.name!r}")
@@ -131,11 +133,10 @@ def evaluate(
 
     ``env`` maps symbols (or their names) to values.
     ``lib`` defaults to ``symbolcat.lib.std.IMPL``.
-    Operations on arrays are first computed entry by entry
+    Operations on explicit arrays are first computed entry by entry
     (``expand_arrays``), so every backend gives the same result. Arrays
     evaluate to nested lists, unless ``lib`` maps ``Array`` to a constructor
-    taking them. Values in ``env`` with a ``shape`` attribute (NumPy arrays,
-    SymPy matrices) are arrays; operations on them are left to ``lib``.
+    taking them. Operations on symbols of an array kind are left to ``lib``.
 
     >>> from symbolcat import Symbol, real
     >>> x = Symbol("x")
@@ -148,6 +149,4 @@ def evaluate(
     """
     if lib is None:
         from ..lib.std import IMPL as lib
-    env = {Symbol(k) if isinstance(k, str) else k: v for k, v in (env or {}).items()}
-    shapes = {k: s for k, v in env.items() if (s := tuple(getattr(v, "shape", ())))}
-    return fold(as_expr(expand_arrays(expr, shapes)), env=env, lib=lib)
+    return fold(as_expr(expand_arrays(expr)), env=env or {}, lib=lib)

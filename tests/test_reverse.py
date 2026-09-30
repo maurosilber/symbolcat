@@ -3,13 +3,15 @@ from typing import Any
 import pytest
 
 from symbolcat import Symbol, linalg, real
+from symbolcat.kinds import Matrix
 from symbolcat.linalg import cross, det, inv, matrix, norm, trace, transpose, vector
 from symbolcat.ops import evaluate
 from symbolcat.ops._calculus._reverse import _postorder
 from symbolcat.ops.algebras import Literal
 from symbolcat.ops.calculus import gradient, reverse_gradient, vjp
 
-x, y, z, A, B = Symbol("x"), Symbol("y"), Symbol("z"), Symbol("A"), Symbol("B")
+x, y, z = Symbol("x"), Symbol("y"), Symbol("z")
+A, B = Symbol("A", kind=Matrix(3, 3)), Symbol("B", kind=Matrix(3, 3))
 
 
 @pytest.mark.parametrize(
@@ -80,7 +82,7 @@ def test_matrix_variable_matches_finite_differences(func):
     rng = np.random.default_rng(0)
     a0, b0 = rng.normal(size=(3, 3)), rng.normal(size=(3, 3))
     expr = func(A @ B)
-    (grad,) = vjp(expr, (A,), shapes={A: (3, 3), B: (3, 3)})
+    (grad,) = vjp(expr, (A,))
     symbolic = evaluate(grad, {A: a0, B: b0}, lib=IMPL)
 
     h = 1e-6

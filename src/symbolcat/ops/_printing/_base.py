@@ -9,37 +9,36 @@ without looking back into the tree.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, replace
 from typing import Any
 from typing import Literal as LiteralType
 
-from ... import linalg
-from ..._core import Function, Operator
+from ..._core import Expr, Operator
 from ..._core.precedence import UNARY
-from ...lib import operators as op
-from ...linalg import ENTRYWISE
 
 ATOM = 100
 
 
 @dataclass(frozen=True)
 class Printed:
-    """Printed text, with its precedence and, for explicit arrays and
-    operations on them, the number of dimensions."""
+    """Printed text, with its precedence and its number of dimensions (for
+    arrays, see ``with_ndim``)."""
 
     text: str
     precedence: int = ATOM
     ndim: int = 0
 
 
-def result_ndim(func: Function, args: tuple[Printed, ...], /) -> int:
-    """Dimensions of the result, when its arguments are explicit arrays."""
-    if func is op.matmul:
-        a, b = args
-        return max(a.ndim + b.ndim - 2, 0) if a.ndim and b.ndim else 0
-    if func in ENTRYWISE or func in (linalg.transpose, linalg.inv):
-        return max((arg.ndim for arg in args), default=0)
-    return 0
+def with_ndim(algebra: Callable[..., Printed], /) -> Callable[..., Printed]:
+    """``algebra``, with the number of dimensions of each printed node
+    taken from its kind, so a rule can tell arrays apart (``\\odot`` for
+    the entrywise product) without tracking them itself."""
+
+    def fold(layer: Expr, /, **ctx: Any) -> Printed:
+        return replace(algebra(layer, **ctx), ndim=len(layer.kind.shape))
+
+    return fold
 
 
 type Side = LiteralType["left", "right"]

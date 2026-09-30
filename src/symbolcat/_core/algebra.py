@@ -11,7 +11,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
-from .expr import Call, Expr, Function, _label
+from .kinds import Kind
 
 
 @dataclass
@@ -37,22 +37,50 @@ class Algebra[A]:
     >>> x = Symbol("x")
     >>> cata(depth, (x + 1) * 2)
     3
+
+    ``kind`` restricts a handler to nodes of that kind (``symbolcat.kinds``).
+    For the same key, it takes precedence over a handler without ``kind``:
+
+    >>> from symbolcat.kinds import Vector
+    >>> describe = Algebra("describe")
+    >>> @describe.register(Expr)
+    ... def _(node):
+    ...     return "scalar"
+    >>> @describe.register(Expr, kind=Vector)
+    ... def _(node):
+    ...     return f"vector of {node.kind.n}"
+    >>> describe(x), describe(Symbol("v", kind=Vector(3)))
+    ('scalar', 'vector of 3')
     """
 
     name: str
-    _by_func: dict[Function, Callable[..., A]] = field(default_factory=dict, init=False)
-    _by_kind: dict[type, Callable[..., A]] = field(default_factory=dict, init=False)
-    _by_node: dict[type, Callable[..., A]] = field(default_factory=dict, init=False)
+    _by_func: dict[Key[Function], Callable[..., A]] = field(
+        default_factory=dict, init=False
+    )
+    _by_kind: dict[Key[type], Callable[..., A]] = field(
+        default_factory=dict, init=False
+    )
+    _by_node: dict[Key[type], Callable[..., A]] = field(
+        default_factory=dict, init=False
+    )
 
-    def register(self, *keys: Function | type) -> Callable[[Callable[..., A]], Any]:
+    def register(
+        self, *keys: Function | type, kind: type[Kind] | None = None
+    ) -> Callable[[Callable[..., A]], Any]:
+        if kind is not None and not issubclass(kind, Kind):
+            raise TypeError(f"Cannot restrict to {kind!r}, which is not a Kind")
+
         def decorator(handler: Callable[..., A]) -> Callable[..., A]:
+            # a local import: rules are registered while ``expr`` loads
+            from .expr import Expr, Function
+
             for key in keys:
                 if isinstance(key, Function):
-                    self._by_func[key] = handler
+                    self._by_func[key, kind] = handler
                 elif issubclass(key, Function):
-                    self._by_kind[key] = handler
+                    self._by_kind[key, kind] = handler
                 elif issubclass(key, Expr):
-                    self._by_node[key] = handler
+                    self._by_node[key, kind] = handler
                 else:
                     raise TypeError(f"Cannot register {key!r}")
             return handler
@@ -68,12 +96,14 @@ class Algebra[A]:
         return new
 
     def handler_for(self, node: Expr, /) -> Callable[..., A]:
+        kinds = (*type(node.kind).__mro__[:-1], None)  # without object
         if isinstance(node, Call):
-            if (handler := self._by_func.get(node.func)) is not None:
+            for kind in kinds:
+                if (handler := self._by_func.get((node.func, kind))) is not None:
+                    return handler
+            if (handler := _lookup(self._by_kind, type(node.func), kinds)) is not None:
                 return handler
-            if (handler := _lookup_mro(self._by_kind, type(node.func))) is not None:
-                return handler
-        if (handler := _lookup_mro(self._by_node, type(node))) is not None:
+        if (handler := _lookup(self._by_node, type(node), kinds)) is not None:
             return handler
         what = _label(node.func) if isinstance(node, Call) else type(node).__name__
         raise NotImplementedError(f"{self.name}: no rule for {what}")
@@ -82,8 +112,22 @@ class Algebra[A]:
         return self.handler_for(node)(node, **ctx)
 
 
-def _lookup_mro[V](registry: dict[type, V], cls: type, /) -> V | None:
+# A registry key: a function or class, restricted to a kind of node or not.
+type Key[K] = tuple[K, type[Kind] | None]
+
+
+def _lookup[V](
+    registry: dict[Key[type], V], cls: type, kinds: tuple[type | None, ...], /
+) -> V | None:
+    """The handler for the most specific class in the MRO of ``cls`` and,
+    for the same class, the most specific kind."""
     for base in cls.__mro__:
-        if base in registry:
-            return registry[base]
+        for kind in kinds:
+            if (handler := registry.get((base, kind))) is not None:
+                return handler
     return None
+
+
+# The handlers dispatch on the node classes, whose module needs ``Algebra``
+# (for kind inference).
+from .expr import Call, Expr, Function, _label

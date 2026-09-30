@@ -35,7 +35,7 @@ from ..._core.precedence import POSTFIX, POW
 from ..._derivative import D
 from ...lib import operators as op
 from ...linalg import Array, nest
-from ._base import Printed, Side, literal_precedence, needs_parens, result_ndim
+from ._base import Printed, Side, literal_precedence, needs_parens, with_ndim
 
 GREEK = frozenset(
     [
@@ -250,7 +250,7 @@ def _(node: Call[Printed]) -> Printed:
     func = node.func
     name = FUNCTION_NAMES.get(func, rf"\operatorname{{{name_of(func)}}}")
     text = name + paren(", ".join(arg.text for arg in node.args))
-    return Printed(text, ndim=result_ndim(func, node.args))
+    return Printed(text)
 
 
 @latex_algebra.register(Array)
@@ -261,28 +261,28 @@ def _(node: Call[Printed]) -> Printed:
         rows = [[entry] for entry in rows]
     body = r" \\ ".join(" & ".join(row) for row in rows)
     text = rf"\begin{{pmatrix}} {body} \end{{pmatrix}}"
-    return Printed(text, ndim=len(node.func.shape))
+    return Printed(text)
 
 
 @latex_algebra.register(*ENCLOSING)
 def _(node: Call[Printed]) -> Printed:
     left, right = ENCLOSING[node.func]
     (arg,) = node.args
-    return Printed(f"{left}{arg.text}{right}", ndim=result_ndim(node.func, node.args))
+    return Printed(f"{left}{arg.text}{right}")
 
 
 @latex_algebra.register(*SUPERSCRIPT)
 def _(node: Call[Printed]) -> Printed:
     (arg,) = node.args
     text = f"{operand(arg, op.pow, 'left')}^{{{SUPERSCRIPT[node.func]}}}"
-    return Printed(text, POW, arg.ndim)
+    return Printed(text, POW)
 
 
 @latex_algebra.register(linalg.cross)
 def _(node: Call[Printed]) -> Printed:
     a, b = node.args
     text = rf"{operand(a, op.mul, 'left')} \times {operand(b, op.mul, 'right')}"
-    return Printed(text, op.mul.precedence, ndim=1)
+    return Printed(text, op.mul.precedence)
 
 
 @latex_algebra.register(cx.rect)
@@ -290,7 +290,7 @@ def _(node: Call[Printed]) -> Printed:
     """Polar form, ``r e^{i phi}``."""
     r, phi = node.args
     text = rf"{operand(r, op.mul, 'left')} e^{{i {operand(phi, op.mul, 'right')}}}"
-    return Printed(text, op.mul.precedence, result_ndim(cx.rect, node.args))
+    return Printed(text, op.mul.precedence)
 
 
 @latex_algebra.register(real.ifelse)
@@ -314,7 +314,7 @@ def _(node: Call[Printed]) -> Printed:
 def _(node: Call[Printed]) -> Printed:
     """Lagrange's notation: ``x'``, ``x''``."""
     (arg,) = node.args
-    return Printed(f"{operand(arg, op.getitem, 'left')}'", POSTFIX, arg.ndim)
+    return Printed(f"{operand(arg, op.getitem, 'left')}'", POSTFIX)
 
 
 @latex_algebra.register(Operator)
@@ -330,15 +330,13 @@ def _(node: Call[Printed]) -> Printed:
         if func is op.mul and left.ndim and right.ndim:
             symbol = r"\odot"  # entrywise product of arrays
         text = f"{operand(left, func, 'left')} {symbol} {operand(right, func, 'right')}"
-    return Printed(text, func.precedence, result_ndim(func, node.args))
+    return Printed(text, func.precedence)
 
 
 @latex_algebra.register(op.truediv)
 def _(node: Call[Printed]) -> Printed:
     num, den = node.args
-    return Printed(
-        rf"\frac{{{num.text}}}{{{den.text}}}", ndim=result_ndim(op.truediv, node.args)
-    )
+    return Printed(rf"\frac{{{num.text}}}{{{den.text}}}")
 
 
 @latex_algebra.register(op.floordiv)
@@ -351,7 +349,7 @@ def _(node: Call[Printed]) -> Printed:
 def _(node: Call[Printed]) -> Printed:
     base, exponent = node.args
     text = f"{operand(base, op.pow, 'left')}^{{{exponent.text}}}"
-    return Printed(text, POW, result_ndim(op.pow, node.args))
+    return Printed(text, POW)
 
 
 @latex_algebra.register(op.getitem)
@@ -368,4 +366,4 @@ def to_latex(expr: Any, /) -> str:
     >>> to_latex((x + y) ** 2 / 3)
     '\\frac{\\left(x + y\\right)^{2}}{3}'
     """
-    return cata(latex_algebra, expr).text
+    return cata(with_ndim(latex_algebra), expr).text

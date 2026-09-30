@@ -7,8 +7,11 @@ Expression nodes and symbolic functions.
 
 from __future__ import annotations
 
+import numbers
 from dataclasses import KW_ONLY, dataclass, field
 from typing import TYPE_CHECKING, Any
+
+from .kinds import Boolean, Complex, Kind, Real
 
 
 class Expr:
@@ -17,9 +20,16 @@ class Expr:
     ``==`` and ``hash`` are structural, so expressions can be used as
     dictionary keys. Use ``operators.eq`` and ``operators.ne`` to build
     symbolic comparisons: ``operators.eq(x, 1)``.
+
+    Every expression has a ``kind`` (see ``symbolcat.kinds``).
     """
 
     __slots__ = ()
+
+    if TYPE_CHECKING:
+        # read-only, as the frozen dataclasses define it
+        @property
+        def kind(self) -> Kind: ...
 
     def __str__(self) -> str:
         from ..ops._printing._str import to_str
@@ -197,7 +207,13 @@ def _label(obj: Symbol | Constant | Function, /) -> str:
 
 @dataclass(frozen=True, repr=False)
 class Symbol(_Named, Expr):
-    """A user-defined named leaf. Compares by name.
+    """A user-defined named leaf. Compares by name and kind.
+
+    Symbols are real, unless another ``kind`` is given:
+
+    >>> from symbolcat.kinds import Matrix
+    >>> Symbol("A", kind=Matrix(3, 2))
+    Symbol('A', kind=Matrix(3, 2))
 
     The name can be omitted when the symbol is assigned in a class body,
     where it takes the attribute name:
@@ -210,6 +226,13 @@ class Symbol(_Named, Expr):
     """
 
     name: str = ""
+    kind: Kind = field(default=Real(), kw_only=True)
+
+    def __repr__(self) -> str:
+        if self.kind == Real():
+            return super().__repr__()
+        name = repr(self.name) if self.name else ""
+        return f"Symbol({name}{', ' if name else ''}kind={self.kind!r})"
 
 
 @dataclass(frozen=True, repr=False, eq=False)
@@ -218,10 +241,12 @@ class Constant(_Named, Expr):
 
     Like ``Function``, constants compare by identity, so they never collide
     with a user ``Symbol`` of the same name. As with ``Symbol``, the name can
-    be omitted when assigned in a class body.
+    be omitted when assigned in a class body, and the ``kind`` is real
+    unless given.
     """
 
     name: str = ""
+    kind: Kind = field(default=Real(), kw_only=True)
 
 
 @dataclass(frozen=True, repr=False, eq=False)
@@ -230,12 +255,28 @@ class Literal(Expr):
 
     Equality also compares the value type, so ``1``, ``1.0`` and ``True``
     are different literals.
+
+    The kind follows the value: ``Boolean`` for a ``bool``, ``Complex`` for
+    a complex number, and ``Real`` otherwise.
+
+    >>> Literal(True).kind, Literal(2).kind, Literal(1j).kind
+    (Boolean(), Real(), Complex())
     """
 
     value: Any
 
     def __repr__(self) -> str:
         return f"Literal({self.value!r})"
+
+    @property
+    def kind(self) -> Kind:
+        if isinstance(self.value, bool):
+            return Boolean()
+        if isinstance(self.value, numbers.Complex) and not isinstance(
+            self.value, numbers.Real
+        ):
+            return Complex()
+        return Real()
 
     def __eq__(self, other: object) -> bool:
         return (
@@ -250,10 +291,28 @@ class Literal(Expr):
 
 @dataclass(frozen=True, repr=False)
 class Call[T](Expr):
-    """A function applied to arguments of type ``T``."""
+    """A function applied to arguments of type ``T``.
+
+    ``kind`` is the kind of the result. When the arguments are expressions,
+    it is inferred from their kinds (see ``kind_algebra``), and an invalid
+    call raises. A layer, whose arguments are already folded, keeps the kind
+    of the node it comes from (see ``fmap``), or is unspecified (``Kind()``)
+    if not given. The kind is derived, so it is not compared.
+    """
 
     func: Function
     args: tuple[T, ...]
+    kind: Kind = field(default_factory=lambda: _INFER, compare=False)
+
+    def __post_init__(self) -> None:
+        if self.kind is not _INFER:
+            return
+        args: tuple[Any, ...] = self.args
+        if all(isinstance(arg, Expr) for arg in args):
+            kind = _infer(self.func, args)
+        else:
+            kind = Kind()  # a layer, like the seeds of an unfold
+        object.__setattr__(self, "kind", kind)
 
     def __repr__(self) -> str:
         return f"Call({_label(self.func)}, {self.args!r})"
@@ -291,6 +350,10 @@ class Function(_Named):
         return Call(self, tuple(map(as_expr, args)))
 
 
+# The default kind of a Call: to be inferred from its arguments.
+_INFER = Kind()
+
+
 @dataclass(frozen=True, repr=False, eq=False)
 class Operator(Function):
     """A function written in infix/prefix notation.
@@ -305,6 +368,7 @@ class Operator(Function):
     assoc: str = "left"
 
 
-# Expr's operator overloads need the operator definitions, which in turn
-# need the classes above.
+# Kind inference and Expr's operator overloads need the algebra and the
+# operator definitions, which in turn need the classes above.
 from ..lib import operators as _op
+from .infer import infer as _infer

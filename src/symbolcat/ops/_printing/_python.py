@@ -7,7 +7,7 @@ Generate Python source for a function computing an expression.
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Any
 
 from ... import complex as cx
@@ -64,7 +64,6 @@ def to_python(
     *,
     args: Sequence[Symbol] | None = None,
     name: str = "f",
-    shapes: Mapping[Any, Any] | None = None,
     array: str | None = None,
 ) -> str:
     """Source of a Python function ``name(*args)`` computing ``expr``.
@@ -77,8 +76,8 @@ def to_python(
     ``conj`` are written as attributes (``z.real``), and the imaginary unit
     as ``1j``.
 
-    Operations on arrays are computed entry by entry (see ``expand_arrays``,
-    which takes ``shapes``). Explicit arrays are written as nested lists, or
+    Operations on explicit arrays are computed entry by entry (see
+    ``expand_arrays``). Explicit arrays are written as nested lists, or
     as a call to ``array`` if given (``"array"``, for NumPy).
 
     >>> import math
@@ -98,7 +97,7 @@ def to_python(
     def f(x, y):
         return array([[x * y + 1 * x], [0 * y + y * x]])
     """
-    expr = expand_arrays(expr, shapes)
+    expr = expand_arrays(expr)
     if args is None:
         args = free_symbols(expr)
     params = [name_of(arg) for arg in args]

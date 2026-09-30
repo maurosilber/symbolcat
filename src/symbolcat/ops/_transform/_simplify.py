@@ -8,6 +8,10 @@ Children arrive already simplified, so each rule only inspects one layer
 and a single bottom-up pass is enough. Because it works on a single layer,
 ``simplify_algebra`` can also be used as a "smart constructor":
 ``simplify_algebra(x * 1)`` returns ``x``.
+
+Simplification keeps the kind of every node: a rule may return a scalar for
+an array (``A * 0 -> 0``), which is then broadcast to its shape, so the
+parents stay valid (``sum(A * 0)``).
 """
 
 from __future__ import annotations
@@ -21,9 +25,25 @@ from ... import linalg, real
 from ..._core import Algebra, Call, Expr, Function, Literal, cata
 from ...lib import operators as op
 from ...lib.std import IMPL
+from ...linalg import Array
 from .._analysis._inspect import is_complex
 
-simplify_algebra = Algebra[Expr]("simplify")
+
+class KindPreserving(Algebra[Expr]):
+    """An algebra into expressions, whose results keep the kind of the
+    node: a scalar result for an array is broadcast to its shape."""
+
+    def __call__(self, node: Expr, **ctx: Any) -> Expr:
+        result = super().__call__(node, **ctx)
+        shape = node.kind.shape
+        if result.kind.shape == shape:
+            return result
+        if result.kind.shape:
+            raise AssertionError(f"{self.name}: {node} changed shape to {result}")
+        return linalg.full(shape, result)
+
+
+simplify_algebra = KindPreserving("simplify")
 
 
 def is_number(expr: Expr, value: Any, /) -> bool:
@@ -33,6 +53,13 @@ def is_number(expr: Expr, value: Any, /) -> bool:
         and not isinstance(expr.value, bool)
         and expr.value == value
     )
+
+
+def is_zero(expr: Expr, /) -> bool:
+    """A literal 0, or an explicit array of them."""
+    if isinstance(expr, Call) and isinstance(expr.func, Array):
+        return all(is_number(entry, 0) for entry in expr.args)
+    return is_number(expr, 0)
 
 
 def as_fraction(expr: Expr, /) -> Fraction | None:
@@ -122,9 +149,9 @@ def fold(node: Expr, /, *, exact: bool = False) -> Expr:
 @simplify_algebra.register(op.add)
 def _(node: Call[Expr], *, exact: bool = False) -> Expr:
     a, b = node.args
-    if is_number(a, 0):
+    if is_zero(a):
         return b
-    if is_number(b, 0):
+    if is_zero(b):
         return a
     return fold(node, exact=exact)
 
@@ -132,9 +159,9 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
 @simplify_algebra.register(op.sub)
 def _(node: Call[Expr], *, exact: bool = False) -> Expr:
     a, b = node.args
-    if is_number(b, 0):
+    if is_zero(b):
         return a
-    if is_number(a, 0):
+    if is_zero(a):
         return simplify_algebra(-b, exact=exact)
     if a == b:
         return Literal(0)
@@ -144,7 +171,7 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
 @simplify_algebra.register(op.mul)
 def _(node: Call[Expr], *, exact: bool = False) -> Expr:
     a, b = node.args
-    if is_number(a, 0) or is_number(b, 0):
+    if is_zero(a) or is_zero(b):
         return Literal(0)
     if is_number(a, 1):
         return b
@@ -162,7 +189,7 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
     a, b = node.args
     if is_number(b, 1):
         return a
-    if is_number(a, 0) and not is_number(b, 0):
+    if is_zero(a) and not is_zero(b):
         return Literal(0)
     if a == b and not isinstance(a, Literal):
         return Literal(1)
@@ -222,20 +249,13 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
 
 
 @simplify_algebra.register(
-    op.matmul, linalg.transpose, linalg.trace, linalg.sum, linalg.cross
+    op.getitem, op.matmul, linalg.transpose, linalg.trace, linalg.sum, linalg.cross
 )
 def _(node: Call[Expr], *, exact: bool = False) -> Expr:
-    """A literal 0 stands for a zero array of any shape (the derivative of
-    a constant array is 0), and these functions are linear in it."""
-    if any(is_number(arg, 0) for arg in node.args):
-        return Literal(0)
-    return node
-
-
-@simplify_algebra.register(op.getitem)
-def _(node: Call[Expr], *, exact: bool = False) -> Expr:
-    obj, _ = node.args
-    return Literal(0) if is_number(obj, 0) else node
+    """Linear in the first argument (and in the second for the products):
+    zero for a zero argument."""
+    linear = node.args[:1] if node.func is op.getitem else node.args
+    return Literal(0) if any(is_zero(arg) for arg in linear) else node
 
 
 def simplify_naive(expr: Any, /) -> Expr:

@@ -12,6 +12,9 @@ Mathematical functions and constants, named after Python's ``math`` module.
 ``ifelse(condition, a, b)`` is ``a`` where ``condition`` holds, else ``b``:
 piecewise functions, like ``ifelse(x < 0, -x, x)``.
 
+Functions are applied entry by entry to vectors and matrices, and are only
+defined for real arguments.
+
 ``gammainc(a, x)`` is the regularized lower incomplete gamma function,
 ``P(a, x) = 1 / gamma(a) * integral(t ** (a - 1) * exp(-t), t, 0, x)``, as
 in SciPy.
@@ -19,6 +22,12 @@ in SciPy.
 
 from ._core import Constant as _Constant
 from ._core import Function as _Function
+from ._core.infer import entrywise as _entrywise
+from ._core.infer import kind_algebra as _kind_algebra
+from ._core.infer import real_arguments as _real_arguments
+from ._core.kinds import Real as _Real
+from ._core.kinds import Scalar as _Scalar
+from ._core.kinds import join as _join
 
 
 def _fn(name: str, /, *, arity: int = 1) -> _Function:
@@ -57,3 +66,19 @@ class constants:
     tau = _Constant()
     inf = _Constant()
     nan = _Constant()
+
+
+def _real_valued(func: _Function, /, *kinds: _Scalar) -> _Scalar:
+    _real_arguments(func, *kinds)
+    return _Real()
+
+
+def _ifelse(func: _Function, condition: _Scalar, a: _Scalar, b: _Scalar, /) -> _Scalar:
+    _real_arguments(func, condition)
+    return _join(a, b)
+
+
+_kind_algebra.register(
+    *(f for f in list(globals().values()) if isinstance(f, _Function))
+)(_entrywise(_real_valued))
+_kind_algebra.register(ifelse)(_entrywise(_ifelse))

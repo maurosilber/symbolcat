@@ -133,7 +133,7 @@ def to_first_order(ode: ODE, /) -> ODE:
             (base,) = base.args
             order += 1
         assert isinstance(base, Symbol)
-        symbol = Symbol(f"{name_of(base)}_{'t' * order}")
+        symbol = Symbol(f"{name_of(base)}_{'t' * order}", kind=state.kind)
         if symbol in taken:
             raise ValueError(f"to_first_order: {symbol.name} is already used")
         names[state] = symbol

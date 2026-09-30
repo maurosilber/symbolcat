@@ -1,6 +1,7 @@
 import pytest
 
 from symbolcat import Symbol, linalg, real
+from symbolcat.kinds import Matrix, Vector
 from symbolcat.linalg import (
     cross,
     det,
@@ -21,7 +22,9 @@ from symbolcat.ops.inspect import shape
 from symbolcat.ops.printing import to_latex, to_mathml
 from symbolcat.ops.transform import expand_arrays, simplify_naive
 
-x, y, A, B = Symbol("x"), Symbol("y"), Symbol("A"), Symbol("B")
+x, y = Symbol("x"), Symbol("y")
+A, B = Symbol("A", kind=Matrix(2, 2)), Symbol("B", kind=Matrix(2, 2))
+A3, B3 = Symbol("A", kind=Matrix(3, 3)), Symbol("B", kind=Matrix(3, 3))
 v = vector([x, y])
 m = matrix([[x, 1], [0, y]])
 rect = matrix([[1, 2, 3], [4, 5, 6]])
@@ -60,30 +63,34 @@ def test_shape(expr, expected):
 
 
 def test_shape_of_symbols():
-    assert shape(A @ B, {A: (3, 2), "B": (2, 4)}) == (3, 4)
-    assert shape(transpose(A) * 2, {A: (3, 2)}) == (2, 3)
+    P, Q = Symbol("P", kind=Matrix(3, 2)), Symbol("Q", kind=Matrix(2, 4))
+    assert shape(P @ Q) == (3, 4)
+    assert shape(transpose(P) * 2) == (2, 3)
+    assert shape(Symbol("u", kind=Vector(3)) @ P) == (2,)
 
 
 @pytest.mark.parametrize(
-    "expr, match",
+    "build, match",
     [
-        (v + vector([x, y, 1]), "add of incompatible shapes"),
-        (m * v, "mul of incompatible shapes"),
-        (x @ v, "matmul needs arrays"),
-        (rect @ rect, "matmul of incompatible shapes"),
-        (det(rect), "det needs a square matrix"),
-        (det(v), "det needs a matrix"),
-        (trace(x), "trace needs a matrix"),
-        (norm(x), "norm needs an array"),
-        (cross(v, v), "cross needs two vectors of length 3"),
-        (vector([v, x]), "array entries must be scalars"),
-        (real.atan2(v, 1) + real.hypot(m, 1), "incompatible shapes"),
-        (m[v], "must be a scalar"),
+        (lambda: v + vector([x, y, 1]), "add of incompatible shapes"),
+        (lambda: m * v, "mul of incompatible shapes"),
+        (lambda: x @ v, "matmul needs arrays"),
+        (lambda: rect @ rect, "matmul of incompatible shapes"),
+        (lambda: det(rect), "det needs a square matrix"),
+        (lambda: det(v), "det needs a square matrix"),
+        (lambda: trace(x), "trace needs a square matrix"),
+        (lambda: norm(x), "norm needs a vector or a matrix"),
+        (lambda: transpose(x), "transpose needs a vector or a matrix"),
+        (lambda: cross(v, v), "cross needs two vectors of length 3"),
+        (lambda: vector([v, x]), "array entries must be scalars"),
+        (lambda: real.atan2(v, 1) + real.hypot(m, 1), "incompatible shapes"),
+        (lambda: m[v], "must be a scalar"),
+        (lambda: A + A3, "add of incompatible shapes"),
     ],
 )
-def test_shape_errors(expr, match):
+def test_shape_errors_when_built(build, match):
     with pytest.raises(ValueError, match=match):
-        shape(expr)
+        build()
 
 
 def test_functions_take_scalars_by_default():
@@ -91,7 +98,7 @@ def test_functions_take_scalars_by_default():
 
     f = Function("f", arity=1)
     with pytest.raises(ValueError, match="f needs scalar arguments"):
-        shape(f(v))
+        f(v)
 
 
 # expand_arrays
@@ -122,11 +129,11 @@ def test_expand(expr, expected):
 
 
 def test_expand_keeps_arrays_with_unknown_entries():
-    shapes = {A: (2, 2)}
-    assert expand_arrays(A @ m, shapes) == A @ m
-    assert expand_arrays(det(A) * 2, shapes) == det(A) * 2
+    assert expand_arrays(A @ m) == A @ m
+    assert expand_arrays(det(A) * 2) == det(A) * 2
     # A scalar symbol is broadcast
-    assert expand_arrays(A * v) == vector([A * x, A * y])
+    a = Symbol("a")
+    assert expand_arrays(a * v) == vector([a * x, a * y])
 
 
 def test_expand_det_and_inv():
@@ -230,8 +237,8 @@ def test_diff_matches_finite_differences(func):
     from symbolcat.lib.numpy import IMPL
 
     rng = np.random.default_rng(0)
-    env = {A: rng.normal(size=(3, 3)), B: rng.normal(size=(3, 3))}
-    expr = func(A + x * B)
+    env = {A3: rng.normal(size=(3, 3)), B3: rng.normal(size=(3, 3))}
+    expr = func(A3 + x * B3)
     x0, h = 0.3, 1e-6
 
     def f(value):
@@ -242,14 +249,17 @@ def test_diff_matches_finite_differences(func):
     assert symbolic == pytest.approx(numeric, rel=1e-5)
 
 
-def test_zero_is_a_zero_array():
-    assert simplify_naive(A @ 0 + transpose(0) + cross(0, B)) == Literal(0)
+def test_derivative_of_a_constant_array_is_zero():
+    u = Symbol("u", kind=Vector(3))
+    assert diff(transpose(A) @ A + inv(A) + A * x, x) == A
+    assert diff(linalg.sum(A) + trace(A @ B) + norm(cross(u, u)), x) == Literal(0)
     assert simplify_naive(Literal(0)[x] + A[0]) == A[0]
 
 
 # printing
 
 V = r"\begin{pmatrix} x \\ y \end{pmatrix}"
+u, w = Symbol("u", kind=Vector(3)), Symbol("w", kind=Vector(3))
 
 
 @pytest.mark.parametrize(
@@ -257,17 +267,20 @@ V = r"\begin{pmatrix} x \\ y \end{pmatrix}"
     [
         (v * v, rf"{V} \odot {V}"),
         (2 * v, rf"2 \cdot {V}"),
-        (A * B, r"A \cdot B"),
+        (A * B, r"A \odot B"),
+        (2 * A, r"2 \cdot A"),
         (A @ B, r"A \cdot B"),
         (transpose(A + B), r"\left(A + B\right)^{\mathsf{T}}"),
         (inv(A), "A^{-1}"),
         (det(A), r"\det\left(A\right)"),
         (trace(A), r"\operatorname{tr}\left(A\right)"),
         (norm(A), r"\left\|A\right\|"),
-        (cross(A, B + A), r"A \times \left(B + A\right)"),
+        (cross(u, w + u), r"u \times \left(w + u\right)"),
     ],
 )  # fmt: skip
 def test_latex(expr, expected):
+    r"""The entrywise product of arrays is written ``\odot``, also for symbols
+    of an array kind."""
     assert to_latex(expr) == expected
 
 
@@ -309,7 +322,7 @@ def test_to_python_with_numpy():
     np = pytest.importorskip("numpy")
     from symbolcat.ops.printing import to_python
 
-    source = to_python(det(A) * (A @ m), shapes={A: (2, 2)}, array="array")
+    source = to_python(det(A) * (A @ m), array="array")
     assert "array([[x, 1], [0, y]])" in source
     namespace = {"array": np.array, "det": np.linalg.det}
     exec(source, namespace)  # noqa: S102
@@ -334,9 +347,8 @@ def test_series_of_matrix_products():
     from symbolcat.lib.numpy import IMPL
     from symbolcat.ops.calculus import series
 
-    shapes = {A: (2, 2), B: (2, 2)}
     expr = transpose(A + x * B) @ (A + x * B)
-    polynomial = series(expr, x, order=3, shapes=shapes)
+    polynomial = series(expr, x, order=3)
     rng = np.random.default_rng(1)
     env = {A: rng.normal(size=(2, 2)), B: rng.normal(size=(2, 2)), x: 0.7}
     # the product is quadratic in x, so the series is exact
@@ -349,8 +361,8 @@ def test_series_of_det_needs_entries():
     from symbolcat.ops.calculus import series
 
     with pytest.raises(NotImplementedError, match="series of det"):
-        series(det(A + x * B), x, shapes={A: (2, 2), B: (2, 2)})
-    assert series(det(A) * x, x, shapes={A: (2, 2)}) == det(A) * x
+        series(det(A + x * B), x)
+    assert series(det(A) * x, x) == det(A) * x
 
 
 # dimensions
@@ -374,14 +386,14 @@ def test_dimensions_of_entries():
 def test_dimensions_of_matrix_functions():
     from symbolcat.ops.inspect import dimensions
 
-    units = {A: {"m": 1}, x: {"m": 1}}
-    shapes = {A: (3, 3)}
-    assert dimensions(det(A), units, shapes) == {"m": 3}
-    assert dimensions(inv(A) @ A, units, shapes) == {}
-    assert dimensions(trace(transpose(A)) + x, units, shapes) == {"m": 1}
-    assert dimensions(A @ vector([x, x, x]), units, shapes) == {"m": 2}
+    units = {A3: {"m": 1}, x: {"m": 1}}
+    assert dimensions(det(A3), units) == {"m": 3}
+    assert dimensions(inv(A3) @ A3, units) == {}
+    assert dimensions(trace(transpose(A3)) + x, units) == {"m": 1}
+    assert dimensions(A3 @ vector([x, x, x]), units) == {"m": 2}
+    u = Symbol("u", kind=Vector(3))
     with pytest.raises(ValueError, match="vector of incompatible dimensions"):
-        dimensions(A + vector([x, x, 1]), units, {A: (3,)})
+        dimensions(u + vector([x, x, 1]), {u: {"m": 1}, x: {"m": 1}})
 
 
 # e-graph
@@ -410,21 +422,19 @@ def test_egraph_simplifies_each_entry():
 )
 def test_egraph_matrix_identities(expr, expected):
     egraph = pytest.importorskip("symbolcat.ops.egraph")
-    shapes = {A: (2, 2), B: (2, 2)}
-    assert egraph.simplify(expr, shapes=shapes) == as_expr(expected)
+    assert egraph.simplify(expr) == as_expr(expected)
 
 
 def test_egraph_keeps_matrix_products_in_order():
     egraph = pytest.importorskip("symbolcat.ops.egraph")
-    shapes = {A: (2, 2), B: (2, 2)}
-    assert egraph.simplify(A @ B - B @ A, shapes=shapes) != Literal(0)
+    assert egraph.simplify(A @ B - B @ A) != Literal(0)
 
 
 def test_egraph_does_not_transpose_scalars():
     egraph = pytest.importorskip("symbolcat.ops.egraph")
-    shapes = {A: (3,), B: (3,)}
-    result = egraph.simplify(transpose(A) @ transpose(B), shapes=shapes)
-    assert shape(result, shapes) == ()
+    u, w = Symbol("u", kind=Vector(3)), Symbol("w", kind=Vector(3))
+    result = egraph.simplify(transpose(u) @ transpose(w))
+    assert shape(result) == ()
 
 
 def test_egraph_keeps_values_of_matrix_expressions():
@@ -432,18 +442,14 @@ def test_egraph_keeps_values_of_matrix_expressions():
     egraph = pytest.importorskip("symbolcat.ops.egraph")
     from symbolcat.lib.numpy import IMPL
 
-    shapes = {A: (3, 3), B: (3, 3)}
     rng = np.random.default_rng(2)
-    env = {A: rng.normal(size=(3, 3)), B: rng.normal(size=(3, 3)), x: 0.4}
+    env = {A3: rng.normal(size=(3, 3)), B3: rng.normal(size=(3, 3)), x: 0.4}
     for expr in [
-        transpose(A @ B) + transpose(B) * x,
-        inv(transpose(A)) @ (A @ B) - x * B,
-        det(inv(A) @ B) * trace(A @ B @ A),
+        transpose(A3 @ B3) + transpose(B3) * x,
+        inv(transpose(A3)) @ (A3 @ B3) - x * B3,
+        det(inv(A3) @ B3) * trace(A3 @ B3 @ A3),
     ]:
-        for simplified in [
-            egraph.simplify(expr, shapes=shapes),
-            egraph.optimize(expr, shapes=shapes),
-        ]:
+        for simplified in [egraph.simplify(expr), egraph.optimize(expr)]:
             assert evaluate(simplified, env, lib=IMPL) == pytest.approx(
                 evaluate(expr, env, lib=IMPL)
             )

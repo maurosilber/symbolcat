@@ -21,7 +21,7 @@ from ._system import ODE
 def _sensitivity_symbol(state: Symbol, parameter: Symbol, /) -> Symbol:
     """The symbol of the sensitivity of ``state`` to ``parameter``,
     ``dx_dk``."""
-    return Symbol(f"d{name_of(state)}_d{name_of(parameter)}")
+    return Symbol(f"d{name_of(state)}_d{name_of(parameter)}", kind=state.kind)
 
 
 def sensitivities(ode: ODE, parameters: Iterable[Symbol], /) -> ODE:

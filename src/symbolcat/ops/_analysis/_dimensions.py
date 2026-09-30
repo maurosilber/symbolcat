@@ -37,7 +37,7 @@ from ..._derivative import D
 from ...lib import operators as op
 from ...linalg import Array, nest
 from .._evaluate import evaluate
-from .._transform._arrays import expand_arrays, shape
+from .._transform._arrays import expand_arrays
 
 type Dimension = dict[str, Fraction]
 type Pair = tuple[Expr, Dimension]
@@ -84,10 +84,11 @@ def dimensionless(node: Call[Pair], /) -> None:
 
 
 @dimensions_algebra.register(Symbol)
-def _(node: Symbol, *, units: Mapping[Symbol, Dimension], **ctx: Any) -> Pair:
-    if node not in units:
-        raise ValueError(f"No units given for {name_of(node)!r}")
-    return node, units[node]
+def _(node: Symbol, *, units: Mapping[Symbol | str, Dimension], **ctx: Any) -> Pair:
+    for key in (node, name_of(node)):  # given by symbol, or by name
+        if key in units:
+            return node, units[key]
+    raise ValueError(f"No units given for {name_of(node)!r}")
 
 
 @dimensions_algebra.register(Constant, Literal)
@@ -212,12 +213,10 @@ def _(node: Call[Pair]) -> Dimension:
 
 
 @dimensions_algebra.register(linalg.det)
-def _(
-    node: Call[Pair], *, shapes: Mapping[Symbol, tuple[int, ...]], **ctx: Any
-) -> Pair:
+def _(node: Call[Pair], **ctx: Any) -> Pair:
     """The product of ``n`` entries, for an ``n`` by ``n`` matrix."""
     ((value, dim),) = node.args
-    n, _ = shape(value, shapes)
+    n, _ = value.kind.shape
     return linalg.det(value), scale(dim, Fraction(n))
 
 
@@ -249,7 +248,6 @@ def dimensions(
     expr: Any,
     units: Mapping[Symbol, Mapping[str, Any]] | Mapping[str, Mapping[str, Any]],
     /,
-    shapes: Mapping[Any, Any] | None = None,
     *,
     time: Mapping[str, Any] | None = None,
 ) -> Exponents | list[Any]:
@@ -258,8 +256,7 @@ def dimensions(
     ``time`` is the dimension of time, needed for time derivatives: ``D(x)``
     has the dimension of ``x`` divided by ``time``.
 
-    For an array, the dimension of each entry, as (nested) lists. ``shapes``
-    gives the shapes of symbols that are arrays (see ``expand_arrays``).
+    For an explicit array, the dimension of each entry, as (nested) lists.
 
     Dimensions map base units to exponents (integers, or ``Fraction`` for
     roots); ``{}`` is dimensionless. Raises
@@ -284,20 +281,14 @@ def dimensions(
     >>> dimensions(D(D(x)), units, time={"s": 1})
     {'m': 1, 's': -2}
     """
-    normalized = {
-        Symbol(k) if isinstance(k, str) else k: normalize(v) for k, v in units.items()
-    }
-    shapes = {
-        Symbol(k) if isinstance(k, str) else k: v for k, v in (shapes or {}).items()
-    }
-    expr = expand_arrays(expr, shapes)
+    normalized = {k: normalize(v) for k, v in units.items()}
+    expr = expand_arrays(expr)
 
     def dimension(expr: Expr, /) -> Exponents:
         _, dim = cata(
             dimensions_algebra,
             expr,
             units=normalized,
-            shapes=shapes,
             time=None if time is None else normalize(time),
         )
         return {k: int(v) if v.denominator == 1 else v for k, v in dim.items()}

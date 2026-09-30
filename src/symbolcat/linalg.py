@@ -17,6 +17,13 @@ matrix([[x, 1], [0, y]])
 >>> linalg.to_list(m)
 [[Symbol('x'), Literal(1)], [Literal(0), Symbol('y')]]
 
+A symbol can also be an array, with unknown entries, by declaring its kind:
+
+>>> from symbolcat.kinds import Matrix
+>>> A = Symbol("A", kind=Matrix(2, 2))
+>>> (A @ m).kind
+Matrix(2, 2)
+
 Arrays follow NumPy: operators (except ``@``) and ``real`` functions apply
 entrywise, broadcasting scalars, and ``@`` is the matrix product, which is
 the dot product for two vectors. ``symbolcat.ops.transform.expand_arrays`` computes
@@ -40,6 +47,8 @@ from typing import Any
 from . import complex as _complex
 from . import real as _real
 from ._core import Call, Expr, Function, Operator
+from ._core.infer import kind_algebra
+from ._core.kinds import Kind, Matrix, Real, Scalar, Vector, array_kind, join
 from .lib import operators as _op
 
 
@@ -105,8 +114,18 @@ def zeros(shape: int | tuple[int, ...], /) -> Call[Expr]:
     >>> print(zeros((2, 1)))
     matrix([[0], [0]])
     """
+    return full(shape, 0)
+
+
+def full(shape: int | tuple[int, ...], value: Any, /) -> Call[Expr]:
+    """An array with every entry equal to ``value``.
+
+    >>> from symbolcat import Symbol
+    >>> print(full(2, Symbol("x")))
+    vector([x, x])
+    """
     shape = (shape,) if isinstance(shape, int) else shape
-    return array(shape)(*[0] * math.prod(shape))
+    return array(shape)(*[value] * math.prod(shape))
 
 
 def nest[T](shape: tuple[int, ...], entries: Sequence[T], /) -> list[Any]:
@@ -150,3 +169,77 @@ ENTRYWISE: frozenset[Function] = frozenset(
         *(f for f in vars(_complex).values() if isinstance(f, Function)),
     ]
 )
+
+
+# Kinds
+
+
+@kind_algebra.register(Array)
+def _(node: Call[Kind]) -> Kind:
+    assert isinstance(node.func, Array)
+    for kind in node.args:
+        if kind.shape:
+            raise ValueError(f"array entries must be scalars, got shape {kind.shape}")
+    elements = [kind.element for kind in node.args]
+    return array_kind(node.func.shape, join(*elements) if elements else Real())
+
+
+def _array(node: Call[Kind], /) -> Kind:
+    """The single argument, which must be a vector or a matrix."""
+    (kind,) = node.args
+    if not kind.shape:
+        raise ValueError(f"{node.func.name} needs a vector or a matrix, got a scalar")
+    return kind
+
+
+def _square(node: Call[Kind], /) -> Matrix:
+    """The single argument, which must be a square matrix."""
+    (kind,) = node.args
+    match kind.shape:
+        case (rows, cols) if rows == cols:
+            assert isinstance(kind, Matrix)
+            return kind
+    raise ValueError(f"{node.func.name} needs a square matrix, got shape {kind.shape}")
+
+
+def _numeric(kind: Scalar, /) -> Scalar:
+    return join(Real(), kind)
+
+
+@kind_algebra.register(transpose)
+def _(node: Call[Kind]) -> Kind:
+    """Reverses the axes: a vector is its own transpose, as in NumPy."""
+    kind = _array(node)
+    return array_kind(tuple(reversed(kind.shape)), kind.element)
+
+
+@kind_algebra.register(trace, det)
+def _(node: Call[Kind]) -> Kind:
+    return _numeric(_square(node).element)
+
+
+@kind_algebra.register(inv)
+def _(node: Call[Kind]) -> Kind:
+    kind = _square(node)
+    return Matrix(kind.rows, kind.cols, _numeric(kind.element))
+
+
+@kind_algebra.register(norm)
+def _(node: Call[Kind]) -> Kind:
+    _array(node)
+    return Real()
+
+
+@kind_algebra.register(sum)
+def _(node: Call[Kind]) -> Kind:
+    return _numeric(_array(node).element)
+
+
+@kind_algebra.register(cross)
+def _(node: Call[Kind]) -> Kind:
+    a, b = node.args
+    if a.shape != (3,) or b.shape != (3,):
+        raise ValueError(
+            f"cross needs two vectors of length 3, got {a.shape} and {b.shape}"
+        )
+    return Vector(3, join(Real(), a.element, b.element))

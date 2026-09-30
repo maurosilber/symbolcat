@@ -29,7 +29,7 @@ from ..._core import (
 from ..._core.precedence import POSTFIX, POW
 from ...lib import operators as op
 from ...linalg import Array, nest
-from ._base import Printed, Side, literal_precedence, needs_parens, result_ndim
+from ._base import Printed, Side, literal_precedence, needs_parens, with_ndim
 
 GREEK = {
     name: chr(code)
@@ -194,7 +194,7 @@ def _(node: Call[Printed]) -> Printed:
     args = mo(",").join(arg.text for arg in node.args)
     # U+2061 is the invisible "function application" operator
     text = mrow(f"<mi>{name}</mi>", mo("⁡"), paren(mrow(args)))
-    return Printed(text, ndim=result_ndim(node.func, node.args))
+    return Printed(text)
 
 
 @mathml_algebra.register(Array)
@@ -207,28 +207,28 @@ def _(node: Call[Printed]) -> Printed:
         "<mtr>" + "".join(f"<mtd>{entry}</mtd>" for entry in row) + "</mtr>"
         for row in rows
     )
-    return Printed(paren(f"<mtable>{table}</mtable>"), ndim=len(node.func.shape))
+    return Printed(paren(f"<mtable>{table}</mtable>"))
 
 
 @mathml_algebra.register(*ENCLOSING)
 def _(node: Call[Printed]) -> Printed:
     (arg,) = node.args
     text = paren(arg.text, *ENCLOSING[node.func])
-    return Printed(text, ndim=result_ndim(node.func, node.args))
+    return Printed(text)
 
 
 @mathml_algebra.register(*SUPERSCRIPT)
 def _(node: Call[Printed]) -> Printed:
     (arg,) = node.args
     text = f"<msup>{operand(arg, op.pow, 'left')}{SUPERSCRIPT[node.func]}</msup>"
-    return Printed(text, POW, arg.ndim)
+    return Printed(text, POW)
 
 
 @mathml_algebra.register(linalg.cross)
 def _(node: Call[Printed]) -> Printed:
     a, b = node.args
     text = mrow(operand(a, op.mul, "left"), mo("×"), operand(b, op.mul, "right"))
-    return Printed(text, op.mul.precedence, ndim=1)
+    return Printed(text, op.mul.precedence)
 
 
 @mathml_algebra.register(cx.conj)
@@ -281,14 +281,14 @@ def _(node: Call[Printed]) -> Printed:
     if func is op.mul and left.ndim and right.ndim:
         symbol = "⊙"  # entrywise product of arrays
     text = mrow(operand(left, func, "left"), mo(symbol), operand(right, func, "right"))
-    return Printed(text, func.precedence, result_ndim(func, node.args))
+    return Printed(text, func.precedence)
 
 
 @mathml_algebra.register(op.truediv)
 def _(node: Call[Printed]) -> Printed:
     num, den = node.args
     text = f"<mfrac>{num.text}{den.text}</mfrac>"
-    return Printed(text, ndim=result_ndim(op.truediv, node.args))
+    return Printed(text)
 
 
 @mathml_algebra.register(op.floordiv)
@@ -301,7 +301,7 @@ def _(node: Call[Printed]) -> Printed:
 def _(node: Call[Printed]) -> Printed:
     base, exponent = node.args
     text = f"<msup>{operand(base, op.pow, 'left')}{exponent.text}</msup>"
-    return Printed(text, POW, result_ndim(op.pow, node.args))
+    return Printed(text, POW)
 
 
 @mathml_algebra.register(op.getitem)
@@ -323,5 +323,5 @@ def to_mathml(expr: Any, /, *, display: bool = False) -> str:
     <math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><msqrt><mi>x</mi></msqrt><mn>2</mn></mfrac></math>
     """
     attributes = ' display="block"' if display else ""
-    body = cata(mathml_algebra, expr).text
+    body = cata(with_ndim(mathml_algebra), expr).text
     return f'<math xmlns="http://www.w3.org/1998/Math/MathML"{attributes}>{body}</math>'

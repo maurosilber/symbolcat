@@ -18,6 +18,10 @@ from .expr import Call, Expr
 def fmap(node: Any, f: Callable[[Any], Any], /) -> Any:
     """Apply ``f`` to the direct children, keeping the node shape.
 
+    When the new children are expressions, the result is a new node, and its
+    kind is inferred again. Otherwise, it is a layer, which keeps the kind of
+    ``node``.
+
     >>> from symbolcat import Symbol
     >>> x, y = Symbol("x"), Symbol("y")
     >>> fmap(x + y, lambda child: child.name)
@@ -33,4 +37,7 @@ def _(node: Expr, f: Callable[[Any], Any]) -> Expr:
 
 @fmap.register(Call)
 def _[T, S](node: Call[T], f: Callable[[T], S]) -> Call[S]:
-    return Call(node.func, tuple(map(f, node.args)))
+    args = tuple(map(f, node.args))
+    if all(isinstance(arg, Expr) for arg in args):
+        return Call(node.func, args)
+    return Call(node.func, args, node.kind)

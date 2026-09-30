@@ -13,7 +13,7 @@ Complex functions and numbers are not supported.
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Any
 
 from ... import complex as cx
@@ -157,7 +157,6 @@ def to_c(
     *,
     args: Sequence[Symbol] | None = None,
     name: str = "f",
-    shapes: Mapping[Any, Any] | None = None,
 ) -> str:
     """Source of a C function computing ``expr`` from double arguments.
 
@@ -185,7 +184,7 @@ def to_c(
         return v[1] * x;
     }
     """
-    expr = expand_arrays(expr, shapes)
+    expr = expand_arrays(expr)
     if args is None:
         args = free_symbols(expr)
     params = [name_of(arg) for arg in args]

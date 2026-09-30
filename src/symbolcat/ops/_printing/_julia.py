@@ -16,7 +16,7 @@ branch.
 from __future__ import annotations
 
 import math
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from typing import Any
 
 from ... import complex as cx
@@ -141,7 +141,6 @@ def to_julia(
     *,
     args: Sequence[Symbol] | None = None,
     name: str = "f",
-    shapes: Mapping[Any, Any] | None = None,
 ) -> str:
     """Source of a Julia function computing ``expr``.
 
@@ -158,7 +157,7 @@ def to_julia(
         return v[1] * x ^ (-1)
     end
     """
-    expr = expand_arrays(expr, shapes)
+    expr = expand_arrays(expr)
     if args is None:
         args = free_symbols(expr)
     params = [name_of(arg) for arg in args]

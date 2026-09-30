@@ -26,6 +26,10 @@ expression from a seed, and ``hylo`` folds the layers as they are unfolded.
 
 The other node types are ``symbolcat.Symbol``, and ``symbolcat.lib.Function``
 and ``symbolcat.lib.Constant``.
+
+``kind_algebra`` gives the kind of a call (``symbolcat.kinds``) from the
+kinds of its arguments. ``entrywise(element)`` builds a rule for a function
+applied entry by entry, broadcasting scalars.
 """
 
 from ..._core import (
@@ -43,6 +47,7 @@ from ..._core import (
     hylo,
     name_of,
 )
+from ..._core.infer import entrywise, kind_algebra
 from .._printing._base import Printed
 from . import builtin
 
@@ -59,7 +64,9 @@ __all__ = [
     "builtin",
     "cata",
     "children",
+    "entrywise",
     "fmap",
     "hylo",
+    "kind_algebra",
     "name_of",
 ]

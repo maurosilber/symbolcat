@@ -129,13 +129,27 @@ def _(args, dargs):
     return a**b * (db * log(a) + b * da / a)
 
 
+def is_zero_array(value: Expr, derivative: Expr, /) -> bool:
+    """Whether ``derivative`` stands for a zero array of the shape of
+    ``value``: a scalar derivative of an array is always zero (from the
+    literal 0 of a constant array), broadcast over its entries."""
+    return derivative.kind.shape != value.kind.shape
+
+
+def linear(func: Callable[..., Expr], *pairs: Dual) -> Expr:
+    """``func`` of the second items, linear in each: zero if one of them
+    is a zero array (see ``is_zero_array``)."""
+    if any(is_zero_array(value, d) for value, d in pairs):
+        return ZERO
+    return func(*(d for _, d in pairs))
+
+
 @diff_algebra.register(Array, linalg.transpose, linalg.trace, linalg.sum)
 def _(node: Call[Dual], *, seed: Seed) -> Dual:
     """Linear functions: the derivative is the function of the derivatives.
     Arrays are differentiated entrywise."""
     values = tuple(value for value, _ in node.args)
-    derivatives = tuple(d for _, d in node.args)
-    return node.func(*values), node.func(*derivatives)
+    return node.func(*values), linear(node.func, *node.args)
 
 
 @rule(real.ifelse)
@@ -161,19 +175,19 @@ def _(args, dargs):
 @rule(op.matmul)
 def _(args, dargs):
     (a, b), (da, db) = args, dargs
-    return da @ b + a @ db
+    return linear(lambda d: d @ b, (a, da)) + linear(lambda d: a @ d, (b, db))
 
 
 @rule(linalg.det)
 def _(args, dargs):
     ((a,), (da,)) = args, dargs
-    return linalg.det(a) * linalg.trace(linalg.inv(a) @ da)
+    return linear(lambda d: linalg.det(a) * linalg.trace(linalg.inv(a) @ d), (a, da))
 
 
 @rule(linalg.inv)
 def _(args, dargs):
     ((a,), (da,)) = args, dargs
-    return -(linalg.inv(a) @ da @ linalg.inv(a))
+    return linear(lambda d: -(linalg.inv(a) @ d @ linalg.inv(a)), (a, da))
 
 
 @rule(linalg.norm)
@@ -185,7 +199,10 @@ def _(args, dargs):
 @rule(linalg.cross)
 def _(args, dargs):
     (a, b), (da, db) = args, dargs
-    return linalg.cross(da, b) + linalg.cross(a, db)
+    cross = linalg.cross
+    return linear(lambda d: cross(d, b), (a, da)) + linear(
+        lambda d: cross(a, d), (b, db)
+    )
 
 
 def chain(outer: Callable[[Expr], Expr], /) -> Rule:

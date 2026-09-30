@@ -18,6 +18,7 @@ teach an operation about a new function:
 \\operatorname{sinc}\\left(x\\right)
 """
 
+from ..._core.infer import kind_algebra
 from .._analysis._dimensions import dimensions_algebra
 from .._analysis._inspect import free_symbols_algebra
 from .._analysis._polynomial import coefficients_algebra
@@ -39,6 +40,7 @@ __all__ = [
     "dimensions_algebra",
     "evaluate_algebra",
     "free_symbols_algebra",
+    "kind_algebra",
     "latex_algebra",
     "mathml_algebra",
     "reverse_algebra",

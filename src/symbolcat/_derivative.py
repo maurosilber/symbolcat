@@ -29,10 +29,27 @@ from typing import Any, TypeGuard
 
 from ._core import Call, Expr, Symbol
 from ._core.expr import Function
+from ._core.infer import kind_algebra
+from ._core.kinds import Kind, Real, array_kind, join
 
 D = Function("D", arity=1)
 delay = Function("delay", arity=2)
 partial = Function("partial", arity=2)
+
+
+@kind_algebra.register(D, delay, partial)
+def _(node: Call[Kind]) -> Kind:
+    """The kind of the first argument; the time delay and the spatial
+    coordinate are scalars."""
+    value, *rest = node.args
+    for kind in rest:
+        if kind.shape:
+            raise ValueError(
+                f"{node.func.name} needs a scalar second argument, "
+                f"got shape {kind.shape}"
+            )
+    return array_kind(value.shape, join(Real(), value.element))
+
 
 type Variable = Symbol | Call[Expr]
 """A symbol or a time derivative of one (see ``is_variable``)."""

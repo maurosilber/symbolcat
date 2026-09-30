@@ -13,7 +13,7 @@ function ``diff`` knows gets a series for free.
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from math import factorial
 from typing import Any
 
@@ -316,13 +316,12 @@ def series(
     *,
     at: Any = 0,
     order: int = 6,
-    shapes: Mapping[Any, Any] | None = None,
 ) -> Expr:
     """Taylor polynomial of ``expr`` in ``var`` around ``at``.
 
-    Terms of degree below ``order`` are kept. Operations on arrays are first
-    computed entry by entry (see ``expand_arrays``, which takes ``shapes``),
-    and an array gets the series of each entry.
+    Terms of degree below ``order`` are kept. Operations on explicit arrays
+    are first computed entry by entry (see ``expand_arrays``), and an array
+    gets the series of each entry.
 
     >>> from symbolcat import Symbol, real
     >>> x = Symbol("x")
@@ -336,7 +335,7 @@ def series(
     >>> print(series(real.exp(vector([x, -x])), x, order=3))
     vector([1 + x + x ** 2 / 2, 1 - x + x ** 2 / 2])
     """
-    expr = expand_arrays(expr, shapes)
+    expr = expand_arrays(expr)
     if isinstance(expr, Call) and (items := entries(expr)) is not None:
         return expr.func(*(series(e, var, at=at, order=order) for e in items))
     at = as_expr(at)

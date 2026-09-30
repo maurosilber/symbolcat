@@ -28,7 +28,7 @@ real argument, only its real part is kept.
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Sequence
 from itertools import product
 from typing import Any
 
@@ -43,13 +43,14 @@ from ..._core import (
     Symbol,
     as_expr,
     children,
-    fmap,
     name_of,
 )
+from ..._core.infer import kind_algebra
+from ..._core.kinds import Kind
 from ...lib import operators as op
 from ...linalg import Array, array, identity, matrix, transpose, vector
-from .._analysis._inspect import complex_algebra, free_symbols, is_complex
-from .._transform._arrays import Shape, _shapes, arrays_algebra, entries
+from .._analysis._inspect import free_symbols, is_complex
+from .._transform._arrays import Shape, entries
 from .._transform._share import share
 from .._transform._simplify import simplify_naive
 
@@ -334,20 +335,22 @@ def _postorder(expr: Expr, /) -> list[Expr]:
 _pack = Function("pack")  # groups the results, to simplify them together
 
 
+@kind_algebra.register(_pack)
+def _(node: Call[Kind]) -> Kind:
+    return Kind()  # a group, not a value
+
+
 def vjp(
     expr: Any,
     vars: Sequence[Symbol],
     cotangent: Any = 1,
     /,
-    *,
-    shapes: Mapping[Any, Any] | None = None,
 ) -> tuple[Expr, ...]:
     """Vector-Jacobian product: the derivative of ``expr`` with respect to
     each of ``vars``, weighted by ``cotangent``, in one backward pass.
 
-    ``cotangent`` has the shape of ``expr``. Symbols are scalars, unless
-    ``shapes`` maps them (or their names) to a shape. A variable can be an
-    array, and its derivative then has its shape.
+    ``cotangent`` has the shape of ``expr``. A variable can be a symbol of an
+    array kind, and its derivative then has its shape.
 
     >>> from symbolcat import Symbol, real
     >>> x, y = Symbol("x"), Symbol("y")
@@ -361,19 +364,13 @@ def vjp(
             raise TypeError(
                 f"vjp: can only differentiate with respect to a Symbol, not {var}"
             )
-    symbol_shapes = _shapes(shapes)
     expr = share(expr)
     order = _postorder(expr)
 
-    # Forward pass: shapes, and the nodes that depend on a variable.
+    # Forward pass: the nodes that depend on a variable.
     targets = set(vars)
-    shape_of: dict[int, Shape] = {}
-    is_complex: dict[int, bool] = {}
     active: set[int] = set()
     for node in order:
-        layer = fmap(node, lambda c: (c, shape_of[id(c)]))
-        _, shape_of[id(node)] = arrays_algebra(layer, shapes=symbol_shapes)
-        is_complex[id(node)] = complex_algebra(fmap(node, lambda c: is_complex[id(c)]))
         if (isinstance(node, Symbol) and node in targets) or any(
             id(c) in active for c in children(node)
         ):
@@ -389,8 +386,8 @@ def vjp(
         g = adjoint.get(id(node))
         if g is None or not isinstance(node, Call):
             continue
-        arg_shapes = tuple(shape_of[id(arg)] for arg in node.args)
-        shape = shape_of[id(node)]
+        arg_shapes = tuple(arg.kind.shape for arg in node.args)
+        shape = node.kind.shape
         pullback = reverse_algebra.handler_for(node)
         cotangents = pullback(node, g=g, shapes=arg_shapes, shape=shape)
         for i, (arg, s, c) in enumerate(
@@ -405,10 +402,10 @@ def vjp(
                 )
             if node.func in linalg.ENTRYWISE:
                 c = unbroadcast(c, s, shape)
-            if not is_complex[id(arg)]:
+            if not is_complex(arg):
                 if node.func is cx.im or node.func is cx.phase:
                     continue  # constant on the reals
-                if is_complex[id(node)]:
+                if is_complex(node):
                     c = cx.re(c)
             previous = adjoint.get(id(arg))
             adjoint[id(arg)] = c if previous is None else previous + c
@@ -427,8 +424,6 @@ def reverse_gradient(
     expr: Any,
     vars: Sequence[Symbol] | None = None,
     /,
-    *,
-    shapes: Mapping[Any, Any] | None = None,
 ) -> Call[Expr]:
     """Gradient of a scalar ``expr`` with respect to each of the scalar
     ``vars``, in one backward pass. Equal to ``gradient``.
@@ -442,4 +437,4 @@ def reverse_gradient(
     """
     if vars is None:
         vars = free_symbols(expr)
-    return vector(vjp(expr, vars, shapes=shapes))
+    return vector(vjp(expr, vars))

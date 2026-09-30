@@ -21,6 +21,8 @@ x + 3 * sin(y)
 The top level only has what you need to build expressions and act on them:
 
 - `Symbol`: a symbol; combine symbols with Python operators.
+- `kinds`: what the value of an expression is (`Real`, `Complex`,
+  `Boolean`, `Vector(n)`, `Matrix(rows, cols)`), to declare symbols.
 - `D`: the time derivative of a symbol, `D(x)`, an unknown of its own.
   `delay(x, tau)` and `partial(u, x)` build delay and partial differential
   equations.
@@ -96,12 +98,51 @@ collects those rules in a registry:
 
 ```
 
-A handler can be registered for three kinds of keys. When several match, the
+A handler can be registered for three types of keys. When several match, the
 most specific one wins:
 
 - a specific function, such as `operators.add` or `real.sin`;
-- a kind of function, such as `Function` or `Operator`;
+- a class of functions, such as `Function` or `Operator`;
 - a node type, such as `Symbol`, `Constant`, `Literal` or `Call`.
+
+Any of them can be restricted to nodes of a kind (see below), with
+`register(key, kind=Matrix)`.
+
+## Kinds
+
+Every expression has a `kind`: `Boolean`, `Real` or `Complex` for scalars,
+and `Vector(n)` or `Matrix(rows, cols)` for arrays. Symbols are real unless
+declared otherwise, and the kind of a call follows from its function and the
+kinds of its arguments:
+
+```python
+>>> from symbolcat.kinds import Matrix, Vector
+>>> A = Symbol("A", kind=Matrix(2, 3))
+>>> v = Symbol("v", kind=Vector(3))
+>>> (A @ v).kind, (x < 1).kind
+(Vector(2), Boolean())
+
+```
+
+A call gets its kind when it is built, so an invalid expression is an error
+where it is written, not when it is later evaluated:
+
+```python
+>>> real.sin(v) + A @ v
+Traceback (most recent call last):
+...
+ValueError: add of incompatible shapes: (3,), (2,)
+>>> from symbolcat import complex
+>>> real.log(complex.constants.I)
+Traceback (most recent call last):
+...
+TypeError: log needs real arguments, got a complex one
+
+```
+
+Inferring a kind is one more algebra, `kind_algebra`, applied to one layer
+when a call is built: `expr.kind` is `cata(kind_algebra, expr)`, computed
+incrementally.
 
 ## Operations
 
@@ -223,14 +264,16 @@ x * y - 1 * 0
 So do `to_python` (arrays become lists, or `array=` calls), `series` and
 `dimensions` (per entry), and the e-graph, which also knows matrix identities
 like `transpose(a @ b) == transpose(b) @ transpose(a)`.
-Symbols are scalars, unless given a shape. Operations on symbols with an
-array shape are kept, and computed by the backend:
+Symbols are real scalars, unless declared with another kind (see
+[Kinds](#kinds)). Operations on symbols of an array kind are kept, and
+computed by the backend:
 
 ```python
->>> A = Symbol("A")
->>> shape(linalg.transpose(A) @ A, {A: (3, 2)})
+>>> from symbolcat.kinds import Matrix
+>>> A = Symbol("A", kind=Matrix(3, 2))
+>>> shape(linalg.transpose(A) @ A)
 (2, 2)
->>> B = Symbol("B")
+>>> A, B = Symbol("A", kind=Matrix(2, 2)), Symbol("B", kind=Matrix(2, 2))
 >>> print(diff(linalg.det(A + x * B), x))
 det(A + x * B) * trace(inv(A + x * B) @ B)
 
@@ -341,7 +384,24 @@ the round trip.
 
 ## Extending
 
-A new function only needs rules in the algebras that should support it:
+A new function only needs rules in the algebras that should support it.
+By default, a function takes scalars and returns a real; a rule in
+`kind_algebra` gives it another kind:
+
+```python
+>>> from symbolcat.ops.algebras import kind_algebra
+>>> outer = Function("outer", arity=2)
+>>> @kind_algebra.register(outer)
+... def _(node):
+...     a, b = node.args  # the kinds of the arguments
+...     return Matrix(a.n, b.n)
+>>> u, w = Symbol("u", kind=Vector(3)), Symbol("w", kind=Vector(2))
+>>> outer(u, w).kind
+Matrix(3, 2)
+
+```
+
+The other algebras are extended in the same way:
 
 ```python
 >>> from symbolcat.ops.algebras import Printed

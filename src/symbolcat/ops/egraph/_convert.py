@@ -76,9 +76,11 @@ CONSTANTS_BACK = {get_callable_fn(v): k for k, v in CONSTANTS.items()}
 
 @dataclass
 class Table:
-    """Objects that egglog cannot represent, referenced by index."""
+    """Objects that egglog cannot represent, referenced by index, and the
+    symbols by name (egglog keeps only their names, not their kinds)."""
 
     items: list[Any] = field(default_factory=list)
+    symbols: dict[str, Symbol] = field(default_factory=dict)
     _index: dict[int, int] = field(default_factory=dict)
 
     def index(self, obj: Any, /) -> int:
@@ -97,7 +99,10 @@ to_egglog_algebra = Algebra[Num]("to_egglog")
 
 @to_egglog_algebra.register(Symbol)
 def _(node: Symbol, *, table: Table) -> Num:
-    return Num.var(name_of(node))
+    name = name_of(node)
+    if table.symbols.setdefault(name, node) != node:
+        raise ValueError(f"egraph: symbols named {name!r} of different kinds")
+    return Num.var(name)
 
 
 @to_egglog_algebra.register(Constant)
@@ -150,7 +155,7 @@ def from_egglog(num: Num, table: Table, /) -> Expr:
         if (floating := get_callable_args(num, Num.float)) is not None:
             return Literal(cast("f64", floating[0]).value)
         if (name := get_callable_args(num, Num.var)) is not None:
-            return Symbol(cast("String", name[0]).value)
+            return table.symbols[cast("String", name[0]).value]
         if (index := get_callable_args(num, Num.opaque)) is not None:
             return Done(table[cast("i64", index[0]).value])
         if (call := get_callable_args(num, Num.apply)) is not None:

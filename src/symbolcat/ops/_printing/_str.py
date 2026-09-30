@@ -49,9 +49,9 @@ def _(node: Call[Printed]) -> Printed:
     assert isinstance(node.func, Array)
     rows = nest(node.func.shape, [arg.text for arg in node.args])
     if len(node.func.shape) == 1:
-        return Printed(f"vector([{', '.join(rows)}])", ndim=1)
+        return Printed(f"vector([{', '.join(rows)}])")
     text = ", ".join(f"[{', '.join(row)}]" for row in rows)
-    return Printed(f"matrix([{text}])", ndim=2)
+    return Printed(f"matrix([{text}])")
 
 
 @str_algebra.register(Operator)

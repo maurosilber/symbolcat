@@ -471,9 +471,12 @@ def test_complex(expr, expected):
 
 
 def test_complex_is_not_real():
-    """I ** 2 is not nonnegative: abs(I * I) is 1, not I * I."""
-    assert simplify(real.abs(I * I)) == Literal(1)
-    assert evaluate(simplify(real.sqrt(-(I**2)))) == 1
+    """I ** 2 is not nonnegative: real functions reject it, and the complex
+    ones are kept apart from the real rules."""
+    with pytest.raises(TypeError, match="abs needs real arguments"):
+        real.abs(I * I)
+    assert evaluate(simplify(complex.abs(I * I))) == 1
+    assert evaluate(simplify(complex.sqrt(-(I**2)))) == 1
 
 
 def test_complex_is_hidden_from_real_rules():

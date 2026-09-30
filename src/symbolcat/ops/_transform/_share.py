@@ -87,7 +87,7 @@ def cse(expr: Any, /, *, prefix: str = "_") -> tuple[list[tuple[Symbol, Expr]], 
         original = cache[fmap(layer, lambda pair: pair[0])]
         reduced = fmap(layer, lambda pair: pair[1])
         if isinstance(original, Call) and uses[id(original)] > 1:
-            temporary = Symbol(next(names))
+            temporary = Symbol(next(names), kind=reduced.kind)
             assignments.append((temporary, reduced))
             reduced = temporary
         return original, reduced

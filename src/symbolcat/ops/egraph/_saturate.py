@@ -17,7 +17,7 @@ is returned.
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Mapping
+from collections.abc import Iterable
 from dataclasses import dataclass
 from functools import cache
 from itertools import count
@@ -27,7 +27,7 @@ from typing import Any, Literal
 from egglog import DagCostModel, EGraph, Schedule, back_off, eq, run, seq
 
 from ..._core import Call, Constant, Expr, cata
-from .._analysis._inspect import complex_algebra, count_nodes
+from .._analysis._inspect import count_nodes, is_complex
 from .._transform._arrays import expand_arrays
 from .._transform._complex import join, real_imag, uses_complex
 from .._transform._simplify import simplify_algebra
@@ -179,42 +179,29 @@ def search(
     return Search(egraph, root, table)
 
 
-type Hidden = tuple[Expr, bool]
-
-
 def hide_complex(expr: Expr, /) -> tuple[Expr, dict[Constant, Expr]]:
     """``expr`` with its largest complex sub-expressions replaced by
     placeholder constants, and the mapping back to them."""
     placeholders: dict[Constant, Expr] = {}
 
     def hide(node: Expr, /) -> Expr:
-        placeholder = Constant(f"_complex{len(placeholders)}")
+        placeholder = Constant(f"_complex{len(placeholders)}", kind=node.kind)
         placeholders[placeholder] = node
         return placeholder
 
-    def algebra(layer: Any, /) -> Hidden:
-        if not isinstance(layer, Call):
-            return layer, complex_algebra(layer)
-        node = layer.func(*(value for value, _ in layer.args))
-        is_complex = complex_algebra(fmap_flags(layer))
-        if is_complex:
-            return node, True
-        args = [hide(value) if flag else value for value, flag in layer.args]
-        return layer.func(*args), False
+    def algebra(layer: Expr, /) -> Expr:
+        # A complex node is kept whole, to be hidden by its real parent.
+        if not isinstance(layer, Call) or is_complex(layer):
+            return layer
+        return layer.func(*(hide(a) if is_complex(a) else a for a in layer.args))
 
-    result, is_complex = cata(algebra, expr)
-    return (hide(result) if is_complex else result), placeholders
-
-
-def fmap_flags(layer: Call[Hidden], /) -> Call[bool]:
-    return Call(layer.func, tuple(flag for _, flag in layer.args))
+    result = cata(algebra, expr)
+    return (hide(result) if is_complex(result) else result), placeholders
 
 
 def saturate(
     expr: Any,
     /,
-    *,
-    shapes: Mapping[Any, Any] | None,
     **options: Any,
 ) -> Expr:
     """Search, and extract the cheapest expression.
@@ -222,7 +209,7 @@ def saturate(
     Operations on explicit arrays are first computed entry by entry.
     An undefined input is returned unchanged (with arrays expanded).
     """
-    expr = expand_arrays(expr, shapes)
+    expr = expand_arrays(expr)
     kept = saturate_real(expr, **options)
     if not uses_complex(expr):
         return kept
@@ -245,7 +232,7 @@ def saturate_inside(expr: Expr, /, **options: Any) -> Expr:
         return expr
     args = [
         saturate_inside(arg, **options)
-        if cata(complex_algebra, arg)
+        if is_complex(arg)
         else saturate_real(arg, **options)
         for arg in expr.args
     ]
@@ -307,7 +294,6 @@ def simplify(
     iterations: int = 8,
     max_nodes: int = 5_000,
     match_limit: int = 1_000,
-    shapes: Mapping[Any, Any] | None = None,
 ) -> Expr:
     """The smallest equivalent expression found.
 
@@ -320,8 +306,7 @@ def simplify(
     identities may need larger limits (see the last example).
 
     Operations on explicit arrays are computed entry by entry, and each
-    entry is simplified. ``shapes`` gives the shapes of symbols that are
-    arrays (see ``expand_arrays``).
+    entry is simplified.
 
     >>> from symbolcat import Symbol, real
     >>> x, y, z = Symbol("x"), Symbol("y"), Symbol("z")
@@ -343,7 +328,6 @@ def simplify(
         match_limit=match_limit,
         cost_model=cost.size,
         extractor="tree",
-        shapes=shapes,
     )
 
 
@@ -355,12 +339,11 @@ def optimize(
     iterations: int = 8,
     max_nodes: int = 5_000,
     match_limit: int = 1_000,
-    shapes: Mapping[Any, Any] | None = None,
 ) -> Expr:
     """The cheapest equivalent expression to evaluate that was found.
 
-    ``assume``, ``iterations``, ``max_nodes``, ``match_limit`` and
-    ``shapes`` are as in ``simplify``.
+    ``assume``, ``iterations``, ``max_nodes`` and ``match_limit`` are as in
+    ``simplify``.
 
     Uses DAG extraction: repeated sub-expressions are returned as the same
     object, so ``cata`` (and therefore ``evaluate``) computes them once.
@@ -382,5 +365,4 @@ def optimize(
         match_limit=match_limit,
         cost_model=cost.evaluation,
         extractor="greedy-dag",
-        shapes=shapes,
     )
