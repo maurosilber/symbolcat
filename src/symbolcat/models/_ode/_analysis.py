@@ -147,7 +147,7 @@ def transfer_function(lin: Linearization, s: Symbol, /) -> Call[Expr]:
         )
     A, B, C, D = map(to_list, (lin.A, lin.B, lin.C, lin.D))
     n, m = len(A), len(B[0])
-    unknowns = [Symbol(f"__tf_{i}") for i in range(n)]
+    unknowns = [Symbol() for _ in range(n)]
     # (s I - A) X = B, one column of B at a time
     columns = []
     for j in range(m):

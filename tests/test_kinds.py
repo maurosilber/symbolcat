@@ -31,11 +31,9 @@ def test_leaves():
     assert Literal(1j).kind == Complex()
 
 
-def test_symbols_compare_by_name_and_kind():
-    assert Symbol("v", kind=Vector(3)) == v
-    assert Symbol("v") != v
-    assert Symbol("v", kind=Vector(2)) != v
-    assert hash(Symbol("v", kind=Vector(3))) == hash(v)
+def test_symbols_compare_by_identity():
+    assert {v: 1}[v] == 1
+    assert Symbol("v", kind=Vector(3)) != v
 
 
 def test_repr():
@@ -139,7 +137,10 @@ def test_pickle_keeps_kinds():
     expr = linalg.transpose(A) @ A
     loaded = pickle.loads(pickle.dumps(expr))
     assert loaded.kind == Matrix(3, 3)
-    assert args_of(loaded)[1] == A
+    (transposed,), loaded_A = args_of(args_of(loaded)[0]), args_of(loaded)[1]
+    # a new symbol, shared within the loaded expression
+    assert loaded_A != A and loaded_A.kind == A.kind
+    assert transposed is loaded_A
 
 
 # algebras

@@ -36,7 +36,8 @@ def test_operators_build_calls():
 
 
 def test_structural_equality_and_hash():
-    assert x + y == Symbol("x") + Symbol("y")
+    assert x + y == x + y
+    assert x + y != Symbol("x") + Symbol("y")
     assert x + y != y + x
     assert {x + 1: "a"}[x + 1] == "a"
 

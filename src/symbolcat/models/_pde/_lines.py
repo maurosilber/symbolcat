@@ -26,7 +26,7 @@ from ...ops._transform._simplify import simplify_exact
 from ...ops._transform._substitute import substitute_variables
 
 
-def grid_symbol(u: Symbol, i: int, /) -> Symbol:
+def _grid_symbol(u: Symbol, i: int, /) -> Symbol:
     """The unknown ``u`` at the grid point ``i``: ``u_3``."""
     return Symbol(f"{name_of(u)}_{i}")
 
@@ -67,7 +67,7 @@ def method_of_lines(
     h = simplify_exact((b - a) / (n - 1))
     inv_h = simplify_exact(1 / h)
     inv_h2 = simplify_exact(inv_h**2)
-    grid = {u: [grid_symbol(u, i) for i in range(n)] for u in unknowns}
+    grid = {u: [_grid_symbol(u, i) for i in range(n)] for u in unknowns}
 
     def at(i: int, first: str, /) -> dict[Expr, Expr]:
         """The replacements at grid point ``i``, with ``first`` differences

@@ -51,8 +51,8 @@ def test_ode_checks_states():
 
 def test_to_first_order():
     ode = to_first_order(ODE({x: D(x), D(x): D(D(x)), D(D(x)): -x}))
-    x_t, x_tt = Symbol("x_t"), Symbol("x_tt")
-    assert ode.states == (x, x_t, x_tt)
+    _, x_t, x_tt = ode.states
+    assert (str(x_t), str(x_tt)) == ("x_t", "x_tt")
     assert ode.rhs[x] == x_t
     assert ode.rhs[x_t] == x_tt
 
@@ -121,8 +121,8 @@ def test_observability():
 def test_sensitivities():
     """For D(x) = -k x, x = x0 exp(-k t), so dx/dk = -t x."""
     ode = sensitivities(ODE({x: -k * x}), [k])
-    s = Symbol("dx_dk")
-    assert ode.states == (x, s)
+    _, s = ode.states
+    assert ode.states == (x, s) and str(s) == "dx_dk"
     point = random_point(x, k, s)
     assert value(ode.rhs[s], point) == pytest.approx(-point[k] * point[s] - point[x])
 

@@ -23,7 +23,7 @@ from symbolcat.models.ode import (
     iterate,
     to_first_order,
 )
-from symbolcat.models.pde import grid_symbol, method_of_lines
+from symbolcat.models.pde import method_of_lines
 from symbolcat.models.stochastic import (
     SDE,
     ito_lemma,
@@ -63,7 +63,7 @@ def test_events_follow_to_first_order():
     bounce = ContinuousEvent(x, {D(x): -D(x)}, direction=-1)
     ode = to_first_order(ODE({x: D(x), D(x): -g}, events=[bounce]))
     (event,) = ode.events
-    x_t = Symbol("x_t")
+    _, x_t = ode.states
     assert event.affect == {x_t: -x_t}
 
 
@@ -184,11 +184,12 @@ def test_method_of_lines_heat():
     heat = D(u) - k * partial(partial(u, xs), xs)
     system = method_of_lines([heat], [u], xs, (0, 1), 5, left=[u], right=[u - 1])
     assert len(system.equations) == 5
-    assert system.unknowns == tuple(grid_symbol(u, i) for i in range(5))
-    dae = structural_simplify(system.equations, [grid_symbol(u, i) for i in range(5)])
+    us = tuple(s for s in system.unknowns if isinstance(s, Symbol))
+    assert [str(s) for s in us] == [f"u_{i}" for i in range(5)]
+    dae = structural_simplify(system.equations, us)
     # the Dirichlet conditions are aliases of constants
-    assert set(dae.observed) == {grid_symbol(u, 0), grid_symbol(u, 4)}
-    assert dae.states == tuple(grid_symbol(u, i) for i in (1, 2, 3))
+    assert set(dae.observed) == {us[0], us[4]}
+    assert dae.states == us[1:4]
 
 
 def test_method_of_lines_neumann_and_coordinate():
@@ -204,7 +205,7 @@ def test_method_of_lines_neumann_and_coordinate():
         right=[u],
     )
     left, middle, _ = system.equations
-    u0, u1, u2 = (grid_symbol(u, i) for i in range(3))
+    u0, u1, u2 = system.unknowns
     assert value(left, {u0: 1.0, u1: 3.0}) == 2.0
     assert value(middle, {D(u1): 5.0, u0: 1.0, u2: 3.0}) == 5.0 - 1.0 - 1.0
 

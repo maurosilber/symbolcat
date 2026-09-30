@@ -79,10 +79,10 @@ def test_data_is_immutable():
         del x.__symbolcat__
 
 
-def test_constants_and_functions_compare_by_identity():
+def test_leaves_and_functions_compare_by_identity():
     assert Constant("c") != Constant("c")
     assert Function("f") != Function("f")
-    assert Symbol("s") == Symbol("s")
+    assert Symbol("s") != Symbol("s")
 
 
 @pytest.mark.parametrize(

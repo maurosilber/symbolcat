@@ -24,6 +24,7 @@ from typing import Any, NamedTuple
 from ..._core import Call, Expr, Symbol, ana, args_of, as_expr, cata, func_of, name_of
 from ..._core.expr import _init
 from ..._core.kinds import Kind, Real
+from .._analysis._inspect import free_symbols
 from ._substitute import substitute
 
 type Bindings = dict[str, Expr]
@@ -108,7 +109,8 @@ class Rule:
     >>> from symbolcat import real
     >>> a = Wild("a")
     >>> rule = Rule(real.sin(a) ** 2 + real.cos(a) ** 2, 1)
-    >>> print(rule(real.sin(Symbol("x")) ** 2 + real.cos(Symbol("x")) ** 2))
+    >>> x = Symbol("x")
+    >>> print(rule(real.sin(x) ** 2 + real.cos(x) ** 2))
     1
     """
 
@@ -123,8 +125,10 @@ class Rule:
         if callable(self.replacement) and not isinstance(self.replacement, Expr):
             result = self.replacement(**bindings)
             return None if result is None else as_expr(result)
+        wilds = free_symbols(self.replacement)
         return substitute(
-            self.replacement, {Wild(name): value for name, value in bindings.items()}
+            self.replacement,
+            {w: bindings[name_of(w)] for w in wilds if isinstance(w, Wild)},
         )
 
 

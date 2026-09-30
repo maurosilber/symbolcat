@@ -45,7 +45,6 @@ evaluate_algebra = Algebra[Any]("evaluate")
 def _(
     node: Symbol, *, env: Mapping[Symbol | str, Any], backend: Mapping[Any, Any]
 ) -> Any:
-    name_of(node)  # unnamed symbols would all compare equal
     if node in env:
         return env[node]
     if name_of(node) in env:  # given by name

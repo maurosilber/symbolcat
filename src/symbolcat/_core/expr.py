@@ -231,7 +231,7 @@ _REAL: Any = Real()
 
 
 class Symbol[K: Kind](_Named, Expr[K]):
-    """A user-defined named leaf. Compares by name and kind.
+    """A user-defined named leaf. Compares by identity.
 
     Symbols are real, unless another ``kind`` is given:
 
@@ -261,14 +261,6 @@ class Symbol[K: Kind](_Named, Expr[K]):
     @property
     def kind(self) -> K:
         return self.__symbolcat__.kind
-
-    def __eq__(self, other: object) -> bool:
-        if type(other) is not type(self):
-            return False
-        return self.__symbolcat__[:2] == cast(Any, other).__symbolcat__[:2]
-
-    def __hash__(self) -> int:
-        return hash(self.__symbolcat__[:2])
 
     def __repr__(self) -> str:
         name, kind = self.__symbolcat__[:2]

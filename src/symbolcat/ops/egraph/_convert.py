@@ -80,7 +80,7 @@ CONSTANTS_BACK = {get_callable_fn(v): k for k, v in CONSTANTS.items()}
 @dataclass
 class Table:
     """Objects that egglog cannot represent, referenced by index, and the
-    symbols by name (egglog keeps only their names, not their kinds)."""
+    symbols by name (egglog keeps only their names)."""
 
     items: list[Any] = field(default_factory=list)
     symbols: dict[str, Symbol] = field(default_factory=dict)
@@ -103,8 +103,8 @@ to_egglog_algebra = Algebra[Num]("to_egglog")
 @to_egglog_algebra.register(Symbol)
 def _(node: Symbol, *, table: Table) -> Num:
     name = name_of(node)
-    if table.symbols.setdefault(name, node) != node:
-        raise ValueError(f"egraph: symbols named {name!r} of different kinds")
+    if table.symbols.setdefault(name, node) is not node:
+        raise ValueError(f"egraph: different symbols named {name!r}")
     return Num.var(name)
 
 

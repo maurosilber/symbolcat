@@ -121,8 +121,8 @@ def to_first_order(ode: ODE, /) -> ODE:
     D(x) = x_t
     D(x_t) = -k * x
     """
-    taken = {s for f in ode.rhs.values() for s in free_symbols(f)} | {
-        s for s in ode.rhs if isinstance(s, Symbol)
+    taken = {name_of(s) for f in ode.rhs.values() for s in free_symbols(f)} | {
+        name_of(s) for s in ode.rhs if isinstance(s, Symbol)
     }
     names: dict[Expr, Expr] = {}
     for state in ode.rhs:
@@ -134,7 +134,7 @@ def to_first_order(ode: ODE, /) -> ODE:
             order += 1
         assert isinstance(base, Symbol)
         symbol = Symbol(f"{name_of(base)}_{'t' * order}", kind=state.kind)
-        if symbol in taken:
+        if name_of(symbol) in taken:
             raise ValueError(f"to_first_order: {name_of(symbol)} is already used")
         names[state] = symbol
     return ODE(
