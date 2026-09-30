@@ -20,7 +20,18 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from ..._core import Call, Done, Expr, Literal, Symbol, as_expr, cata, hylo
+from ..._core import (
+    Call,
+    Done,
+    Expr,
+    Literal,
+    Symbol,
+    args_of,
+    as_expr,
+    cata,
+    func_of,
+    hylo,
+)
 from ..._derivative import D, delay, is_variable
 from .._analysis._inspect import union, variables
 from .._transform._substitute import substitute
@@ -40,8 +51,8 @@ def delays(expr: Any, /) -> tuple[Call[Expr], ...]:
     # A delay is kept, and its arguments are unfolded in turn: it goes first
     # in its own layer so that it comes before the delays inside it.
     def coalgebra(node: Expr, /) -> Expr:
-        if isinstance(node, Call) and node.func is delay:
-            return Call(delay, (Done({node: None}), *node.args))
+        if isinstance(node, Call) and func_of(node) is delay:
+            return Call(delay, (Done({node: None}), *args_of(node)))
         return node
 
     return tuple(hylo(union, coalgebra, as_expr(expr)))
@@ -50,7 +61,7 @@ def delays(expr: Any, /) -> tuple[Call[Expr], ...]:
 def _base(var: Expr, /) -> Expr:
     """The symbol of a time derivative: ``x`` for ``D(D(x))``."""
     while isinstance(var, Call):
-        (var,) = var.args
+        (var,) = args_of(var)
     return var
 
 
@@ -76,7 +87,7 @@ def time_derivative(
     }
     # d/dt x(t - tau) = D(x)(t - tau), for a constant delay
     for node in delays(expr):
-        value, tau = node.args
+        value, tau = args_of(node)
         if _base(value) in unknowns:
             seed[node] = delay(D(value), tau)
     if t is not None:
@@ -102,9 +113,9 @@ def expand_derivatives(
     def algebra(layer: Expr, /) -> Expr:
         if not isinstance(layer, Call):
             return layer
-        node = Call(layer.func, layer.args)
-        if node.func is D and not is_variable(node):
-            (arg,) = node.args
+        node = Call(func_of(layer), args_of(layer))
+        if func_of(node) is D and not is_variable(node):
+            (arg,) = args_of(node)
             return time_derivative(arg, unknowns, t)
         return node
 

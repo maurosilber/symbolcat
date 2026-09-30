@@ -23,8 +23,13 @@ from ..._core import (
     Literal,
     Operator,
     Symbol,
+    args_of,
     cata,
+    fmt_of,
+    func_of,
     name_of,
+    precedence_of,
+    value_of,
 )
 from ..._core.precedence import POSTFIX, POW
 from ...lib import operators as op
@@ -185,13 +190,13 @@ def _(node: Constant) -> Printed:
 
 @mathml_algebra.register(Literal)
 def _(node: Literal) -> Printed:
-    return Printed(mathml_number(node.value), literal_precedence(node.value))
+    return Printed(mathml_number(value_of(node)), literal_precedence(value_of(node)))
 
 
 @mathml_algebra.register(Function)
 def _(node: Call[Printed]) -> Printed:
-    name = FUNCTION_NAMES.get(node.func, name_of(node.func))
-    args = mo(",").join(arg.text for arg in node.args)
+    name = FUNCTION_NAMES.get(func_of(node), name_of(func_of(node)))
+    args = mo(",").join(arg.text for arg in args_of(node))
     # U+2061 is the invisible "function application" operator
     text = mrow(f"<mi>{name}</mi>", mo("⁡"), paren(mrow(args)))
     return Printed(text)
@@ -199,9 +204,9 @@ def _(node: Call[Printed]) -> Printed:
 
 @mathml_algebra.register(Array)
 def _(node: Call[Printed]) -> Printed:
-    assert isinstance(node.func, Array)
-    rows = nest(node.func.shape, [arg.text for arg in node.args])
-    if len(node.func.shape) == 1:  # a column vector
+    assert isinstance(func_of(node), Array)
+    rows = nest(node.kind.shape, [arg.text for arg in args_of(node)])
+    if len(node.kind.shape) == 1:  # a column vector
         rows = [[entry] for entry in rows]
     table = "".join(
         "<mtr>" + "".join(f"<mtd>{entry}</mtd>" for entry in row) + "</mtr>"
@@ -212,101 +217,103 @@ def _(node: Call[Printed]) -> Printed:
 
 @mathml_algebra.register(*ENCLOSING)
 def _(node: Call[Printed]) -> Printed:
-    (arg,) = node.args
-    text = paren(arg.text, *ENCLOSING[node.func])
+    (arg,) = args_of(node)
+    text = paren(arg.text, *ENCLOSING[func_of(node)])
     return Printed(text)
 
 
 @mathml_algebra.register(*SUPERSCRIPT)
 def _(node: Call[Printed]) -> Printed:
-    (arg,) = node.args
-    text = f"<msup>{operand(arg, op.pow, 'left')}{SUPERSCRIPT[node.func]}</msup>"
+    (arg,) = args_of(node)
+    text = f"<msup>{operand(arg, op.pow, 'left')}{SUPERSCRIPT[func_of(node)]}</msup>"
     return Printed(text, POW)
 
 
 @mathml_algebra.register(linalg.cross)
 def _(node: Call[Printed]) -> Printed:
-    a, b = node.args
+    a, b = args_of(node)
     text = mrow(operand(a, op.mul, "left"), mo("×"), operand(b, op.mul, "right"))
-    return Printed(text, op.mul.precedence)
+    return Printed(text, precedence_of(op.mul))
 
 
 @mathml_algebra.register(cx.conj)
 def _(node: Call[Printed]) -> Printed:
-    (arg,) = node.args
+    (arg,) = args_of(node)
     return Printed(f'<mover>{mrow(arg.text)}<mo accent="true">¯</mo></mover>')
 
 
 @mathml_algebra.register(cx.rect)
 def _(node: Call[Printed]) -> Printed:
     """Polar form, ``r e^{i phi}``."""
-    r, phi = node.args
+    r, phi = args_of(node)
     exponent = mrow("<mi>i</mi>", mo("⁢"), operand(phi, op.mul, "right"))
     power = f"<msup><mi>e</mi>{exponent}</msup>"
-    return Printed(mrow(operand(r, op.mul, "left"), mo("⁢"), power), op.mul.precedence)
+    return Printed(
+        mrow(operand(r, op.mul, "left"), mo("⁢"), power), precedence_of(op.mul)
+    )
 
 
 @mathml_algebra.register(real.sqrt, cx.sqrt)
 def _(node: Call[Printed]) -> Printed:
-    (arg,) = node.args
+    (arg,) = args_of(node)
     return Printed(f"<msqrt>{arg.text}</msqrt>")
 
 
 @mathml_algebra.register(real.log10, real.log2, cx.log10)
 def _(node: Call[Printed]) -> Printed:
-    (arg,) = node.args
-    base = "2" if node.func is real.log2 else "10"
+    (arg,) = args_of(node)
+    base = "2" if func_of(node) is real.log2 else "10"
     log = f"<msub><mi>log</mi><mn>{base}</mn></msub>"
     return Printed(mrow(log, mo("⁡"), paren(arg.text)))
 
 
 @mathml_algebra.register(real.factorial)
 def _(node: Call[Printed]) -> Printed:
-    (arg,) = node.args
+    (arg,) = args_of(node)
     text = arg.text if arg.precedence >= POSTFIX else paren(arg.text)
     return Printed(mrow(text, mo("!")), POSTFIX)
 
 
 @mathml_algebra.register(Operator)
 def _(node: Call[Printed]) -> Printed:
-    func = node.func
+    func = func_of(node)
     assert isinstance(func, Operator)
     if func in PREFIX:
-        (arg,) = node.args
+        (arg,) = args_of(node)
         return Printed(
-            mrow(mo(PREFIX[func]), operand(arg, func, "right")), func.precedence
+            mrow(mo(PREFIX[func]), operand(arg, func, "right")), precedence_of(func)
         )
-    left, right = node.args
-    symbol = INFIX.get(func, func.fmt.format("", "").strip())
+    left, right = args_of(node)
+    symbol = INFIX.get(func, fmt_of(func).format("", "").strip())
     if func is op.mul and left.ndim and right.ndim:
         symbol = "⊙"  # entrywise product of arrays
     text = mrow(operand(left, func, "left"), mo(symbol), operand(right, func, "right"))
-    return Printed(text, func.precedence)
+    return Printed(text, precedence_of(func))
 
 
 @mathml_algebra.register(op.truediv)
 def _(node: Call[Printed]) -> Printed:
-    num, den = node.args
+    num, den = args_of(node)
     text = f"<mfrac>{num.text}{den.text}</mfrac>"
     return Printed(text)
 
 
 @mathml_algebra.register(op.floordiv)
 def _(node: Call[Printed]) -> Printed:
-    num, den = node.args
+    num, den = args_of(node)
     return Printed(paren(f"<mfrac>{num.text}{den.text}</mfrac>", "⌊", "⌋"))
 
 
 @mathml_algebra.register(op.pow)
 def _(node: Call[Printed]) -> Printed:
-    base, exponent = node.args
+    base, exponent = args_of(node)
     text = f"<msup>{operand(base, op.pow, 'left')}{exponent.text}</msup>"
     return Printed(text, POW)
 
 
 @mathml_algebra.register(op.getitem)
 def _(node: Call[Printed]) -> Printed:
-    obj, key = node.args
+    obj, key = args_of(node)
     return Printed(
         f"<msub>{operand(obj, op.getitem, 'left')}{key.text}</msub>", POSTFIX
     )

@@ -49,11 +49,11 @@ def hylo[S, A](
     whole tree below it. The traversal uses an explicit stack, so deep
     trees do not hit the recursion limit.
 
-    >>> from symbolcat.ops.algebras import Call, Literal
+    >>> from symbolcat.ops.algebras import Call, Literal, args_of
     >>> from symbolcat.lib import operators as op
     >>> def halves(n):  # n as a sum of halves, down to 1
     ...     return Literal(n) if n <= 1 else Call(op.add, (n // 2, n - n // 2))
-    >>> hylo(lambda layer: 1 if isinstance(layer, Literal) else sum(layer.args),
+    >>> hylo(lambda layer: 1 if isinstance(layer, Literal) else sum(args_of(layer)),
     ...      halves, 5, key=lambda n: n)
     5
     """
@@ -105,15 +105,15 @@ def ana[S](
     seeds with the same ``key`` become the same (shared) sub-expression.
     ``Done`` holds a finished sub-expression.
 
-    >>> from symbolcat.ops.algebras import Call, Literal
+    >>> from symbolcat.ops.algebras import Call, Literal, args_of
     >>> from symbolcat.lib import operators as op
     >>> def halves(n):
     ...     return Literal(n) if n <= 1 else Call(op.add, (n // 2, n - n // 2))
     >>> expr = ana(halves, 5, key=lambda n: n)
     >>> print(expr)
     1 + 1 + (1 + (1 + 1))
-    >>> two, three = expr.args
-    >>> three.args[1] is two  # both unfolded from the seed 2
+    >>> two, three = args_of(expr)
+    >>> args_of(three)[1] is two  # both unfolded from the seed 2
     True
     """
     return hylo(_node, coalgebra, seed, key=key)

@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ..._core import Symbol, as_expr
+from ..._core import Symbol, as_expr, name_of
 from ._inspect import free_symbols
 
 
@@ -40,7 +40,7 @@ def solve_dependencies(system: Mapping[Symbol, Any], /) -> list[tuple[Symbol, ..
     while pending:
         layer = tuple(symbol for symbol, deps in pending.items() if not deps)
         if not layer:
-            names = ", ".join(symbol.name for symbol in pending)
+            names = ", ".join(name_of(symbol) for symbol in pending)
             raise ValueError(f"Cyclic dependencies among {names}")
         layers.append(layer)
         pending = {s: deps - set(layer) for s, deps in pending.items() if deps}

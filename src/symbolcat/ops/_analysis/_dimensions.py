@@ -30,7 +30,9 @@ from ..._core import (
     Function,
     Literal,
     Symbol,
+    args_of,
     cata,
+    func_of,
     name_of,
 )
 from ..._derivative import D
@@ -65,20 +67,20 @@ def show(dim: Dimension, /) -> str:
 
 def same(node: Call[Pair], /) -> Dimension:
     """All arguments must have the same dimension, which is returned."""
-    dims = [dim for _, dim in node.args]
+    dims = [dim for _, dim in args_of(node)]
     if any(dim != dims[0] for dim in dims):
         raise ValueError(
-            f"{name_of(node.func)} of incompatible dimensions: "
+            f"{name_of(func_of(node))} of incompatible dimensions: "
             + ", ".join(show(dim) for dim in dims)
         )
     return dims[0]
 
 
 def dimensionless(node: Call[Pair], /) -> None:
-    for value, dim in node.args:
+    for value, dim in args_of(node):
         if dim:
             raise ValueError(
-                f"{name_of(node.func)} needs a dimensionless argument, "
+                f"{name_of(func_of(node))} needs a dimensionless argument, "
                 f"got {value} with {show(dim)}"
             )
 
@@ -100,7 +102,7 @@ def _(node: Constant | Literal, **ctx: Any) -> Pair:
 def _(node: Call[Pair], **ctx: Any) -> Pair:
     """By default, functions (exp, log, sin, ...) take and return pure numbers."""
     dimensionless(node)
-    return node.func(*(v for v, _ in node.args)), DIMENSIONLESS
+    return func_of(node)(*(v for v, _ in args_of(node))), DIMENSIONLESS
 
 
 type Rule = Callable[[Call[Pair]], Dimension]
@@ -112,7 +114,7 @@ def rule(*funcs: Function | type) -> Callable[[Rule], Rule]:
     def decorator(dimension: Rule) -> Rule:
         @dimensions_algebra.register(*funcs)
         def _(node: Call[Pair], **ctx: Any) -> Pair:
-            return node.func(*(v for v, _ in node.args)), dimension(node)
+            return func_of(node)(*(v for v, _ in args_of(node))), dimension(node)
 
         return dimension
 
@@ -122,7 +124,7 @@ def rule(*funcs: Function | type) -> Callable[[Rule], Rule]:
 @dimensions_algebra.register(D)
 def _(node: Call[Pair], *, time: Dimension | None, **ctx: Any) -> Pair:
     """The dimension of the argument, divided by time."""
-    ((value, dim),) = node.args
+    ((value, dim),) = args_of(node)
     if time is None:
         raise ValueError("dimensions: pass the dimension of `time` to use D")
     return D(value), combine(dim, time, -1)
@@ -150,9 +152,9 @@ def _(node: Call[Pair]) -> Dimension:
 @rule(real.ifelse)
 def _(node: Call[Pair]) -> Dimension:
     """Both branches have the same dimension."""
-    condition, a, b = node.args
-    dimensionless(Call(node.func, (condition,)))
-    return same(Call(node.func, (a, b)))
+    condition, a, b = args_of(node)
+    dimensionless(Call(func_of(node), (condition,)))
+    return same(Call(func_of(node), (a, b)))
 
 
 @rule(op.eq, op.ne, op.lt, op.le, op.gt, op.ge, real.atan2)
@@ -169,8 +171,8 @@ def _(node: Call[Pair]) -> Dimension:
 @rule(cx.rect)
 def _(node: Call[Pair]) -> Dimension:
     """The dimension of the modulus; the angle is dimensionless."""
-    (_, r), phi = node.args
-    dimensionless(Call(node.func, (phi,)))
+    (_, r), phi = args_of(node)
+    dimensionless(Call(func_of(node), (phi,)))
     return r
 
 
@@ -182,31 +184,31 @@ def _(node: Call[Pair]) -> Dimension:
 
 @rule(linalg.inv)
 def _(node: Call[Pair]) -> Dimension:
-    ((_, a),) = node.args
+    ((_, a),) = args_of(node)
     return scale(a, Fraction(-1))
 
 
 @rule(op.mul, op.matmul, linalg.cross)
 def _(node: Call[Pair]) -> Dimension:
-    (_, a), (_, b) = node.args
+    (_, a), (_, b) = args_of(node)
     return combine(a, b)
 
 
 @rule(op.truediv, op.floordiv)
 def _(node: Call[Pair]) -> Dimension:
-    (_, a), (_, b) = node.args
+    (_, a), (_, b) = args_of(node)
     return combine(a, b, sign=-1)
 
 
 @rule(real.sqrt, cx.sqrt)
 def _(node: Call[Pair]) -> Dimension:
-    ((_, a),) = node.args
+    ((_, a),) = args_of(node)
     return scale(a, Fraction(1, 2))
 
 
 @rule(op.getitem)
 def _(node: Call[Pair]) -> Dimension:
-    (_, container), (key, key_dim) = node.args
+    (_, container), (key, key_dim) = args_of(node)
     if key_dim:
         raise ValueError(f"Index {key} has dimension {show(key_dim)}")
     return container
@@ -215,14 +217,14 @@ def _(node: Call[Pair]) -> Dimension:
 @dimensions_algebra.register(linalg.det)
 def _(node: Call[Pair], **ctx: Any) -> Pair:
     """The product of ``n`` entries, for an ``n`` by ``n`` matrix."""
-    ((value, dim),) = node.args
+    ((value, dim),) = args_of(node)
     n, _ = value.kind.shape
     return linalg.det(value), scale(dim, Fraction(n))
 
 
 @rule(op.pow)
 def _(node: Call[Pair]) -> Dimension:
-    (_, base), (exponent, exponent_dim) = node.args
+    (_, base), (exponent, exponent_dim) = args_of(node)
     if exponent_dim:
         raise ValueError(f"Exponent {exponent} has dimension {show(exponent_dim)}")
     if not base:
@@ -293,6 +295,6 @@ def dimensions(
         )
         return {k: int(v) if v.denominator == 1 else v for k, v in dim.items()}
 
-    if isinstance(expr, Call) and isinstance(expr.func, Array):
-        return nest(expr.func.shape, [dimension(e) for e in expr.args])
+    if isinstance(expr, Call) and isinstance(func_of(expr), Array):
+        return nest(expr.kind.shape, [dimension(e) for e in args_of(expr)])
     return dimension(expr)

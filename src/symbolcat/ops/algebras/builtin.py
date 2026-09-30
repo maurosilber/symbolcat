@@ -7,13 +7,13 @@ teach an operation about a new function:
 
 >>> from symbolcat import Symbol
 >>> from symbolcat.lib import Function
->>> from symbolcat.ops.algebras import Printed
+>>> from symbolcat.ops.algebras import Printed, args_of
 >>> from symbolcat.ops.algebras.builtin import latex_algebra
 >>> from symbolcat.ops.printing import to_latex
 >>> sinc = Function("sinc", arity=1)
 >>> @latex_algebra.register(sinc)
 ... def _(node):
-...     return Printed(rf"\\operatorname{{sinc}}\\left({node.args[0].text}\\right)")
+...     return Printed(rf"\\operatorname{{sinc}}\\left({args_of(node)[0].text}\\right)")
 >>> print(to_latex(sinc(Symbol("x"))))
 \\operatorname{sinc}\\left(x\\right)
 """

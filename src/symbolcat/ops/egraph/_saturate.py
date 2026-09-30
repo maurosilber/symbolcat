@@ -26,7 +26,7 @@ from typing import Any, Literal
 
 from egglog import DagCostModel, EGraph, Schedule, back_off, eq, run, seq
 
-from ..._core import Call, Constant, Expr, cata
+from ..._core import Call, Constant, Expr, args_of, cata, func_of
 from .._analysis._inspect import count_nodes, is_complex
 from .._transform._arrays import expand_arrays
 from .._transform._complex import join, real_imag, uses_complex
@@ -193,7 +193,9 @@ def hide_complex(expr: Expr, /) -> tuple[Expr, dict[Constant, Expr]]:
         # A complex node is kept whole, to be hidden by its real parent.
         if not isinstance(layer, Call) or is_complex(layer):
             return layer
-        return layer.func(*(hide(a) if is_complex(a) else a for a in layer.args))
+        return func_of(layer)(
+            *(hide(a) if is_complex(a) else a for a in args_of(layer))
+        )
 
     result = cata(algebra, expr)
     return (hide(result) if is_complex(result) else result), placeholders
@@ -234,9 +236,9 @@ def saturate_inside(expr: Expr, /, **options: Any) -> Expr:
         saturate_inside(arg, **options)
         if is_complex(arg)
         else saturate_real(arg, **options)
-        for arg in expr.args
+        for arg in args_of(expr)
     ]
-    return simplify_algebra(expr.func(*args), exact=True)
+    return simplify_algebra(func_of(expr)(*args), exact=True)
 
 
 def saturate_hidden(

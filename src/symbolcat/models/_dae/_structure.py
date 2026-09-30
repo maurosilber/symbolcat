@@ -17,7 +17,7 @@ from collections.abc import Iterable
 from dataclasses import replace
 from typing import Any
 
-from ..._core import Expr, Literal, Symbol
+from ..._core import Expr, Literal, Symbol, value_of
 from ...ops._algebraic._structure import solve_for
 from ...ops._algebraic._system import EquationSystem, residual
 from ...ops._analysis._inspect import variables
@@ -34,7 +34,11 @@ def _is_nonzero_number(expr: Expr, /) -> bool:
     value = as_fraction(expr)
     if value is not None:
         return value != 0
-    return isinstance(expr, Literal) and type(expr.value) is float and expr.value != 0
+    return (
+        isinstance(expr, Literal)
+        and type(value_of(expr)) is float
+        and value_of(expr) != 0
+    )
 
 
 def _alias(

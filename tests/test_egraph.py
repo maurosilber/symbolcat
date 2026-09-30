@@ -8,7 +8,7 @@ from symbolcat import Symbol, complex, real
 from symbolcat.lib import Constant, Function
 from symbolcat.lib.std import IMPL
 from symbolcat.ops import evaluate
-from symbolcat.ops.algebras import Call, Literal, as_expr
+from symbolcat.ops.algebras import Call, Literal, args_of, as_expr, func_of
 from symbolcat.ops.egraph import (
     integer,
     negative,
@@ -46,9 +46,9 @@ def test_opaque_parts_keep_identity():
     k = Constant("k")
     expr = simplify(f(x) + g(x) + k * 1)
     assert isinstance(expr, Call)
-    calls, constant = expr.args
+    calls, constant = args_of(expr)
     assert isinstance(calls, Call)
-    assert {id(arg.func) for arg in calls.args} == {id(f), id(g)}
+    assert {id(func_of(arg)) for arg in args_of(calls)} == {id(f), id(g)}
     assert constant is k
 
 

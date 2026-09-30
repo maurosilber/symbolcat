@@ -15,7 +15,7 @@ from collections import Counter
 from itertools import count
 from typing import Any
 
-from ..._core import Call, Expr, Symbol, as_expr, cata, children, fmap
+from ..._core import Call, Expr, Symbol, as_expr, cata, children, fmap, name_of
 from .._analysis._inspect import free_symbols
 
 
@@ -23,10 +23,11 @@ def share(expr: Any, /) -> Expr:
     """The same expression, with equal sub-expressions as the same object.
 
     >>> from symbolcat import Symbol, real
+    >>> from symbolcat.ops.algebras import args_of
     >>> x = Symbol("x")
     >>> expr = share(real.sin(x + 1) * real.cos(x + 1))
-    >>> left, right = expr.args
-    >>> left.args[0] is right.args[0]
+    >>> left, right = args_of(expr)
+    >>> args_of(left)[0] is args_of(right)[0]
     True
     """
     return _share(as_expr(expr), {})
@@ -77,7 +78,7 @@ def cse(expr: Any, /, *, prefix: str = "_") -> tuple[list[tuple[Symbol, Expr]], 
     cache: dict[Expr, Expr] = {}
     shared = _share(as_expr(expr), cache)
     uses = _uses(shared)
-    taken = {symbol.name for symbol in free_symbols(shared)}
+    taken = {name_of(symbol) for symbol in free_symbols(shared)}
     names = (name for i in count() if (name := f"{prefix}{i}") not in taken)
     assignments: list[tuple[Symbol, Expr]] = []
 

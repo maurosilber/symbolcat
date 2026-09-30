@@ -20,7 +20,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from ..._core import Call, Expr, Literal, Symbol
+from ..._core import Call, Expr, Literal, Symbol, args_of
 from ..._derivative import Variable
 from ...linalg import matrix, to_list
 from ...ops._algebraic._linear import solve_linear
@@ -127,7 +127,7 @@ def observability_matrix(ode: ODE, outputs: Sequence[Any], /) -> Call[Expr]:
     for k in range(len(ode.states)):
         for h in outputs:
             derivative = lie_derivative(h, ode, order=k)
-            rows.append(gradient(derivative, ode.states).args)
+            rows.append(args_of(gradient(derivative, ode.states)))
     return matrix(rows)
 
 

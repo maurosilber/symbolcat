@@ -22,7 +22,17 @@ from typing import Any
 
 from ... import complex as cx
 from ... import linalg, real
-from ..._core import Algebra, Call, Expr, Function, Literal, cata
+from ..._core import (
+    Algebra,
+    Call,
+    Expr,
+    Function,
+    Literal,
+    args_of,
+    cata,
+    func_of,
+    value_of,
+)
 from ...lib import operators as op
 from ...lib.std import IMPL
 from ...linalg import Array
@@ -49,37 +59,37 @@ simplify_algebra = KindPreserving("simplify")
 def is_number(expr: Expr, value: Any, /) -> bool:
     return (
         isinstance(expr, Literal)
-        and isinstance(expr.value, int | float | complex)
-        and not isinstance(expr.value, bool)
-        and expr.value == value
+        and isinstance(value_of(expr), int | float | complex)
+        and not isinstance(value_of(expr), bool)
+        and value_of(expr) == value
     )
 
 
 def is_zero(expr: Expr, /) -> bool:
     """A literal 0, or an explicit array of them."""
-    if isinstance(expr, Call) and isinstance(expr.func, Array):
-        return all(is_number(entry, 0) for entry in expr.args)
+    if isinstance(expr, Call) and isinstance(func_of(expr), Array):
+        return all(is_number(entry, 0) for entry in args_of(expr))
     return is_number(expr, 0)
 
 
 def as_fraction(expr: Expr, /) -> Fraction | None:
     """An integer literal, or a quotient of them, as a ``Fraction``."""
     if isinstance(expr, Literal):
-        return Fraction(expr.value) if type(expr.value) is int else None
-    if isinstance(expr, Call) and expr.func is op.neg:
-        (arg,) = expr.args
+        return Fraction(value_of(expr)) if type(value_of(expr)) is int else None
+    if isinstance(expr, Call) and func_of(expr) is op.neg:
+        (arg,) = args_of(expr)
         value = as_fraction(arg)
         return None if value is None else -value
-    if isinstance(expr, Call) and expr.func is op.truediv:
-        num, den = expr.args
+    if isinstance(expr, Call) and func_of(expr) is op.truediv:
+        num, den = args_of(expr)
         if (
             isinstance(num, Literal)
             and isinstance(den, Literal)
-            and type(num.value) is int
-            and type(den.value) is int
-            and den.value
+            and type(value_of(num)) is int
+            and type(value_of(den)) is int
+            and value_of(den)
         ):
-            return Fraction(num.value, den.value)
+            return Fraction(value_of(num), value_of(den))
     return None
 
 
@@ -102,12 +112,12 @@ RATIONAL: dict[Function, Callable[..., Fraction | None]] = {
 
 def fold_rational(node: Call[Expr], /) -> Expr | None:
     """Exact arithmetic on rationals: 1 / 2 + 1 / 3 -> 5 / 6."""
-    if node.func not in RATIONAL:
+    if func_of(node) not in RATIONAL:
         return None
-    values = [as_fraction(arg) for arg in node.args]
+    values = [as_fraction(arg) for arg in args_of(node)]
     if any(v is None for v in values):
         return None
-    result = RATIONAL[node.func](*values)
+    result = RATIONAL[func_of(node)](*values)
     return None if result is None else from_fraction(result)
 
 
@@ -121,14 +131,14 @@ def fold(node: Expr, /, *, exact: bool = False) -> Expr:
     """
     if exact and isinstance(node, Call) and (rational := fold_rational(node)):
         return rational
-    if not isinstance(node, Call) or node.func not in IMPL:
+    if not isinstance(node, Call) or func_of(node) not in IMPL:
         return node
-    if not all(isinstance(arg, Literal) for arg in node.args):
+    if not all(isinstance(arg, Literal) for arg in args_of(node)):
         return node
-    func = IMPL[node.func]
+    func = IMPL[func_of(node)]
     if not callable(func):
         return node
-    values = [arg.value for arg in node.args]
+    values = [value_of(arg) for arg in args_of(node)]
     if exact and not all(type(v) is int for v in values):
         return node
     try:
@@ -148,7 +158,7 @@ def fold(node: Expr, /, *, exact: bool = False) -> Expr:
 
 @simplify_algebra.register(op.add)
 def _(node: Call[Expr], *, exact: bool = False) -> Expr:
-    a, b = node.args
+    a, b = args_of(node)
     if is_zero(a):
         return b
     if is_zero(b):
@@ -158,7 +168,7 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
 
 @simplify_algebra.register(op.sub)
 def _(node: Call[Expr], *, exact: bool = False) -> Expr:
-    a, b = node.args
+    a, b = args_of(node)
     if is_zero(b):
         return a
     if is_zero(a):
@@ -170,7 +180,7 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
 
 @simplify_algebra.register(op.mul)
 def _(node: Call[Expr], *, exact: bool = False) -> Expr:
-    a, b = node.args
+    a, b = args_of(node)
     if is_zero(a) or is_zero(b):
         return Literal(0)
     if is_number(a, 1):
@@ -186,7 +196,7 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
 
 @simplify_algebra.register(op.truediv)
 def _(node: Call[Expr], *, exact: bool = False) -> Expr:
-    a, b = node.args
+    a, b = args_of(node)
     if is_number(b, 1):
         return a
     if is_zero(a) and not is_zero(b):
@@ -198,7 +208,7 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
 
 @simplify_algebra.register(op.pow)
 def _(node: Call[Expr], *, exact: bool = False) -> Expr:
-    a, b = node.args
+    a, b = args_of(node)
     if is_number(b, 0):
         return Literal(1)
     if is_number(b, 1) or is_number(a, 1):
@@ -208,17 +218,17 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
 
 @simplify_algebra.register(op.neg)
 def _(node: Call[Expr], *, exact: bool = False) -> Expr:
-    (a,) = node.args
-    if isinstance(a, Call) and a.func is op.neg:
-        return a.args[0]
+    (a,) = args_of(node)
+    if isinstance(a, Call) and func_of(a) is op.neg:
+        return args_of(a)[0]
     return fold(node, exact=exact)
 
 
 @simplify_algebra.register(real.ifelse)
 def _(node: Call[Expr], *, exact: bool = False) -> Expr:
-    condition, a, b = node.args
-    if isinstance(condition, Literal) and type(condition.value) is bool:
-        return a if condition.value else b
+    condition, a, b = args_of(node)
+    if isinstance(condition, Literal) and type(value_of(condition)) is bool:
+        return a if value_of(condition) else b
     if a == b:
         return a
     return node
@@ -227,9 +237,9 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
 @simplify_algebra.register(cx.re, cx.conj)
 def _(node: Call[Expr], *, exact: bool = False) -> Expr:
     """Symbols are real, so ``re(x)`` and ``conj(x)`` are ``x``."""
-    (z,) = node.args
-    if node.func is cx.conj and isinstance(z, Call) and z.func is cx.conj:
-        return z.args[0]
+    (z,) = args_of(node)
+    if func_of(node) is cx.conj and isinstance(z, Call) and func_of(z) is cx.conj:
+        return args_of(z)[0]
     if not is_complex(z):
         return z
     return fold(node, exact=exact)
@@ -237,7 +247,7 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
 
 @simplify_algebra.register(cx.im)
 def _(node: Call[Expr], *, exact: bool = False) -> Expr:
-    (z,) = node.args
+    (z,) = args_of(node)
     if not is_complex(z):
         return Literal(0)
     return fold(node, exact=exact)
@@ -245,7 +255,7 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
 
 @simplify_algebra.register(op.pos)
 def _(node: Call[Expr], *, exact: bool = False) -> Expr:
-    return node.args[0]
+    return args_of(node)[0]
 
 
 @simplify_algebra.register(
@@ -254,7 +264,7 @@ def _(node: Call[Expr], *, exact: bool = False) -> Expr:
 def _(node: Call[Expr], *, exact: bool = False) -> Expr:
     """Linear in the first argument (and in the second for the products):
     zero for a zero argument."""
-    linear = node.args[:1] if node.func is op.getitem else node.args
+    linear = args_of(node)[:1] if func_of(node) is op.getitem else args_of(node)
     return Literal(0) if any(is_zero(arg) for arg in linear) else node
 
 

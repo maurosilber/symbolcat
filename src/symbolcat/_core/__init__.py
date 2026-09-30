@@ -36,8 +36,15 @@ from .expr import (
     Literal,
     Operator,
     Symbol,
+    args_of,
+    arity_of,
     as_expr,
+    assoc_of,
+    fmt_of,
+    func_of,
     name_of,
+    precedence_of,
+    value_of,
 )
 from .fmap import fmap
 from .hylo import Done, ana, hylo
@@ -53,10 +60,17 @@ __all__ = [
     "Operator",
     "Symbol",
     "ana",
+    "args_of",
+    "arity_of",
     "as_expr",
+    "assoc_of",
     "cata",
     "children",
     "fmap",
+    "fmt_of",
+    "func_of",
     "hylo",
     "name_of",
+    "precedence_of",
+    "value_of",
 ]

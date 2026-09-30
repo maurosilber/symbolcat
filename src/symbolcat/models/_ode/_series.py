@@ -14,7 +14,7 @@ from __future__ import annotations
 from math import factorial
 from typing import Any
 
-from ..._core import Expr, Literal, Symbol, as_expr
+from ..._core import Expr, Literal, Symbol, as_expr, value_of
 from ..._derivative import Variable
 from ...ops._transform._simplify import simplify_exact
 from ...ops._transform._substitute import substitute_variables
@@ -41,7 +41,9 @@ def taylor_solution(
     start = as_expr(t0)
     at_start: dict[Expr, Expr] = {} if ode.t is None else {ode.t: start}
     step = (
-        time - start if not (isinstance(start, Literal) and start.value == 0) else time
+        time - start
+        if not (isinstance(start, Literal) and value_of(start) == 0)
+        else time
     )
     solution: dict[Variable, Expr] = {}
     for state in ode.states:

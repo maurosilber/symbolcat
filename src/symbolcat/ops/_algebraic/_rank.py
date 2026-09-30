@@ -18,7 +18,7 @@ from collections.abc import Sequence
 from fractions import Fraction
 from typing import Any
 
-from ..._core import Call, Expr
+from ..._core import Call, Expr, func_of
 from ...lib import operators as op
 from ...lib.std import IMPL
 from ...linalg import Array, to_list
@@ -117,7 +117,7 @@ def generic_rank(matrix: Any, /, *, seed: int = 0) -> int:
     >>> generic_rank(matrix([[x, y], [y, x]]))
     2
     """
-    if isinstance(matrix, Call) and isinstance(matrix.func, Array):
+    if isinstance(matrix, Call) and isinstance(func_of(matrix), Array):
         rows = to_list(matrix)
     else:
         rows = [list(row) for row in matrix]

@@ -19,7 +19,7 @@ from symbolcat.models.reactions import (
     stoichiometry_matrix,
 )
 from symbolcat.ops import evaluate
-from symbolcat.ops.algebras import Literal
+from symbolcat.ops.algebras import Literal, value_of
 from symbolcat.ops.transform import substitute_variables
 
 A, B, C, E, S, P = (Symbol(n) for n in ["A", "B", "C", "E", "S", "P"])
@@ -76,7 +76,7 @@ def test_reaction_rate_equations():
 
 def test_stoichiometry_matrix():
     rows = to_list(stoichiometry_matrix(michaelis_menten()))
-    assert [[e.value for e in row] for row in rows] == [
+    assert [[value_of(e) for e in row] for row in rows] == [
         [-1, 1, 1],
         [-1, 1, 0],
         [1, -1, -1],

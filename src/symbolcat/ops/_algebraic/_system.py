@@ -11,7 +11,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
-from ..._core import Call, Expr, as_expr
+from ..._core import Call, Expr, args_of, as_expr, func_of
 from ..._derivative import Variable, is_variable
 from ...lib import operators as op
 from .._analysis._inspect import variables
@@ -28,8 +28,8 @@ def residual(equation: Any, /) -> Expr:
     x - 1
     """
     equation = as_expr(equation)
-    if isinstance(equation, Call) and equation.func is op.eq:
-        lhs, rhs = equation.args
+    if isinstance(equation, Call) and func_of(equation) is op.eq:
+        lhs, rhs = args_of(equation)
         return lhs - rhs
     return equation
 

@@ -27,7 +27,19 @@ from typing import Any
 
 from ... import complex as cx
 from ... import real
-from ..._core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata
+from ..._core import (
+    Algebra,
+    Call,
+    Constant,
+    Expr,
+    Function,
+    Literal,
+    Symbol,
+    args_of,
+    cata,
+    func_of,
+    value_of,
+)
 from ...lib import operators as op
 from ...linalg import Array
 from .._analysis._inspect import is_complex
@@ -189,8 +201,8 @@ def atan(z: Pair, /) -> Pair:
 def power(z: Pair, w: Pair, /) -> Pair:
     """Integer powers by repeated products; others as ``exp(w log(z))``."""
     (_, _), (c, _) = z, w
-    if is_real(w) and isinstance(c, Literal) and type(c.value) is int:
-        n = c.value
+    if is_real(w) and isinstance(c, Literal) and type(value_of(c)) is int:
+        n = value_of(c)
         if abs(n) <= 16:
             result, base = (ONE, ZERO), z
             for _ in range(abs(n)):
@@ -228,8 +240,8 @@ def _(node: Constant) -> Pair:
 
 @complex_parts_algebra.register(Literal)
 def _(node: Literal) -> Pair:
-    if isinstance(node.value, complex):
-        return Literal(node.value.real), Literal(node.value.imag)
+    if isinstance(value_of(node), complex):
+        return Literal(value_of(node).real), Literal(value_of(node).imag)
     return node, ZERO
 
 
@@ -237,46 +249,46 @@ def _(node: Literal) -> Pair:
 def _(node: Call[Pair]) -> Pair:
     """A real function of real arguments is real. Otherwise its parts are
     kept as ``re`` and ``im`` of the call."""
-    if all(is_real(arg) for arg in node.args):
-        return node.func(*(a for a, _ in node.args)), ZERO
-    value = node.func(*(join(arg) for arg in node.args))
+    if all(is_real(arg) for arg in args_of(node)):
+        return func_of(node)(*(a for a, _ in args_of(node))), ZERO
+    value = func_of(node)(*(join(arg) for arg in args_of(node)))
     return cx.re(value), cx.im(value)
 
 
 @complex_parts_algebra.register(op.add)
 def _(node: Call[Pair]) -> Pair:
-    return add(*node.args)
+    return add(*args_of(node))
 
 
 @complex_parts_algebra.register(op.sub)
 def _(node: Call[Pair]) -> Pair:
-    z, w = node.args
+    z, w = args_of(node)
     return add(z, neg(w))
 
 
 @complex_parts_algebra.register(op.neg)
 def _(node: Call[Pair]) -> Pair:
-    return neg(node.args[0])
+    return neg(args_of(node)[0])
 
 
 @complex_parts_algebra.register(op.pos)
 def _(node: Call[Pair]) -> Pair:
-    return node.args[0]
+    return args_of(node)[0]
 
 
 @complex_parts_algebra.register(op.mul)
 def _(node: Call[Pair]) -> Pair:
-    return mul(*node.args)
+    return mul(*args_of(node))
 
 
 @complex_parts_algebra.register(op.truediv)
 def _(node: Call[Pair]) -> Pair:
-    return div(*node.args)
+    return div(*args_of(node))
 
 
 @complex_parts_algebra.register(op.pow)
 def _(node: Call[Pair]) -> Pair:
-    z, w = node.args
+    z, w = args_of(node)
     if is_real(z) and is_real(w):
         return z[0] ** w[0], ZERO
     return power(z, w)
@@ -284,53 +296,53 @@ def _(node: Call[Pair]) -> Pair:
 
 @complex_parts_algebra.register(*HOLOMORPHIC)
 def _(node: Call[Pair]) -> Pair:
-    return HOLOMORPHIC[node.func](node.args[0])
+    return HOLOMORPHIC[func_of(node)](args_of(node)[0])
 
 
 @complex_parts_algebra.register(cx.re)
 def _(node: Call[Pair]) -> Pair:
-    return node.args[0][0], ZERO
+    return args_of(node)[0][0], ZERO
 
 
 @complex_parts_algebra.register(cx.im)
 def _(node: Call[Pair]) -> Pair:
-    return node.args[0][1], ZERO
+    return args_of(node)[0][1], ZERO
 
 
 @complex_parts_algebra.register(cx.conj)
 def _(node: Call[Pair]) -> Pair:
-    a, b = node.args[0]
+    a, b = args_of(node)[0]
     return a, smart(-b)
 
 
 @complex_parts_algebra.register(cx.abs)
 def _(node: Call[Pair]) -> Pair:
-    return modulus(node.args[0]), ZERO
+    return modulus(args_of(node)[0]), ZERO
 
 
 @complex_parts_algebra.register(cx.phase)
 def _(node: Call[Pair]) -> Pair:
-    a, b = node.args[0]
+    a, b = args_of(node)[0]
     return real.atan2(b, a), ZERO
 
 
 @complex_parts_algebra.register(cx.rect)
 def _(node: Call[Pair]) -> Pair:
-    (r, _), (phi, _) = node.args
+    (r, _), (phi, _) = args_of(node)
     return smart(r * real.cos(phi)), smart(r * real.sin(phi))
 
 
 @complex_parts_algebra.register(real.ifelse)
 def _(node: Call[Pair]) -> Pair:
-    (condition, _), (a, b), (c, d) = node.args
+    (condition, _), (a, b), (c, d) = args_of(node)
     return real.ifelse(condition, a, c), smart(real.ifelse(condition, b, d))
 
 
 @complex_parts_algebra.register(Array)
 def _(node: Call[Pair]) -> Pair:
     return (
-        node.func(*(a for a, _ in node.args)),
-        smart(node.func(*(b for _, b in node.args))),
+        func_of(node)(*(a for a, _ in args_of(node))),
+        smart(func_of(node)(*(b for _, b in args_of(node)))),
     )
 
 
@@ -368,7 +380,7 @@ COMPLEX_FUNCTIONS = frozenset(f for f in vars(cx).values() if isinstance(f, Func
 
 def _uses_complex(node: Any, /) -> bool:
     if isinstance(node, Call):
-        return any(node.args) or node.func in COMPLEX_FUNCTIONS
+        return any(args_of(node)) or func_of(node) in COMPLEX_FUNCTIONS
     return is_complex(node)
 
 

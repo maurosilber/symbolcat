@@ -19,7 +19,19 @@ from __future__ import annotations
 from math import prod
 from typing import Any
 
-from ..._core import Algebra, Call, Constant, Expr, Literal, Symbol, cata
+from ..._core import (
+    Algebra,
+    Call,
+    Constant,
+    Expr,
+    Literal,
+    Symbol,
+    args_of,
+    cata,
+    func_of,
+    name_of,
+    value_of,
+)
 from ...lib import operators as op
 
 canonical_algebra = Algebra[Expr]("canonical")
@@ -31,15 +43,15 @@ def _(node: Expr) -> Expr:
 
 
 def factors(expr: Expr, /) -> list[Expr]:
-    if isinstance(expr, Call) and expr.func is op.mul:
-        return [f for arg in expr.args for f in factors(arg)]
+    if isinstance(expr, Call) and func_of(expr) is op.mul:
+        return [f for arg in args_of(expr) for f in factors(arg)]
     return [expr]
 
 
 def is_number(expr: Expr, /) -> bool:
     """A literal, or a fraction of literals (how rationals come back)."""
-    if isinstance(expr, Call) and expr.func is op.truediv:
-        return all(isinstance(arg, Literal) for arg in expr.args)
+    if isinstance(expr, Call) and func_of(expr) is op.truediv:
+        return all(isinstance(arg, Literal) for arg in args_of(expr))
     return isinstance(expr, Literal)
 
 
@@ -47,25 +59,25 @@ def rank(expr: Expr, /) -> tuple[int, str]:
     if is_number(expr):
         return 0, ""
     if isinstance(expr, Constant):
-        return 1, expr.name
+        return 1, name_of(expr)
     if isinstance(expr, Symbol):
-        return 2, expr.name
+        return 2, name_of(expr)
     return 3, ""
 
 
 @canonical_algebra.register(op.mul)
 def _(node: Call[Expr]) -> Expr:
-    ordered = sorted((f for arg in node.args for f in factors(arg)), key=rank)
+    ordered = sorted((f for arg in args_of(node) for f in factors(arg)), key=rank)
     # multiply literal factors: 2 * 2 * x -> 4 * x
     numbers = [f for f in ordered if isinstance(f, Literal)]
-    if len(numbers) > 1 and all(isinstance(f.value, int | float) for f in numbers):
-        product = Literal(prod(f.value for f in numbers))
+    if len(numbers) > 1 and all(isinstance(value_of(f), int | float) for f in numbers):
+        product = Literal(prod(value_of(f) for f in numbers))
         ordered = [product, *(f for f in ordered if not isinstance(f, Literal))]
     # a leading fraction is written as a division: pi / 6, not 1 / 6 * pi
     denominator = None
     first = ordered[0]
-    if isinstance(first, Call) and first.func is op.truediv and len(ordered) > 1:
-        numerator, denominator = first.args
+    if isinstance(first, Call) and func_of(first) is op.truediv and len(ordered) > 1:
+        numerator, denominator = args_of(first)
         ordered = ordered[1:] if numerator == Literal(1) else [numerator, *ordered[1:]]
     result = ordered[0]
     for factor in ordered[1:]:

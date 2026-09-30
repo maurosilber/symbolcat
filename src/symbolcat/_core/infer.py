@@ -14,12 +14,12 @@ Functions declare their rule by registering it, like for any algebra:
 
 >>> from symbolcat import Symbol
 >>> from symbolcat.lib import Function
->>> from symbolcat.ops.algebras import kind_algebra
+>>> from symbolcat.ops.algebras import args_of, kind_algebra
 >>> from symbolcat.kinds import Vector
 >>> double = Function("double", arity=1)
 >>> @kind_algebra.register(double)
 ... def _(node):
-...     (kind,) = node.args
+...     (kind,) = args_of(node)
 ...     return kind
 >>> double(Symbol("v", kind=Vector(3))).kind
 Vector(3)
@@ -31,7 +31,7 @@ from collections.abc import Callable
 from typing import Any
 
 from .algebra import Algebra
-from .expr import Call, Expr, Function, _label
+from .expr import Call, Expr, Function, _label, args_of, func_of
 from .kinds import Complex, Kind, Real, Scalar, array_kind
 
 kind_algebra = Algebra[Kind]("kind")
@@ -53,10 +53,10 @@ def _(node: Expr) -> Kind:
 @kind_algebra.register(Function)
 def _(node: Call[Kind]) -> Kind:
     """By default, functions take scalars and return a real."""
-    for kind in node.args:
+    for kind in args_of(node):
         if kind.shape:
             raise ValueError(
-                f"{_label(node.func)} needs scalar arguments, got shape {kind.shape}"
+                f"{_label(func_of(node))} needs scalar arguments, got shape {kind.shape}"
             )
     return Real()
 
@@ -69,16 +69,16 @@ def entrywise(element: ElementRule, /) -> Callable[[Call[Kind]], Kind]:
     """
 
     def rule(node: Call[Kind], /, **ctx: Any) -> Kind:
-        if all(isinstance(kind, Scalar) for kind in node.args):  # a fast path
-            return element(node.func, *node.args)
-        shapes = [kind.shape for kind in node.args]
+        if all(isinstance(kind, Scalar) for kind in args_of(node)):  # a fast path
+            return element(func_of(node), *args_of(node))
+        shapes = [kind.shape for kind in args_of(node)]
         arrays = list(dict.fromkeys(shape for shape in shapes if shape))
         if len(arrays) > 1:
             raise ValueError(
-                f"{_label(node.func)} of incompatible shapes: "
+                f"{_label(func_of(node))} of incompatible shapes: "
                 + ", ".join(map(str, shapes))
             )
-        kind = element(node.func, *(kind.element for kind in node.args))
+        kind = element(func_of(node), *(kind.element for kind in args_of(node)))
         return array_kind(arrays[0] if arrays else (), kind)
 
     return rule

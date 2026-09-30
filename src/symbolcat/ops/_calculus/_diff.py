@@ -24,7 +24,18 @@ from typing import Any
 
 from ... import complex as cx
 from ... import linalg, real
-from ..._core import Algebra, Call, Constant, Expr, Function, Literal, Symbol, cata
+from ..._core import (
+    Algebra,
+    Call,
+    Constant,
+    Expr,
+    Function,
+    Literal,
+    Symbol,
+    args_of,
+    cata,
+    func_of,
+)
 from ..._derivative import D, Variable, delay, is_variable
 from ...lib import operators as op
 from ...linalg import Array, matrix, vector
@@ -54,7 +65,7 @@ def _(node: Constant | Literal, *, seed: Seed) -> Dual:
 @diff_algebra.register(D)
 def _(node: Call[Dual], *, seed: Seed) -> Dual:
     """``D(x)`` is a variable, independent of ``x``."""
-    ((value, _),) = node.args
+    ((value, _),) = args_of(node)
     variable = D(value)
     if not is_variable(variable):
         raise NotImplementedError(
@@ -69,9 +80,9 @@ def rule(*funcs: Function) -> Callable[[Rule], Rule]:
     def decorator(derivative: Rule) -> Rule:
         @diff_algebra.register(*funcs)
         def _(node: Call[Dual], *, seed: Seed) -> Dual:
-            args = tuple(value for value, _ in node.args)
-            dargs = tuple(d for _, d in node.args)
-            return node.func(*args), derivative(args, dargs)
+            args = tuple(value for value, _ in args_of(node))
+            dargs = tuple(d for _, d in args_of(node))
+            return func_of(node)(*args), derivative(args, dargs)
 
         return derivative
 
@@ -81,7 +92,7 @@ def rule(*funcs: Function) -> Callable[[Rule], Rule]:
 @diff_algebra.register(delay)
 def _(node: Call[Dual], *, seed: Seed) -> Dual:
     """A delayed value is a variable, independent of the current one."""
-    (value, _), (tau, _) = node.args
+    (value, _), (tau, _) = args_of(node)
     delayed = delay(value, tau)
     return delayed, seed.get(delayed, ZERO)
 
@@ -148,8 +159,8 @@ def linear(func: Callable[..., Expr], *pairs: Dual) -> Expr:
 def _(node: Call[Dual], *, seed: Seed) -> Dual:
     """Linear functions: the derivative is the function of the derivatives.
     Arrays are differentiated entrywise."""
-    values = tuple(value for value, _ in node.args)
-    return node.func(*values), linear(node.func, *node.args)
+    values = tuple(value for value, _ in args_of(node))
+    return func_of(node)(*values), linear(func_of(node), *args_of(node))
 
 
 @rule(real.ifelse)
@@ -347,9 +358,9 @@ def jacobian(
     matrix([[y, x], [1, 1]])
     """
     if isinstance(exprs, Call):
-        if not (isinstance(exprs.func, Array) and len(exprs.func.shape) == 1):
+        if not (isinstance(func_of(exprs), Array) and len(exprs.kind.shape) == 1):
             raise TypeError(f"jacobian: expected a sequence or a vector, got {exprs}")
-        exprs = exprs.args
+        exprs = args_of(exprs)
     if vars is None:
         vars = tuple(dict.fromkeys(s for e in exprs for s in free_symbols(e)))
     return matrix([diff(expr, var) for var in vars] for expr in exprs)

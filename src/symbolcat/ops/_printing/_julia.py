@@ -29,8 +29,12 @@ from ..._core import (
     Literal,
     Operator,
     Symbol,
+    args_of,
     cata,
+    func_of,
     name_of,
+    precedence_of,
+    value_of,
 )
 from ..._core.precedence import POSTFIX, POW
 from ...lib import operators as op
@@ -65,7 +69,7 @@ julia_algebra = str_algebra.copy("julia")
 
 @julia_algebra.register(Literal)
 def _(node: Literal) -> Printed:
-    value = node.value
+    value = value_of(node)
     if isinstance(value, bool):
         return Printed("true" if value else "false")
     if isinstance(value, float) and math.isnan(value):
@@ -84,53 +88,57 @@ def _(node: Constant) -> Printed:
 
 @julia_algebra.register(*FUNCTIONS)
 def _(node: Call[Printed]) -> Printed:
-    return Printed(f"{FUNCTIONS[node.func]}({', '.join(a.text for a in node.args)})")
+    return Printed(
+        f"{FUNCTIONS[func_of(node)]}({', '.join(a.text for a in args_of(node))})"
+    )
 
 
 @julia_algebra.register(*PROMOTED)
 def _(node: Call[Printed]) -> Printed:
-    (arg,) = node.args
-    return Printed(f"{name_of(node.func)}(complex({arg.text}))")
+    (arg,) = args_of(node)
+    return Printed(f"{name_of(func_of(node))}(complex({arg.text}))")
 
 
 @julia_algebra.register(real.gammainc)
 def _(node: Call[Printed]) -> Printed:
-    a, x = node.args
+    a, x = args_of(node)
     return Printed(f"gamma_inc({a.text}, {x.text})[1]", POSTFIX)
 
 
 @julia_algebra.register(cx.rect)
 def _(node: Call[Printed]) -> Printed:
-    r, phi = node.args
-    return Printed(f"{operand(r, op.mul, 'left')} * cis({phi.text})", op.mul.precedence)
+    r, phi = args_of(node)
+    return Printed(
+        f"{operand(r, op.mul, 'left')} * cis({phi.text})", precedence_of(op.mul)
+    )
 
 
 @julia_algebra.register(op.pow)
 def _(node: Call[Printed]) -> Printed:
-    base, exponent = node.args
+    base, exponent = args_of(node)
     text = f"{operand(base, op.pow, 'left')} ^ {operand(exponent, op.pow, 'right')}"
     return Printed(text, POW)
 
 
 @julia_algebra.register(op.floordiv, op.mod)
 def _(node: Call[Printed]) -> Printed:
-    a, b = node.args
-    name = "fld" if node.func is op.floordiv else "mod"
+    a, b = args_of(node)
+    name = "fld" if func_of(node) is op.floordiv else "mod"
     return Printed(f"{name}({a.text}, {b.text})")
 
 
 @julia_algebra.register(op.xor)
 def _(node: Call[Printed]) -> Printed:
-    a, b = node.args
+    a, b = args_of(node)
     func = op.xor
     assert isinstance(func, Operator)
     text = f"{operand(a, func, 'left')} ⊻ {operand(b, func, 'right')}"
-    return Printed(text, func.precedence)
+    return Printed(text, precedence_of(func))
 
 
 @julia_algebra.register(op.getitem)
 def _(node: Call[Printed]) -> Printed:
-    obj, key = node.args
+    obj, key = args_of(node)
     found = indices(key)
     index = f"{key.text} + 1" if found is None else ", ".join(str(i + 1) for i in found)
     return Printed(f"{operand(obj, op.getitem, 'left')}[{index}]", POSTFIX)
@@ -138,9 +146,9 @@ def _(node: Call[Printed]) -> Printed:
 
 @julia_algebra.register(Array)
 def _(node: Call[Printed]) -> Printed:
-    assert isinstance(node.func, Array)
-    rows = nest(node.func.shape, [arg.text for arg in node.args])
-    if len(node.func.shape) == 1:
+    assert isinstance(func_of(node), Array)
+    rows = nest(node.kind.shape, [arg.text for arg in args_of(node)])
+    if len(node.kind.shape) == 1:
         return Printed(f"[{', '.join(rows)}]")
     return Printed("[" + "; ".join(" ".join(row) for row in rows) + "]")
 

@@ -17,6 +17,7 @@ from ..._core import (
     Expr,
     Literal,
     Symbol,
+    args_of,
     as_expr,
     cata,
     children,
@@ -51,7 +52,7 @@ def _(node: Constant | Literal) -> dict[Symbol, None]:
 @free_symbols_algebra.register(Call)
 def _(node: Call[dict[Symbol, None]]) -> dict[Symbol, None]:
     out: dict[Symbol, None] = {}
-    for arg in node.args:
+    for arg in args_of(node):
         out |= arg
     return out
 

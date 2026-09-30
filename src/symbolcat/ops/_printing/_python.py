@@ -12,7 +12,18 @@ from typing import Any
 
 from ... import complex as cx
 from ... import real
-from ..._core import Algebra, Call, Constant, Expr, Function, Symbol, cata, name_of
+from ..._core import (
+    Algebra,
+    Call,
+    Constant,
+    Expr,
+    Function,
+    Symbol,
+    args_of,
+    cata,
+    func_of,
+    name_of,
+)
 from ..._core.precedence import POSTFIX
 from ...lib import operators as op
 from ...linalg import Array, nest
@@ -30,27 +41,27 @@ def python_algebra(array: str | None, /) -> Algebra[Printed]:
 
     @algebra.register(Array)
     def _(node: Call[Printed]) -> Printed:
-        assert isinstance(node.func, Array)
-        rows = nest(node.func.shape, [arg.text for arg in node.args])
-        if len(node.func.shape) == 2:
+        assert isinstance(func_of(node), Array)
+        rows = nest(node.kind.shape, [arg.text for arg in args_of(node)])
+        if len(node.kind.shape) == 2:
             rows = ["[" + ", ".join(row) + "]" for row in rows]
         text = "[" + ", ".join(rows) + "]"
         return Printed(text if array is None else f"{array}({text})")
 
     @algebra.register(real.ifelse)
     def _(node: Call[Printed]) -> Printed:
-        condition, a, b = (arg.text for arg in node.args)
+        condition, a, b = (arg.text for arg in args_of(node))
         return Printed(f"({a} if {condition} else {b})")
 
     @algebra.register(cx.re, cx.im, cx.conj)
     def _(node: Call[Printed]) -> Printed:
-        (arg,) = node.args
+        (arg,) = args_of(node)
         methods: dict[Function, str] = {
             cx.re: "real",
             cx.im: "imag",
             cx.conj: "conjugate()",
         }
-        method = methods[node.func]
+        method = methods[func_of(node)]
         text = operand(arg, op.getitem, "left")
         if text[0].isdigit():  # 2.real is a syntax error
             text = f"({text})"
@@ -109,7 +120,7 @@ def to_python(
     for identifier in (name, *params):
         if not identifier.isidentifier():
             raise ValueError(f"{identifier!r} is not a valid Python identifier")
-    missing = [s.name for s in free_symbols(expr) if s.name not in params]
+    missing = [name_of(s) for s in free_symbols(expr) if name_of(s) not in params]
     if missing:
         raise ValueError(f"Free symbols not in args: {', '.join(missing)}")
     assignments, result = cse(expr, prefix="_")

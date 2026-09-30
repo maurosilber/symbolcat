@@ -50,7 +50,7 @@ from dataclasses import dataclass, fields
 from typing import Any, ClassVar
 
 from . import real
-from ._core import Call, Expr, Literal, Symbol, as_expr
+from ._core import Call, Expr, Literal, Symbol, args_of, as_expr, func_of
 from .lib import operators as op
 from .linalg import Array, det, inv, matrix, to_list, vector
 from .ops._algebraic._polynomial import cancel
@@ -411,8 +411,8 @@ class Poisson(Distribution):
 
 
 def _array(value: Any, ndim: int, /) -> Call[Expr]:
-    if isinstance(value, Call) and isinstance(value.func, Array):
-        if len(value.func.shape) != ndim:
+    if isinstance(value, Call) and isinstance(func_of(value), Array):
+        if len(value.kind.shape) != ndim:
             raise ValueError(f"expected an array with {ndim} dimensions: {value}")
         return value
     return vector(value) if ndim == 1 else matrix(value)
@@ -439,16 +439,16 @@ class MultivariateNormal(Distribution):
 
     def __init__(self, mu: Any, cov: Any) -> None:
         mu, cov = _array(mu, 1), _array(cov, 2)
-        assert isinstance(mu.func, Array) and isinstance(cov.func, Array)
-        (n,) = mu.func.shape
-        if cov.func.shape != (n, n):
+        assert isinstance(func_of(mu), Array) and isinstance(func_of(cov), Array)
+        (n,) = mu.kind.shape
+        if cov.kind.shape != (n, n):
             raise ValueError(f"the covariance of {n} variables must be {n} by {n}")
         object.__setattr__(self, "mu", mu)
         object.__setattr__(self, "cov", cov)
 
     @property
     def size(self) -> int:
-        return len(self.mu.args)
+        return len(args_of(self.mu))
 
     def _logpdf(self, x: Any, /) -> Expr:
         d = _array(x, 1) - self.mu
@@ -528,7 +528,7 @@ def propagate(
         rows = to_list(dist.cov)
         for a, symbol in enumerate(key):
             variables.append(symbol)
-            means[symbol] = dist.mu.args[a]
+            means[symbol] = args_of(dist.mu)[a]
             for b in range(len(key)):
                 cov[start + a, start + b] = rows[a][b]
 

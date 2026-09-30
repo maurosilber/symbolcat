@@ -10,7 +10,7 @@ from __future__ import annotations
 from functools import singledispatch
 from typing import Any
 
-from .expr import Call, Expr
+from .expr import Call, Expr, args_of
 
 
 @singledispatch
@@ -34,4 +34,4 @@ def _(node: Expr) -> tuple[Any, ...]:
 
 @children.register(Call)
 def _[T](node: Call[T]) -> tuple[T, ...]:
-    return node.args
+    return args_of(node)

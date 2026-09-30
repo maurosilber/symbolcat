@@ -21,7 +21,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from ..._core import Call, Expr, Symbol
+from ..._core import Call, Expr, Symbol, args_of
 from ..._derivative import D, Variable, is_variable
 from ...ops._algebraic._matching import Graph, augment, perfect_matching
 from ...ops._algebraic._system import residual
@@ -124,7 +124,7 @@ def pantelides(
             return index[var]
         below = None
         if isinstance(var, Call):
-            (inner,) = var.args
+            (inner,) = args_of(var)
             assert is_variable(inner)
             below = add_var(inner)
         index[var] = len(vars)

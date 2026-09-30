@@ -21,7 +21,7 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from ..._core import Call, Expr, Symbol, ana, as_expr, cata
+from ..._core import Call, Expr, Symbol, ana, args_of, as_expr, cata, func_of, name_of
 from ._substitute import substitute
 
 type Bindings = dict[str, Expr]
@@ -57,15 +57,15 @@ def match(
     if isinstance(pattern, Wild):
         if pattern.predicate is not None and not pattern.predicate(expr):
             return None
-        if pattern.name in bindings:
-            return bindings if bindings[pattern.name] == expr else None
-        return {**bindings, pattern.name: expr}
+        if name_of(pattern) in bindings:
+            return bindings if bindings[name_of(pattern)] == expr else None
+        return {**bindings, name_of(pattern): expr}
     if isinstance(pattern, Call):
-        if not isinstance(expr, Call) or expr.func is not pattern.func:
+        if not isinstance(expr, Call) or func_of(expr) is not func_of(pattern):
             return None
-        if len(expr.args) != len(pattern.args):
+        if len(args_of(expr)) != len(args_of(pattern)):
             return None
-        for p, e in zip(pattern.args, expr.args, strict=True):
+        for p, e in zip(args_of(pattern), args_of(expr), strict=True):
             result = match(p, e, bindings)
             if result is None:
                 return None
@@ -113,7 +113,9 @@ def _apply(rules: Iterable[Rule], node: Expr, /) -> Expr | None:
 
 def _postwalk(expr: Expr, rules: list[Rule], /) -> Expr:
     def algebra(layer: Expr, /) -> Expr:
-        node = Call(layer.func, layer.args) if isinstance(layer, Call) else layer
+        node = (
+            Call(func_of(layer), args_of(layer)) if isinstance(layer, Call) else layer
+        )
         return _apply(rules, node) or node
 
     return cata(algebra, expr)

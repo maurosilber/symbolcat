@@ -370,6 +370,60 @@ class Call(Expr[_K_co], Generic[_T_co, _K_co]):  # noqa: UP046 (for the default)
         return f"Call({_label(self.func)}, {self.args!r})"
 
 
+# Accessors. Nodes and functions keep their data out of their namespace, so
+# that subclasses (in downstream libraries) cannot collide with it; these
+# functions read it.
+
+
+def func_of(node: Call[Any, Any], /) -> Function:
+    """The function of a call.
+
+    >>> from symbolcat import Symbol, real
+    >>> func_of(real.sin(Symbol("x"))) is real.sin
+    True
+    """
+    return node.func
+
+
+def args_of[T](node: Call[T, Any], /) -> tuple[T, ...]:
+    """The arguments of a call.
+
+    >>> from symbolcat import Symbol
+    >>> args_of(Symbol("x") + 1)
+    (Symbol('x'), Literal(1))
+    """
+    return node.args
+
+
+def value_of(node: Literal[Any], /) -> Any:
+    """The Python value of a literal.
+
+    >>> value_of(Literal(2))
+    2
+    """
+    return node.value
+
+
+def arity_of(func: Function, /) -> int | None:
+    """The number of arguments of a function, or ``None`` if any."""
+    return func.arity
+
+
+def fmt_of(op: Operator, /) -> str:
+    """The Python spelling of an operator, as a format string (``"{} + {}"``)."""
+    return op.fmt
+
+
+def precedence_of(op: Operator, /) -> int:
+    """The precedence of an operator, following Python (higher binds tighter)."""
+    return op.precedence
+
+
+def assoc_of(op: Operator, /) -> str:
+    """The associativity of an operator: ``"left"``, ``"right"`` or ``"none"``."""
+    return op.assoc
+
+
 def as_expr(value: Any, /) -> Expr:
     """Wrap plain Python values into a ``Literal``."""
     if isinstance(value, Expr):

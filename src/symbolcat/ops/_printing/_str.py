@@ -17,8 +17,13 @@ from ..._core import (
     Literal,
     Operator,
     Symbol,
+    args_of,
     cata,
+    fmt_of,
+    func_of,
     name_of,
+    precedence_of,
+    value_of,
 )
 from ..._core.precedence import POSTFIX
 from ...lib import operators as op
@@ -35,20 +40,20 @@ def _(node: Symbol | Constant) -> Printed:
 
 @str_algebra.register(Literal)
 def _(node: Literal) -> Printed:
-    return Printed(repr(node.value), literal_precedence(node.value))
+    return Printed(repr(value_of(node)), literal_precedence(value_of(node)))
 
 
 @str_algebra.register(Function)
 def _(node: Call[Printed]) -> Printed:
-    args = ", ".join(arg.text for arg in node.args)
-    return Printed(f"{name_of(node.func)}({args})")
+    args = ", ".join(arg.text for arg in args_of(node))
+    return Printed(f"{name_of(func_of(node))}({args})")
 
 
 @str_algebra.register(Array)
 def _(node: Call[Printed]) -> Printed:
-    assert isinstance(node.func, Array)
-    rows = nest(node.func.shape, [arg.text for arg in node.args])
-    if len(node.func.shape) == 1:
+    assert isinstance(func_of(node), Array)
+    rows = nest(node.kind.shape, [arg.text for arg in args_of(node)])
+    if len(node.kind.shape) == 1:
         return Printed(f"vector([{', '.join(rows)}])")
     text = ", ".join(f"[{', '.join(row)}]" for row in rows)
     return Printed(f"matrix([{text}])")
@@ -56,22 +61,22 @@ def _(node: Call[Printed]) -> Printed:
 
 @str_algebra.register(Operator)
 def _(node: Call[Printed]) -> Printed:
-    func = node.func
+    func = func_of(node)
     assert isinstance(func, Operator)
-    if len(node.args) == 1:
-        (arg,) = node.args
-        text = func.fmt.format(operand(arg, func, "right"))
+    if len(args_of(node)) == 1:
+        (arg,) = args_of(node)
+        text = fmt_of(func).format(operand(arg, func, "right"))
     else:
-        left, right = node.args
-        text = func.fmt.format(
+        left, right = args_of(node)
+        text = fmt_of(func).format(
             operand(left, func, "left"), operand(right, func, "right")
         )
-    return Printed(text, func.precedence)
+    return Printed(text, precedence_of(func))
 
 
 @str_algebra.register(op.getitem)
 def _(node: Call[Printed]) -> Printed:
-    obj, key = node.args
+    obj, key = args_of(node)
     return Printed(f"{operand(obj, op.getitem, 'left')}[{key.text}]", POSTFIX)
 
 

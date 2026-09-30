@@ -46,7 +46,7 @@ from typing import Any, overload
 
 from . import complex as _complex
 from . import real as _real
-from ._core import Call, Expr, Function, Operator
+from ._core import Call, Expr, Function, Operator, args_of, func_of, name_of
 from ._core.infer import kind_algebra
 from ._core.kinds import Kind, Matrix, Real, Scalar, Vector, array_kind, join
 from ._core.signatures import Transpose
@@ -62,6 +62,15 @@ class Array(Function):
 
     _: KW_ONLY
     shape: tuple[int, ...] = ()
+
+
+def array_shape(func: Array, /) -> tuple[int, ...]:
+    """The shape of the arrays that ``func`` builds.
+
+    >>> array_shape(array((2, 3)))
+    (2, 3)
+    """
+    return func.shape
 
 
 @cache
@@ -157,9 +166,9 @@ def to_list(expr: Call[Any], /) -> list[Any]:
     >>> to_list(vector([x, 1]))
     [Symbol('x'), Literal(1)]
     """
-    if not isinstance(expr.func, Array):
+    if not isinstance(func_of(expr), Array):
         raise TypeError(f"not an array: {expr}")
-    return nest(expr.func.shape, expr.args)
+    return nest(expr.kind.shape, args_of(expr))
 
 
 type _Array = Expr[Vector] | Expr[Matrix]
@@ -192,30 +201,35 @@ ENTRYWISE: frozenset[Function] = frozenset(
 
 @kind_algebra.register(Array)
 def _(node: Call[Kind]) -> Kind:
-    assert isinstance(node.func, Array)
-    for kind in node.args:
+    func = func_of(node)
+    assert isinstance(func, Array)
+    for kind in args_of(node):
         if kind.shape:
             raise ValueError(f"array entries must be scalars, got shape {kind.shape}")
-    elements = [kind.element for kind in node.args]
-    return array_kind(node.func.shape, join(*elements) if elements else Real())
+    elements = [kind.element for kind in args_of(node)]
+    return array_kind(array_shape(func), join(*elements) if elements else Real())
 
 
 def _array(node: Call[Kind], /) -> Kind:
     """The single argument, which must be a vector or a matrix."""
-    (kind,) = node.args
+    (kind,) = args_of(node)
     if not kind.shape:
-        raise ValueError(f"{node.func.name} needs a vector or a matrix, got a scalar")
+        raise ValueError(
+            f"{name_of(func_of(node))} needs a vector or a matrix, got a scalar"
+        )
     return kind
 
 
 def _square(node: Call[Kind], /) -> Matrix:
     """The single argument, which must be a square matrix."""
-    (kind,) = node.args
+    (kind,) = args_of(node)
     match kind.shape:
         case (rows, cols) if rows == cols:
             assert isinstance(kind, Matrix)
             return kind
-    raise ValueError(f"{node.func.name} needs a square matrix, got shape {kind.shape}")
+    raise ValueError(
+        f"{name_of(func_of(node))} needs a square matrix, got shape {kind.shape}"
+    )
 
 
 def _numeric(kind: Scalar, /) -> Scalar:
@@ -253,7 +267,7 @@ def _(node: Call[Kind]) -> Kind:
 
 @kind_algebra.register(cross)
 def _(node: Call[Kind]) -> Kind:
-    a, b = node.args
+    a, b = args_of(node)
     if a.shape != (3,) or b.shape != (3,):
         raise ValueError(
             f"cross needs two vectors of length 3, got {a.shape} and {b.shape}"

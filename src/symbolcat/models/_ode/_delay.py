@@ -17,7 +17,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from ... import real
-from ..._core import Call, Expr, Literal, Symbol
+from ..._core import Call, Expr, Literal, Symbol, args_of
 from ...linalg import matrix
 from ...ops._calculus._diff import jvp
 from ...ops._calculus._time import delays
@@ -50,7 +50,7 @@ def characteristic_matrix(
             entry: Expr = s if i == j else Literal(0)
             entry = entry - jvp(f, {x: Literal(1)})
             for node in delays(f):
-                value, tau = node.args
+                value, tau = args_of(node)
                 if value == x:
                     entry = entry - jvp(f, {node: Literal(1)}) * real.exp(-s * tau)
             if point:

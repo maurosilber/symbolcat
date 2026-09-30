@@ -11,7 +11,7 @@ from collections.abc import Callable
 from functools import singledispatch
 from typing import Any
 
-from .expr import Call, Expr
+from .expr import Call, Expr, args_of, func_of
 
 
 @singledispatch
@@ -37,7 +37,7 @@ def _(node: Expr, f: Callable[[Any], Any]) -> Expr:
 
 @fmap.register(Call)
 def _[T, S](node: Call[T], f: Callable[[T], S]) -> Call[S]:
-    args = tuple(map(f, node.args))
+    args = tuple(map(f, args_of(node)))
     if all(isinstance(arg, Expr) for arg in args):
-        return Call(node.func, args)
-    return Call(node.func, args, node.kind)
+        return Call(func_of(node), args)
+    return Call(func_of(node), args, node.kind)

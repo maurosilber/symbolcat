@@ -22,7 +22,18 @@ from fractions import Fraction
 from itertools import combinations
 from typing import Any
 
-from ..._core import Call, Done, Expr, Literal, Symbol, as_expr, hylo
+from ..._core import (
+    Call,
+    Done,
+    Expr,
+    Literal,
+    Symbol,
+    args_of,
+    as_expr,
+    func_of,
+    hylo,
+    value_of,
+)
 from ...lib import operators as op
 from .._analysis._inspect import free_symbols
 from .._transform._simplify import from_fraction
@@ -220,12 +231,12 @@ def _rational_layer(node: Expr, /) -> Call[Any] | None:
     """
     if not isinstance(node, Call):
         return None
-    if node.func in _RATIONAL_OPS:
+    if func_of(node) in _RATIONAL_OPS:
         return node
-    if node.func is op.pow:
-        base, exponent = node.args
-        if isinstance(exponent, Literal) and type(exponent.value) is int:
-            return Call(op.pow, (base, Done(exponent.value)))
+    if func_of(node) is op.pow:
+        base, exponent = args_of(node)
+        if isinstance(exponent, Literal) and type(value_of(exponent)) is int:
+            return Call(op.pow, (base, Done(value_of(exponent))))
     return None
 
 
@@ -242,32 +253,35 @@ def _rational(
         if node in index:
             mono = tuple(1 if i == index[node] else 0 for i in range(n))
             return Done(({mono: Fraction(1)}, _const(1, n)))
-        if isinstance(node, Literal) and type(node.value) in (int, Fraction):
-            return Done((_const(node.value, n), _const(1, n)))
+        if isinstance(node, Literal) and type(value_of(node)) in (int, Fraction):
+            return Done((_const(value_of(node), n), _const(1, n)))
         if (layer := _rational_layer(node)) is None:
             raise NotPolynomial(f"{node} is not a rational operation of the generators")
         # The node itself goes last, to name it in errors.
-        return Call(layer.func, (*layer.args, Done(node)))
+        return Call(func_of(layer), (*args_of(layer), Done(node)))
 
     def algebra(layer: Call[Any], /) -> tuple[Poly, Poly]:
-        *args, node = layer.args
-        if layer.func in (op.add, op.sub):
+        *args, node = args_of(layer)
+        if func_of(layer) in (op.add, op.sub):
             (an, ad), (bn, bd) = args
-            sign = Fraction(1) if layer.func is op.add else -Fraction(1)
+            sign = Fraction(1) if func_of(layer) is op.add else -Fraction(1)
             return (_add(_mul(an, bd), _mul(bn, ad), sign), _mul(ad, bd))
-        if layer.func is op.mul:
+        if func_of(layer) is op.mul:
             (an, ad), (bn, bd) = args
             return (_mul(an, bn), _mul(ad, bd))
-        if layer.func is op.truediv:
+        if func_of(layer) is op.truediv:
             (an, ad), (bn, bd) = args
             if not bn:
                 raise ZeroDivisionError(f"division by zero in {node}")
             if polynomial and _variables_used(bn) | _variables_used(bd):
                 raise NotPolynomial(f"{node} divides by a polynomial")
             return (_mul(an, bd), _mul(ad, bn))
-        if layer.func in (op.neg, op.pos):
+        if func_of(layer) in (op.neg, op.pos):
             ((an, ad),) = args
-            return ({m: -c for m, c in an.items()} if layer.func is op.neg else an, ad)
+            return (
+                {m: -c for m, c in an.items()} if func_of(layer) is op.neg else an,
+                ad,
+            )
         (bn, bd), exponent = args  # op.pow
         if exponent < 0:
             if polynomial:
@@ -284,14 +298,14 @@ def _atoms(expr: Expr, /) -> list[Expr]:
     def coalgebra(node: Expr, /) -> Any:
         if (layer := _rational_layer(node)) is not None:
             return layer
-        if isinstance(node, Literal) and type(node.value) in (int, Fraction):
+        if isinstance(node, Literal) and type(value_of(node)) in (int, Fraction):
             return Done({})
         return Done({node: None})
 
     # Folds into an insertion-ordered set (a dict with None values).
     def algebra(layer: Call[Any], /) -> dict[Expr, None]:
         out: dict[Expr, None] = {}
-        for arg in layer.args:
+        for arg in args_of(layer):
             if isinstance(arg, dict):  # not the exponent of a power
                 out |= arg
         return out

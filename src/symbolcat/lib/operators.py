@@ -18,6 +18,7 @@ from .._core import precedence as _p
 from .._core.expr import Call as _Call
 from .._core.expr import Function as _Function
 from .._core.expr import Operator as _Operator
+from .._core.expr import args_of as _args_of
 from .._core.infer import entrywise as _entrywise
 from .._core.infer import kind_algebra as _kind_algebra
 from .._core.infer import real_arguments as _real_arguments
@@ -116,7 +117,7 @@ del _funcs, _element
 def _(node: _Call[_Kind]) -> _Kind:
     """Matrix product, as NumPy: a vector is a row on the left, a column on
     the right, and the product of two vectors is their dot product."""
-    a, b = node.args
+    a, b = _args_of(node)
     sa, sb = a.shape, b.shape
     if not sa or not sb:
         raise ValueError(f"matmul needs arrays, got shapes {sa} and {sb}")
@@ -130,7 +131,7 @@ def _(node: _Call[_Kind]) -> _Kind:
 def _(node: _Call[_Kind]) -> _Kind:
     """An entry of a vector, or a row of a matrix. Indexing a scalar is
     allowed, as its value may be a container."""
-    obj, key = node.args
+    obj, key = _args_of(node)
     if key.shape:
         raise ValueError(f"index must be a scalar, got shape {key.shape}")
     return _array_kind(obj.shape[1:], obj.element)

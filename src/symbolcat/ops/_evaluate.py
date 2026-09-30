@@ -26,10 +26,13 @@ from .._core import (
     Expr,
     Literal,
     Symbol,
+    args_of,
     as_expr,
     children,
     fmap,
+    func_of,
     name_of,
+    value_of,
 )
 from ..linalg import Array, nest
 from ._transform._arrays import expand_arrays
@@ -42,11 +45,11 @@ def _(node: Symbol, *, env: Mapping[Symbol | str, Any], lib: Mapping[Any, Any]) 
     name_of(node)  # unnamed symbols would all compare equal
     if node in env:
         return env[node]
-    if node.name in env:  # given by name
-        return env[node.name]
+    if name_of(node) in env:  # given by name
+        return env[name_of(node)]
     if Symbol in lib:
         return lib[Symbol](node)
-    raise NameError(f"No value for symbol {node.name!r}")
+    raise NameError(f"No value for symbol {name_of(node)!r}")
 
 
 @evaluate_algebra.register(Constant)
@@ -59,25 +62,25 @@ def _(node: Constant, *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> A
 
 @evaluate_algebra.register(Literal)
 def _(node: Literal, **ctx: Any) -> Any:
-    return node.value
+    return value_of(node)
 
 
 @evaluate_algebra.register(Call)
 def _(node: Call[Any], *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> Any:
     try:
-        func = lib[node.func]
+        func = lib[func_of(node)]
     except KeyError:
         raise NotImplementedError(
-            f"No implementation for {name_of(node.func)!r}"
+            f"No implementation for {name_of(func_of(node))!r}"
         ) from None
-    return func(*node.args)
+    return func(*args_of(node))
 
 
 @evaluate_algebra.register(Array)
 def _(node: Call[Any], *, env: Mapping[Symbol, Any], lib: Mapping[Any, Any]) -> Any:
     """Nested lists of the entries, or ``lib[Array]`` applied to them."""
-    assert isinstance(node.func, Array)
-    rows = nest(node.func.shape, node.args)
+    assert isinstance(func_of(node), Array)
+    rows = nest(node.kind.shape, args_of(node))
     return lib[Array](rows) if Array in lib else rows
 
 
@@ -100,8 +103,8 @@ def fold(expr: Expr, /, **ctx: Any) -> Any:
         if id(node) in done:
             stack.pop()
             continue
-        if isinstance(node, Call) and node.func is real.ifelse:
-            condition, a, b = node.args
+        if isinstance(node, Call) and func_of(node) is real.ifelse:
+            condition, a, b = args_of(node)
             if id(condition) not in done:
                 stack.append(condition)
                 continue

@@ -13,10 +13,12 @@ from symbolcat.ops.algebras import (
     Literal,
     Operator,
     ana,
+    args_of,
     cata,
     children,
     fmap,
     hylo,
+    name_of,
 )
 from symbolcat.ops.printing import to_latex
 
@@ -60,8 +62,8 @@ def test_names_from_class_body():
         g = Function("gee")
         y = f(x) + k  # built before the names are assigned
 
-    assert (Model.x.name, Model.k.name, Model.f.name) == ("x", "k", "f")
-    assert Model.g.name == "gee"  # explicit names are kept
+    assert (name_of(Model.x), name_of(Model.k), name_of(Model.f)) == ("x", "k", "f")
+    assert name_of(Model.g) == "gee"  # explicit names are kept
     assert str(Model.y) == "f(x) + k"
 
 
@@ -96,7 +98,7 @@ def test_arity_is_checked():
 
 
 def test_fmap_replaces_children():
-    layer = fmap(x + y, lambda child: child.name)
+    layer = fmap(x + y, lambda child: name_of(child))
     assert layer == Call(op.add, ("x", "y"))
     assert fmap(x, str) is x
 
@@ -166,9 +168,9 @@ def test_ana_shares_equal_seeds():
 
     expr = ana(coalgebra, 5, key=lambda n: n)
     assert isinstance(expr, Call)
-    two, three = expr.args
+    two, three = args_of(expr)
     assert isinstance(three, Call)
-    assert three.args[1] is two
+    assert args_of(three)[1] is two
     assert sorted(calls) == [1, 2, 3, 5]
 
 
@@ -178,7 +180,7 @@ def test_hylo_done_stops_unfolding():
             return Done(100)  # in place of a layer
         return Call(op.add, (n - 1, Done(n)))  # among the children
 
-    assert hylo(lambda layer: sum(layer.args), coalgebra, 5, key=lambda n: n) == 109
+    assert hylo(lambda layer: sum(args_of(layer)), coalgebra, 5, key=lambda n: n) == 109
 
 
 def test_ana_handles_deep_trees():

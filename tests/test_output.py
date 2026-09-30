@@ -6,7 +6,7 @@ import pytest
 from symbolcat import Symbol, real
 from symbolcat.lib import Function
 from symbolcat.ops import evaluate
-from symbolcat.ops.algebras import Call, Literal, cata
+from symbolcat.ops.algebras import Call, Literal, args_of, cata
 from symbolcat.ops.printing import to_graphviz, to_mathml, to_python, tree_view
 from symbolcat.ops.transform import cse, share
 
@@ -32,7 +32,7 @@ def test_share_merges_equal_subexpressions():
 def test_share_keeps_different_literals_apart():
     expr = share((x + 1) * (x + 1.0))
     assert isinstance(expr, Call)
-    left, right = expr.args
+    left, right = args_of(expr)
     assert left is not right
 
 

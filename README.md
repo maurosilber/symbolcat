@@ -85,14 +85,14 @@ Most operations need one rule per node type or function. The `Algebra` class
 collects those rules in a registry:
 
 ```python
->>> from symbolcat.ops.algebras import Algebra, Call, Expr
+>>> from symbolcat.ops.algebras import Algebra, Call, Expr, args_of
 >>> depth = Algebra("depth")
 >>> @depth.register(Expr)  # any leaf
 ... def _(node):
 ...     return 1
 >>> @depth.register(Call)
 ... def _(node):
-...     return 1 + max(node.args)  # args are already depths
+...     return 1 + max(args_of(node))  # args are already depths
 >>> cata(depth, (x + 1) * 2)
 3
 
@@ -401,7 +401,7 @@ By default, a function takes scalars and returns a real; a rule in
 >>> outer = Function("outer", arity=2)
 >>> @kind_algebra.register(outer)
 ... def _(node):
-...     a, b = node.args  # the kinds of the arguments
+...     a, b = args_of(node)  # the kinds of the arguments
 ...     return Matrix(a.n, b.n)
 >>> u, w = Symbol("u", kind=Vector(3)), Symbol("w", kind=Vector(2))
 >>> outer(u, w).kind
@@ -421,7 +421,7 @@ The other algebras are extended in the same way:
 >>> sinc = Function("sinc", arity=1)
 >>> @latex_algebra.register(sinc)
 ... def _(node):
-...     return Printed(rf"\operatorname{{sinc}}\left({node.args[0].text}\right)")
+...     return Printed(rf"\operatorname{{sinc}}\left({args_of(node)[0].text}\right)")
 >>> print(to_latex(sinc(x) ** 2))
 \operatorname{sinc}\left(x\right)^{2}
 

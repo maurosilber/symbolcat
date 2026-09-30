@@ -26,8 +26,12 @@ from ..._core import (
     Function,
     Literal,
     Symbol,
+    args_of,
     as_expr,
     cata,
+    func_of,
+    name_of,
+    value_of,
 )
 from ...lib import operators as op
 from .._transform._arrays import entries, expand_arrays
@@ -218,70 +222,72 @@ def _(node: Constant | Literal, *, var: Symbol, at: Expr, n: int) -> Series:
 
 @series_algebra.register(Function)
 def _(node: Call[Series], *, var: Symbol, at: Expr, n: int) -> Series:
-    if node.func in FUNCTIONS:
-        return FUNCTIONS[node.func](node.args[0])
-    if len(node.args) == 1:
-        return compose(node.func, node.args[0])
-    if all(is_constant(arg) for arg in node.args):
-        return constant(node.func(*(arg[0] for arg in node.args)), n)
-    raise NotImplementedError(f"series of {node.func.name} with a varying argument")
+    if func_of(node) in FUNCTIONS:
+        return FUNCTIONS[func_of(node)](args_of(node)[0])
+    if len(args_of(node)) == 1:
+        return compose(func_of(node), args_of(node)[0])
+    if all(is_constant(arg) for arg in args_of(node)):
+        return constant(func_of(node)(*(arg[0] for arg in args_of(node))), n)
+    raise NotImplementedError(
+        f"series of {name_of(func_of(node))} with a varying argument"
+    )
 
 
 @series_algebra.register(op.add, op.sub)
 def _(node: Call[Series], **ctx: Any) -> Series:
-    a, b = node.args
-    return clean([node.func(x, y) for x, y in zip(a, b, strict=True)])
+    a, b = args_of(node)
+    return clean([func_of(node)(x, y) for x, y in zip(a, b, strict=True)])
 
 
 @series_algebra.register(op.neg, op.pos)
 def _(node: Call[Series], **ctx: Any) -> Series:
-    (a,) = node.args
-    return clean([node.func(x) for x in a])
+    (a,) = args_of(node)
+    return clean([func_of(node)(x) for x in a])
 
 
 @series_algebra.register(op.mul)
 def _(node: Call[Series], **ctx: Any) -> Series:
-    return mul(*node.args)
+    return mul(*args_of(node))
 
 
 @series_algebra.register(op.matmul, linalg.cross)
 def _(node: Call[Series], **ctx: Any) -> Series:
-    a, b = node.args
-    return mul(a, b, product=node.func)
+    a, b = args_of(node)
+    return mul(a, b, product=func_of(node))
 
 
 @series_algebra.register(linalg.transpose, linalg.trace, linalg.sum)
 def _(node: Call[Series], **ctx: Any) -> Series:
     """Linear functions apply to each coefficient."""
-    (a,) = node.args
-    return clean([node.func(c) for c in a])
+    (a,) = args_of(node)
+    return clean([func_of(node)(c) for c in a])
 
 
 @series_algebra.register(linalg.det, linalg.inv, linalg.norm)
 def _(node: Call[Series], *, n: int, **ctx: Any) -> Series:
-    (a,) = node.args
+    (a,) = args_of(node)
     if not is_constant(a):
         raise NotImplementedError(
-            f"series of {node.func.name} with a varying argument: "
+            f"series of {name_of(func_of(node))} with a varying argument: "
             "give the entries of the array"
         )
-    return constant(node.func(a[0]), n)
+    return constant(func_of(node)(a[0]), n)
 
 
 @series_algebra.register(op.truediv)
 def _(node: Call[Series], **ctx: Any) -> Series:
-    return div(*node.args)
+    return div(*args_of(node))
 
 
 @series_algebra.register(op.pow)
 def _(node: Call[Series], **ctx: Any) -> Series:
-    base, exponent = node.args
+    base, exponent = args_of(node)
     if not is_constant(exponent):  # a ** b == exp(b * log(a))
         return exp_series(mul(exponent, log_series(base)))
     b = simplify_exact(exponent[0])
-    if isinstance(b, Literal) and type(b.value) is int and b.value >= 0:
+    if isinstance(b, Literal) and type(value_of(b)) is int and value_of(b) >= 0:
         result = constant(Literal(1), len(base))
-        for _ in range(b.value):
+        for _ in range(value_of(b)):
             result = mul(result, base)
         return result
     return power(base, b)
@@ -295,14 +301,14 @@ def term(coefficient: Expr, power: Expr | None, /) -> Expr:
         return power
     if is_number(coefficient, -1):
         return -power
-    if isinstance(coefficient, Call) and coefficient.func is op.truediv:
-        numerator, denominator = coefficient.args
+    if isinstance(coefficient, Call) and func_of(coefficient) is op.truediv:
+        numerator, denominator = args_of(coefficient)
         if isinstance(denominator, Literal):
             return term(numerator, power) / denominator
-    if isinstance(coefficient, Call) and coefficient.func is op.mul:
+    if isinstance(coefficient, Call) and func_of(coefficient) is op.mul:
         # a rational factor goes outside: a * x ** 2 / 2, not 1 / 2 * a * x ** 2
-        for i, factor in enumerate(coefficient.args):
-            other = coefficient.args[1 - i]
+        for i, factor in enumerate(args_of(coefficient)):
+            other = args_of(coefficient)[1 - i]
             if (value := as_fraction(factor)) is not None and value.denominator != 1:
                 numerator = term(Literal(value.numerator), other)
                 return term(numerator, power) / value.denominator
@@ -337,7 +343,7 @@ def series(
     """
     expr = expand_arrays(expr)
     if isinstance(expr, Call) and (items := entries(expr)) is not None:
-        return expr.func(*(series(e, var, at=at, order=order) for e in items))
+        return func_of(expr)(*(series(e, var, at=at, order=order) for e in items))
     at = as_expr(at)
     n = order + PADDING
     coefficients = cata(series_algebra, expr, var=var, at=at, n=n)[:order]
@@ -350,15 +356,15 @@ def series(
         t = term(c, power)
         if result is None:
             result = t
-        elif isinstance(t, Call) and t.func is op.neg:
-            result = result - t.args[0]
+        elif isinstance(t, Call) and func_of(t) is op.neg:
+            result = result - args_of(t)[0]
         elif (
             isinstance(t, Call)
-            and t.func is op.truediv
-            and isinstance(t.args[0], Call)
-            and t.args[0].func is op.neg
+            and func_of(t) is op.truediv
+            and isinstance(args_of(t)[0], Call)
+            and func_of(args_of(t)[0]) is op.neg
         ):
-            result = result - t.args[0].args[0] / t.args[1]
+            result = result - args_of(args_of(t)[0])[0] / args_of(t)[1]
         else:
             result = result + t
     return Literal(0) if result is None else result

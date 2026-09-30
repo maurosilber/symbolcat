@@ -22,7 +22,7 @@ from collections.abc import Callable
 from typing import Any
 
 from ... import real
-from ..._core import Call, Expr, Literal, Symbol
+from ..._core import Call, Expr, Literal, Symbol, args_of, func_of, name_of
 from ..._derivative import Variable, is_variable
 from ...lib import operators as op
 from .._analysis._polynomial import coefficients
@@ -72,8 +72,8 @@ def _solve(expr: Expr, /) -> list[Expr]:
     if coeffs is not None:
         return _polynomial(coeffs, expr)
     fraction = cancel(expr) if _is_rational(expr) else expr
-    if isinstance(fraction, Call) and fraction.func is op.truediv:
-        numerator, denominator = fraction.args
+    if isinstance(fraction, Call) and func_of(fraction) is op.truediv:
+        numerator, denominator = args_of(fraction)
         return [
             s
             for s in _solve(numerator)
@@ -142,7 +142,7 @@ def _count(expr: Expr, /) -> int:
     if expr == _SOLVE:
         return 1
     if isinstance(expr, Call):
-        return sum(_count(arg) for arg in expr.args)
+        return sum(_count(arg) for arg in args_of(expr))
     return 0
 
 
@@ -169,16 +169,16 @@ def _isolate(expr: Expr, rhs: Expr, /) -> list[Expr]:
     if expr == _SOLVE:
         return [rhs]
     assert isinstance(expr, Call)
-    (position,) = [i for i, arg in enumerate(expr.args) if _count(arg)]
-    inner = expr.args[position]
-    func = expr.func
+    (position,) = [i for i, arg in enumerate(args_of(expr)) if _count(arg)]
+    inner = args_of(expr)[position]
+    func = func_of(expr)
     if func in INVERSES:
         values = INVERSES[func](rhs)
     elif func in (op.add, op.sub, op.mul, op.truediv, op.pow):
-        other = expr.args[1 - position]
+        other = args_of(expr)[1 - position]
         values = _invert_binary(func, position, other, rhs)
     else:
-        raise NotImplementedError(f"solve: cannot invert {func.name}")
+        raise NotImplementedError(f"solve: cannot invert {name_of(func)}")
     return [s for value in values for s in _isolate(inner, value)]
 
 

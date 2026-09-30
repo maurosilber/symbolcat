@@ -29,8 +29,11 @@ from ..._core import (
     Literal,
     Symbol,
     ana,
+    args_of,
     cata,
+    func_of,
     name_of,
+    value_of,
 )
 from ...lib import operators as op
 from . import _term as term
@@ -114,7 +117,7 @@ def _(node: Constant, *, table: Table) -> Num:
 
 @to_egglog_algebra.register(Literal)
 def _(node: Literal, *, table: Table) -> Num:
-    value = node.value
+    value = value_of(node)
     if isinstance(value, int) and not isinstance(value, bool):
         return Num(BigRat(value, 1))
     if isinstance(value, float):
@@ -124,9 +127,9 @@ def _(node: Literal, *, table: Table) -> Num:
 
 @to_egglog_algebra.register(Call)
 def _(node: Call[Num], *, table: Table) -> Num:
-    if (func := FUNCTIONS.get(node.func)) is not None:
-        return func(*node.args)
-    return Num.apply(table.index(node.func), Vec(*node.args))
+    if (func := FUNCTIONS.get(func_of(node))) is not None:
+        return func(*args_of(node))
+    return Num.apply(table.index(func_of(node)), Vec(*args_of(node)))
 
 
 def to_egglog(expr: Any, table: Table, /) -> Num:

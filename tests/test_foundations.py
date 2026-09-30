@@ -11,7 +11,7 @@ from symbolcat import D, Symbol, real
 from symbolcat.lib import operators as op
 from symbolcat.linalg import vector
 from symbolcat.ops import evaluate
-from symbolcat.ops.algebras import Call, Literal
+from symbolcat.ops.algebras import Call, Literal, args_of, value_of
 from symbolcat.ops.calculus import diff, vjp
 from symbolcat.ops.equations import (
     generic_rank,
@@ -241,10 +241,14 @@ def test_rewrite_repeated_wildcard():
 
 
 def test_rewrite_predicate_and_function():
-    n = Wild("n", predicate=lambda e: isinstance(e, Literal) and type(e.value) is int)
+    n = Wild(
+        "n", predicate=lambda e: isinstance(e, Literal) and type(value_of(e)) is int
+    )
     u = Wild("u")
     # x ** n -> x * x ** (n - 1), for integers
-    rule = Rule(u**n, lambda u, n: u * u ** (n.value - 1) if n.value > 1 else None)
+    rule = Rule(
+        u**n, lambda u, n: u * u ** (value_of(n) - 1) if value_of(n) > 1 else None
+    )
     assert rewrite(x**3, [rule]) == x * (x * x**1)
     assert rewrite(x**y, [rule]) == x**y
 
@@ -263,9 +267,9 @@ def test_rewrite_prewalk_keeps_sharing():
     inner = x + y
     result = rewrite(real.sin(inner) * real.cos(inner), [to_cos], strategy="prewalk")
     assert isinstance(result, Call)
-    left, right = result.args
+    left, right = args_of(result)
     assert left == right == real.cos(inner)
-    assert left.args[0] is right.args[0]
+    assert args_of(left)[0] is args_of(right)[0]
 
 
 def test_match_is_syntactic():

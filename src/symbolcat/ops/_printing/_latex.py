@@ -28,8 +28,13 @@ from ..._core import (
     Literal,
     Operator,
     Symbol,
+    args_of,
     cata,
+    fmt_of,
+    func_of,
     name_of,
+    precedence_of,
+    value_of,
 )
 from ..._core.precedence import POSTFIX, POW
 from ..._derivative import D
@@ -242,22 +247,22 @@ def _(node: Constant) -> Printed:
 
 @latex_algebra.register(Literal)
 def _(node: Literal) -> Printed:
-    return Printed(latex_number(node.value), literal_precedence(node.value))
+    return Printed(latex_number(value_of(node)), literal_precedence(value_of(node)))
 
 
 @latex_algebra.register(Function)
 def _(node: Call[Printed]) -> Printed:
-    func = node.func
+    func = func_of(node)
     name = FUNCTION_NAMES.get(func, rf"\operatorname{{{name_of(func)}}}")
-    text = name + paren(", ".join(arg.text for arg in node.args))
+    text = name + paren(", ".join(arg.text for arg in args_of(node)))
     return Printed(text)
 
 
 @latex_algebra.register(Array)
 def _(node: Call[Printed]) -> Printed:
-    assert isinstance(node.func, Array)
-    rows = nest(node.func.shape, [arg.text for arg in node.args])
-    if len(node.func.shape) == 1:  # a column vector
+    assert isinstance(func_of(node), Array)
+    rows = nest(node.kind.shape, [arg.text for arg in args_of(node)])
+    if len(node.kind.shape) == 1:  # a column vector
         rows = [[entry] for entry in rows]
     body = r" \\ ".join(" & ".join(row) for row in rows)
     text = rf"\begin{{pmatrix}} {body} \end{{pmatrix}}"
@@ -266,36 +271,36 @@ def _(node: Call[Printed]) -> Printed:
 
 @latex_algebra.register(*ENCLOSING)
 def _(node: Call[Printed]) -> Printed:
-    left, right = ENCLOSING[node.func]
-    (arg,) = node.args
+    left, right = ENCLOSING[func_of(node)]
+    (arg,) = args_of(node)
     return Printed(f"{left}{arg.text}{right}")
 
 
 @latex_algebra.register(*SUPERSCRIPT)
 def _(node: Call[Printed]) -> Printed:
-    (arg,) = node.args
-    text = f"{operand(arg, op.pow, 'left')}^{{{SUPERSCRIPT[node.func]}}}"
+    (arg,) = args_of(node)
+    text = f"{operand(arg, op.pow, 'left')}^{{{SUPERSCRIPT[func_of(node)]}}}"
     return Printed(text, POW)
 
 
 @latex_algebra.register(linalg.cross)
 def _(node: Call[Printed]) -> Printed:
-    a, b = node.args
+    a, b = args_of(node)
     text = rf"{operand(a, op.mul, 'left')} \times {operand(b, op.mul, 'right')}"
-    return Printed(text, op.mul.precedence)
+    return Printed(text, precedence_of(op.mul))
 
 
 @latex_algebra.register(cx.rect)
 def _(node: Call[Printed]) -> Printed:
     """Polar form, ``r e^{i phi}``."""
-    r, phi = node.args
+    r, phi = args_of(node)
     text = rf"{operand(r, op.mul, 'left')} e^{{i {operand(phi, op.mul, 'right')}}}"
-    return Printed(text, op.mul.precedence)
+    return Printed(text, precedence_of(op.mul))
 
 
 @latex_algebra.register(real.ifelse)
 def _(node: Call[Printed]) -> Printed:
-    condition, a, b = node.args
+    condition, a, b = args_of(node)
     text = (
         rf"\begin{{cases}} {a.text} & {condition.text} \\ "
         rf"{b.text} & \text{{otherwise}} \end{{cases}}"
@@ -305,7 +310,7 @@ def _(node: Call[Printed]) -> Printed:
 
 @latex_algebra.register(real.factorial)
 def _(node: Call[Printed]) -> Printed:
-    (arg,) = node.args
+    (arg,) = args_of(node)
     text = arg.text if arg.precedence >= POSTFIX else paren(arg.text)
     return Printed(f"{text}!", POSTFIX)
 
@@ -313,48 +318,48 @@ def _(node: Call[Printed]) -> Printed:
 @latex_algebra.register(D)
 def _(node: Call[Printed]) -> Printed:
     """Lagrange's notation: ``x'``, ``x''``."""
-    (arg,) = node.args
+    (arg,) = args_of(node)
     return Printed(f"{operand(arg, op.getitem, 'left')}'", POSTFIX)
 
 
 @latex_algebra.register(Operator)
 def _(node: Call[Printed]) -> Printed:
-    func = node.func
+    func = func_of(node)
     assert isinstance(func, Operator)
     if func in PREFIX:
-        (arg,) = node.args
+        (arg,) = args_of(node)
         text = PREFIX[func] + operand(arg, func, "right")
     else:
-        left, right = node.args
-        symbol = INFIX.get(func, func.fmt.format("", "").strip())
+        left, right = args_of(node)
+        symbol = INFIX.get(func, fmt_of(func).format("", "").strip())
         if func is op.mul and left.ndim and right.ndim:
             symbol = r"\odot"  # entrywise product of arrays
         text = f"{operand(left, func, 'left')} {symbol} {operand(right, func, 'right')}"
-    return Printed(text, func.precedence)
+    return Printed(text, precedence_of(func))
 
 
 @latex_algebra.register(op.truediv)
 def _(node: Call[Printed]) -> Printed:
-    num, den = node.args
+    num, den = args_of(node)
     return Printed(rf"\frac{{{num.text}}}{{{den.text}}}")
 
 
 @latex_algebra.register(op.floordiv)
 def _(node: Call[Printed]) -> Printed:
-    num, den = node.args
+    num, den = args_of(node)
     return Printed(rf"\left\lfloor \frac{{{num.text}}}{{{den.text}}} \right\rfloor")
 
 
 @latex_algebra.register(op.pow)
 def _(node: Call[Printed]) -> Printed:
-    base, exponent = node.args
+    base, exponent = args_of(node)
     text = f"{operand(base, op.pow, 'left')}^{{{exponent.text}}}"
     return Printed(text, POW)
 
 
 @latex_algebra.register(op.getitem)
 def _(node: Call[Printed]) -> Printed:
-    obj, key = node.args
+    obj, key = args_of(node)
     return Printed(f"{operand(obj, op.getitem, 'left')}_{{{key.text}}}", POSTFIX)
 
 

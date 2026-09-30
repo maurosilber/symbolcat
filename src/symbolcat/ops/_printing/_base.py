@@ -14,7 +14,7 @@ from dataclasses import dataclass, replace
 from typing import Any
 from typing import Literal as LiteralType
 
-from ..._core import Expr, Operator
+from ..._core import Expr, Operator, assoc_of, precedence_of
 from ..._core.precedence import UNARY
 
 ATOM = 100
@@ -45,10 +45,10 @@ type Side = LiteralType["left", "right"]
 
 
 def needs_parens(child: Printed, parent: Operator, side: Side, /) -> bool:
-    if child.precedence != parent.precedence:
-        return child.precedence < parent.precedence
+    if child.precedence != precedence_of(parent):
+        return child.precedence < precedence_of(parent)
     # Same precedence: only the side matching the associativity is free.
-    return parent.assoc != side
+    return assoc_of(parent) != side
 
 
 def operand(child: Printed, parent: Operator, side: Side, /) -> str:

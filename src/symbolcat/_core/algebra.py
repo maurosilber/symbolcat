@@ -31,9 +31,9 @@ class Algebra[A]:
     ...     return 1
     >>> @depth.register(Call)
     ... def _(node):
-    ...     return 1 + max(node.args)
+    ...     return 1 + max(args_of(node))
     >>> from symbolcat import Symbol
-    >>> from symbolcat.ops.algebras import cata
+    >>> from symbolcat.ops.algebras import args_of, cata
     >>> x = Symbol("x")
     >>> cata(depth, (x + 1) * 2)
     3
@@ -100,13 +100,15 @@ class Algebra[A]:
         kinds = (*type(node.kind).__mro__[:-1], None)  # without object
         if isinstance(node, Call):
             for kind in kinds:
-                if (handler := self._by_func.get((node.func, kind))) is not None:
+                if (handler := self._by_func.get((func_of(node), kind))) is not None:
                     return handler
-            if (handler := _lookup(self._by_kind, type(node.func), kinds)) is not None:
+            if (
+                handler := _lookup(self._by_kind, type(func_of(node)), kinds)
+            ) is not None:
                 return handler
         if (handler := _lookup(self._by_node, type(node), kinds)) is not None:
             return handler
-        what = _label(node.func) if isinstance(node, Call) else type(node).__name__
+        what = _label(func_of(node)) if isinstance(node, Call) else type(node).__name__
         raise NotImplementedError(f"{self.name}: no rule for {what}")
 
     def __call__(self, node: Expr, **ctx: Any) -> A:
@@ -131,4 +133,4 @@ def _lookup[V](
 
 # The handlers dispatch on the node classes, whose module needs ``Algebra``
 # (for kind inference).
-from .expr import Call, Expr, Function, _label
+from .expr import Call, Expr, Function, _label, func_of

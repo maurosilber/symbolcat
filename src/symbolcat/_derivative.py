@@ -27,7 +27,7 @@ from __future__ import annotations
 
 from typing import Any, TypeGuard
 
-from ._core import Call, Expr, Symbol
+from ._core import Call, Expr, Symbol, args_of, func_of, name_of
 from ._core.infer import kind_algebra
 from ._core.kinds import Kind, Real, array_kind, join
 from ._core.signatures import Delay, Derivative
@@ -41,11 +41,11 @@ partial = Delay("partial", arity=2)
 def _(node: Call[Kind]) -> Kind:
     """The kind of the first argument; the time delay and the spatial
     coordinate are scalars."""
-    value, *rest = node.args
+    value, *rest = args_of(node)
     for kind in rest:
         if kind.shape:
             raise ValueError(
-                f"{node.func.name} needs a scalar second argument, "
+                f"{name_of(func_of(node))} needs a scalar second argument, "
                 f"got shape {kind.shape}"
             )
     return array_kind(value.shape, join(Real(), value.element))
@@ -63,6 +63,6 @@ def is_variable(expr: Any, /) -> TypeGuard[Variable]:
     >>> is_variable(D(D(x))), is_variable(D(2 * x))
     (True, False)
     """
-    while isinstance(expr, Call) and expr.func is D:
-        (expr,) = expr.args
+    while isinstance(expr, Call) and func_of(expr) is D:
+        (expr,) = args_of(expr)
     return isinstance(expr, Symbol)

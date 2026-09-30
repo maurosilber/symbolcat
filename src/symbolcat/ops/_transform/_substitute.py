@@ -13,7 +13,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ..._core import Algebra, Call, Expr, as_expr, cata
+from ..._core import Algebra, Call, Expr, args_of, as_expr, cata, func_of
 
 substitute_algebra = Algebra[Expr]("substitute")
 
@@ -25,9 +25,9 @@ def _(node: Expr, *, mapping: Mapping[Any, Any]) -> Expr:
 
 @substitute_algebra.register(Call)
 def _(node: Call[Expr], *, mapping: Mapping[Any, Any]) -> Expr:
-    func = mapping.get(node.func, node.func)
-    if func is not node.func:
-        return as_expr(func(*node.args))
+    func = mapping.get(func_of(node), func_of(node))
+    if func is not func_of(node):
+        return as_expr(func(*args_of(node)))
     return as_expr(mapping.get(node, node))
 
 
@@ -67,12 +67,12 @@ def substitute_variables(expr: Any, mapping: Mapping[Any, Any], /) -> Expr:
     def algebra(layer: Expr, /) -> tuple[Expr, Expr]:
         if not isinstance(layer, Call):
             return layer, mapping.get(layer, layer)
-        original = Call(layer.func, tuple(o for o, _ in layer.args))
+        original = Call(func_of(layer), tuple(o for o, _ in args_of(layer)))
         if original in mapping:
             return original, mapping[original]
         if is_variable(original):
             return original, original
-        return original, Call(layer.func, tuple(r for _, r in layer.args))
+        return original, Call(func_of(layer), tuple(r for _, r in args_of(layer)))
 
     _, replaced = cata(algebra, expr)
     return replaced

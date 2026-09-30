@@ -13,7 +13,18 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..._core import Algebra, Call, Constant, Expr, Literal, Symbol, cata
+from ..._core import (
+    Algebra,
+    Call,
+    Constant,
+    Expr,
+    Literal,
+    Symbol,
+    args_of,
+    cata,
+    func_of,
+    value_of,
+)
 from ...lib import operators as op
 from .._transform._simplify import is_number, simplify_exact
 
@@ -58,35 +69,35 @@ def _(node: Constant | Literal, *, var: Symbol) -> Pair:
 @coefficients_algebra.register(Call)
 def _(node: Call[Pair], *, var: Symbol) -> Pair:
     """Any other function is a polynomial only if it does not depend on var."""
-    value = node.func(*(v for v, _ in node.args))
-    if all(is_constant(poly) for _, poly in node.args):
+    value = func_of(node)(*(v for v, _ in args_of(node)))
+    if all(is_constant(poly) for _, poly in args_of(node)):
         return value, {0: value}
     return value, None
 
 
 @coefficients_algebra.register(op.add, op.sub, op.mul)
 def _(node: Call[Pair], *, var: Symbol) -> Pair:
-    (a, pa), (b, pb) = node.args
-    value = node.func(a, b)
+    (a, pa), (b, pb) = args_of(node)
+    value = func_of(node)(a, b)
     if pa is None or pb is None:
         return value, None
-    if node.func is op.mul:
+    if func_of(node) is op.mul:
         return value, mul(pa, pb)
-    return value, add(pa, pb, subtract=node.func is op.sub)
+    return value, add(pa, pb, subtract=func_of(node) is op.sub)
 
 
 @coefficients_algebra.register(op.neg, op.pos)
 def _(node: Call[Pair], *, var: Symbol) -> Pair:
-    ((a, pa),) = node.args
-    value = node.func(a)
-    if pa is None or node.func is op.pos:
+    ((a, pa),) = args_of(node)
+    value = func_of(node)(a)
+    if pa is None or func_of(node) is op.pos:
         return value, pa
     return value, {k: -c for k, c in pa.items()}
 
 
 @coefficients_algebra.register(op.truediv)
 def _(node: Call[Pair], *, var: Symbol) -> Pair:
-    (a, pa), (b, pb) = node.args
+    (a, pa), (b, pb) = args_of(node)
     value = a / b
     if pa is None or not is_constant(pb):
         return value, None
@@ -95,14 +106,14 @@ def _(node: Call[Pair], *, var: Symbol) -> Pair:
 
 @coefficients_algebra.register(op.pow)
 def _(node: Call[Pair], *, var: Symbol) -> Pair:
-    (a, pa), (b, pb) = node.args
+    (a, pa), (b, pb) = args_of(node)
     value = a**b
     if is_constant(pa) and is_constant(pb):
         return value, {0: value}
     exponent = simplify_exact(b)
     if pa is None or not isinstance(exponent, Literal):
         return value, None
-    n = exponent.value
+    n = value_of(exponent)
     if type(n) is not int or n < 0:
         return value, None
     result: Poly = {0: Literal(1)}

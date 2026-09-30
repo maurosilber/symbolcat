@@ -9,14 +9,14 @@ folded with ``cata``. The algebras behind ``symbolcat.ops`` are in
 Define a new operation as an algebra and fold it with ``cata``:
 
 >>> from symbolcat import Symbol
->>> from symbolcat.ops.algebras import Algebra, Call, cata, Expr
+>>> from symbolcat.ops.algebras import Algebra, Call, args_of, cata, Expr
 >>> depth = Algebra("depth")
 >>> @depth.register(Expr)  # any leaf
 ... def _(node):
 ...     return 1
 >>> @depth.register(Call)
 ... def _(node):
-...     return 1 + max(node.args)
+...     return 1 + max(args_of(node))
 >>> cata(depth, Symbol("x") + 1)
 2
 
@@ -40,12 +40,19 @@ from ..._core import (
     Literal,
     Operator,
     ana,
+    args_of,
+    arity_of,
     as_expr,
+    assoc_of,
     cata,
     children,
     fmap,
+    fmt_of,
+    func_of,
     hylo,
     name_of,
+    precedence_of,
+    value_of,
 )
 from ..._core.infer import entrywise, kind_algebra
 from .._printing._base import Printed
@@ -60,13 +67,20 @@ __all__ = [
     "Operator",
     "Printed",
     "ana",
+    "args_of",
+    "arity_of",
     "as_expr",
+    "assoc_of",
     "builtin",
     "cata",
     "children",
     "entrywise",
     "fmap",
+    "fmt_of",
+    "func_of",
     "hylo",
     "kind_algebra",
     "name_of",
+    "precedence_of",
+    "value_of",
 ]

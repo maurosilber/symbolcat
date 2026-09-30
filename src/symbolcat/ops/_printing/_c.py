@@ -26,9 +26,12 @@ from ..._core import (
     Function,
     Literal,
     Symbol,
+    args_of,
     cata,
+    func_of,
     hylo,
     name_of,
+    value_of,
 )
 from ..._core.precedence import POSTFIX
 from ...lib import operators as op
@@ -65,7 +68,7 @@ def _no_complex(node: Any, /) -> Printed:
 
 @c_algebra.register(Literal)
 def _(node: Literal) -> Printed:
-    value = node.value
+    value = value_of(node)
     if isinstance(value, complex):
         _no_complex(node)
     if isinstance(value, bool):
@@ -91,40 +94,40 @@ c_algebra.register(*COMPLEX)(_no_complex)
 
 @c_algebra.register(Function)
 def _(node: Call[Printed]) -> Printed:
-    if node.func is real.factorial:
-        (arg,) = node.args
+    if func_of(node) is real.factorial:
+        (arg,) = args_of(node)
         return Printed(f"tgamma({arg.text} + 1.0)")
-    name = FUNCTIONS.get(node.func, name_of(node.func))
-    return Printed(f"{name}({', '.join(arg.text for arg in node.args)})")
+    name = FUNCTIONS.get(func_of(node), name_of(func_of(node)))
+    return Printed(f"{name}({', '.join(arg.text for arg in args_of(node))})")
 
 
 @c_algebra.register(op.pow)
 def _(node: Call[Printed]) -> Printed:
-    base, exponent = node.args
+    base, exponent = args_of(node)
     return Printed(f"pow({base.text}, {exponent.text})")
 
 
 @c_algebra.register(op.floordiv)
 def _(node: Call[Printed]) -> Printed:
-    a, b = node.args
+    a, b = args_of(node)
     return Printed(f"floor({a.text} / {b.text})")
 
 
 @c_algebra.register(op.mod)
 def _(node: Call[Printed]) -> Printed:
-    a, b = node.args
+    a, b = args_of(node)
     return Printed(f"fmod({a.text}, {b.text})")
 
 
 @c_algebra.register(real.ifelse)
 def _(node: Call[Printed]) -> Printed:
-    condition, a, b = node.args
+    condition, a, b = args_of(node)
     return Printed(f"({condition.text} ? {a.text} : {b.text})")
 
 
 @c_algebra.register(op.getitem)
 def _(node: Call[Printed]) -> Printed:
-    obj, key = node.args
+    obj, key = args_of(node)
     found = indices(key)
     index = (
         f"[(int)({key.text})]" if found is None else "".join(f"[{i}]" for i in found)
@@ -138,10 +141,10 @@ def _arrays(expr: Expr, /) -> dict[str, None]:
     def coalgebra(node: Expr, /) -> Expr:
         if (
             isinstance(node, Call)
-            and node.func is op.getitem
-            and isinstance(array := node.args[0], Symbol)
+            and func_of(node) is op.getitem
+            and isinstance(array := args_of(node)[0], Symbol)
         ):
-            return Call(op.getitem, (Done({name_of(array): None}), node.args[1]))
+            return Call(op.getitem, (Done({name_of(array): None}), args_of(node)[1]))
         return node
 
     return hylo(union, coalgebra, expr)
@@ -194,10 +197,12 @@ def to_c(
     signature = ", ".join(
         f"const double *{p}" if p in arrays else f"double {p}" for p in params
     )
-    if isinstance(result, Call) and isinstance(result.func, Array):
+    if isinstance(result, Call) and isinstance(func_of(result), Array):
         out = ", " if params else ""
         lines = [f"void {name}({signature}{out}double *out) {{", *body]
-        lines += [f"    out[{i}] = {_source(e)};" for i, e in enumerate(result.args)]
+        lines += [
+            f"    out[{i}] = {_source(e)};" for i, e in enumerate(args_of(result))
+        ]
     else:
         lines = [
             f"double {name}({signature}) {{",

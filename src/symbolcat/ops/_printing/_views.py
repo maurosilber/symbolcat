@@ -11,7 +11,20 @@ from __future__ import annotations
 from itertools import count
 from typing import Any
 
-from ..._core import Call, Constant, Expr, Literal, Operator, Symbol, cata, children
+from ..._core import (
+    Call,
+    Constant,
+    Expr,
+    Literal,
+    Operator,
+    Symbol,
+    args_of,
+    cata,
+    children,
+    fmt_of,
+    func_of,
+    value_of,
+)
 from ..._core import name_of as _name_of
 
 
@@ -20,11 +33,11 @@ def label(node: Expr, /) -> str:
     if isinstance(node, Symbol | Constant):
         return _name_of(node)
     if isinstance(node, Literal):
-        return repr(node.value)
+        return repr(value_of(node))
     if isinstance(node, Call):
-        func = node.func
-        if isinstance(func, Operator) and func.fmt:
-            return func.fmt.replace("{}", "").strip() or _name_of(func)
+        func = func_of(node)
+        if isinstance(func, Operator) and fmt_of(func):
+            return fmt_of(func).replace("{}", "").strip() or _name_of(func)
         return _name_of(func)
     raise TypeError(f"Not an expression node: {node!r}")
 
@@ -33,7 +46,7 @@ def _tree(layer: Expr, /) -> list[str]:
     if not isinstance(layer, Call):
         return [label(layer)]
     lines = [label(layer)]
-    *init, last = layer.args
+    *init, last = args_of(layer)
     for child in init:
         first, *rest = child
         lines += [f"├── {first}", *(f"│   {line}" for line in rest)]

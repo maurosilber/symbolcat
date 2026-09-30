@@ -11,7 +11,7 @@ from typing import Any, assert_type
 from symbolcat import D, Symbol, complex, delay, linalg, real
 from symbolcat.kinds import Boolean, Complex, Matrix, Real, Vector
 from symbolcat.lib import Constant, Function
-from symbolcat.ops.algebras import Call, Expr, Literal, kind_algebra
+from symbolcat.ops.algebras import Call, Expr, Literal, args_of, kind_algebra
 
 x = Symbol("x")
 z = Symbol("z", kind=Complex())
@@ -84,7 +84,9 @@ def test_user_functions() -> None:
     f = Function("f", arity=1)
     assert_type(f(x), Call[Expr, Any])  # unchecked, unless annotated
     outer: Function[[Expr[Vector], Expr[Vector]], Matrix] = Function("outer")
-    kind_algebra.register(outer)(lambda node: Matrix(node.args[0].n, node.args[1].n))
+    kind_algebra.register(outer)(
+        lambda node: Matrix(args_of(node)[0].n, args_of(node)[1].n)
+    )
     assert_type(outer(v, v), Call[Expr, Matrix])
     assert outer(v, v).kind == Matrix(3, 3)
 

@@ -41,9 +41,12 @@ from ..._core import (
     Function,
     Literal,
     Symbol,
+    args_of,
     as_expr,
     children,
+    func_of,
     name_of,
+    value_of,
 )
 from ..._core.infer import kind_algebra
 from ..._core.kinds import Kind
@@ -102,13 +105,13 @@ def _(node, g, shapes, shape):
 
 @rule(op.mul)
 def _(node, g, shapes, shape):
-    a, b = node.args
+    a, b = args_of(node)
     return b * g, a * g
 
 
 @rule(op.truediv)
 def _(node, g, shapes, shape):
-    a, b = node.args
+    a, b = args_of(node)
     return g / b, -a / b**2 * g
 
 
@@ -116,14 +119,14 @@ def _(node, g, shapes, shape):
 def _(node, g, shapes, shape):
     # The exponent's cotangent is only used if the exponent depends on a
     # variable, so log(a) does not appear for constant exponents.
-    a, b = node.args
+    a, b = args_of(node)
     log = cx.log if is_complex(a) else real.log
     return b * a ** (b - 1) * g, node * log(a) * g
 
 
 def chain(outer: Callable[[Expr], Expr], /) -> Rule:
     """Rule for f(a), given f'(a)."""
-    return lambda node, g, shapes, shape: (outer(node.args[0]) * g,)
+    return lambda node, g, shapes, shape: (outer(args_of(node)[0]) * g,)
 
 
 rule(real.exp)(lambda node, g, shapes, shape: (node * g,))
@@ -143,7 +146,7 @@ rule(real.erf)(chain(lambda a: 2 / real.sqrt(real.constants.pi) * real.exp(-(a**
 
 @rule(real.gammainc)
 def _(node, g, shapes, shape):
-    a, x = node.args
+    a, x = args_of(node)
     return NO_DERIVATIVE, x ** (a - 1) * real.exp(-x) / real.gamma(a) * g
 
 
@@ -169,31 +172,31 @@ rule(cx.conj)(lambda node, g, shapes, shape: (cx.conj(g),))
 
 @rule(cx.abs)
 def _(node, g, shapes, shape):
-    (z,) = node.args
+    (z,) = args_of(node)
     return (g * cx.conj(z) / node,)
 
 
 @rule(cx.phase)
 def _(node, g, shapes, shape):
-    (z,) = node.args
+    (z,) = args_of(node)
     return (-cx.constants.I * g * cx.conj(z) / cx.abs(z) ** 2,)
 
 
 @rule(cx.rect)
 def _(node, g, shapes, shape):
-    _, phi = node.args
+    _, phi = args_of(node)
     return cx.re(g * cx.rect(1, phi)), cx.re(cx.constants.I * g * node)
 
 
 @rule(real.ifelse)
 def _(node, g, shapes, shape):
-    condition, _, _ = node.args
+    condition, _, _ = args_of(node)
     return Literal(0), real.ifelse(condition, g, 0), real.ifelse(condition, 0, g)
 
 
 @rule(op.eq, op.ne, op.lt, op.le, op.gt, op.ge, op.and_, op.or_, op.invert)
 def _(node, g, shapes, shape):
-    return tuple(Literal(0) for _ in node.args)
+    return tuple(Literal(0) for _ in args_of(node))
 
 
 # Arrays
@@ -229,13 +232,13 @@ def _(node, g, shapes, shape):
 @rule(op.getitem)
 def _(node, g, shapes, shape):
     """An entry of a vector, or a row of a matrix, scattered into zeros."""
-    _, key = node.args
+    _, key = args_of(node)
     (s, _) = shapes
     if not s:
         raise NotImplementedError("reverse: getitem of a scalar-shaped container")
-    if not (isinstance(key, Literal) and type(key.value) is int):
+    if not (isinstance(key, Literal) and type(value_of(key)) is int):
         raise NotImplementedError(f"reverse: getitem with a non-integer key {key}")
-    k = key.value % s[0]
+    k = value_of(key) % s[0]
     if len(s) == 1:
         cotangent = vector(g if i == k else 0 for i in range(s[0]))
     else:
@@ -248,7 +251,7 @@ def _(node, g, shapes, shape):
 
 @rule(op.matmul)
 def _(node, g, shapes, shape):
-    a, b = node.args
+    a, b = args_of(node)
     sa, sb = shapes
     match len(sa), len(sb):
         case 2, 2:
@@ -280,7 +283,7 @@ def _(node, g, shapes, shape):
 
 @rule(linalg.det)
 def _(node, g, shapes, shape):
-    (a,) = node.args
+    (a,) = args_of(node)
     return (g * node * transpose(linalg.inv(a)),)
 
 
@@ -291,13 +294,13 @@ def _(node, g, shapes, shape):
 
 @rule(linalg.norm)
 def _(node, g, shapes, shape):
-    (a,) = node.args
+    (a,) = args_of(node)
     return (g * a / node,)
 
 
 @rule(linalg.cross)
 def _(node, g, shapes, shape):
-    a, b = node.args
+    a, b = args_of(node)
     return linalg.cross(b, g), linalg.cross(g, a)
 
 
@@ -386,24 +389,24 @@ def vjp(
         g = adjoint.get(id(node))
         if g is None or not isinstance(node, Call):
             continue
-        arg_shapes = tuple(arg.kind.shape for arg in node.args)
+        arg_shapes = tuple(arg.kind.shape for arg in args_of(node))
         shape = node.kind.shape
         pullback = reverse_algebra.handler_for(node)
         cotangents = pullback(node, g=g, shapes=arg_shapes, shape=shape)
         for i, (arg, s, c) in enumerate(
-            zip(node.args, arg_shapes, cotangents, strict=True)
+            zip(args_of(node), arg_shapes, cotangents, strict=True)
         ):
             if id(arg) not in active:
                 continue
             if c is NO_DERIVATIVE:
                 raise NotImplementedError(
-                    f"reverse: no derivative of {name_of(node.func)} "
+                    f"reverse: no derivative of {name_of(func_of(node))} "
                     f"with respect to argument {i}"
                 )
-            if node.func in linalg.ENTRYWISE:
+            if func_of(node) in linalg.ENTRYWISE:
                 c = unbroadcast(c, s, shape)
             if not is_complex(arg):
-                if node.func is cx.im or node.func is cx.phase:
+                if func_of(node) is cx.im or func_of(node) is cx.phase:
                     continue  # constant on the reals
                 if is_complex(node):
                     c = cx.re(c)
@@ -417,7 +420,7 @@ def vjp(
     ]
     packed = simplify_naive(_pack(*results))
     assert isinstance(packed, Call)
-    return packed.args
+    return args_of(packed)
 
 
 def reverse_gradient(

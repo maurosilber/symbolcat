@@ -8,7 +8,7 @@ from symbolcat.kinds import Boolean, Complex, Kind, Matrix, Real, Vector
 from symbolcat.lib import Constant, Function
 from symbolcat.lib import operators as op
 from symbolcat.ops import evaluate
-from symbolcat.ops.algebras import Algebra, Call, Expr, Literal, fmap
+from symbolcat.ops.algebras import Algebra, Call, Expr, Literal, args_of, fmap
 from symbolcat.ops.transform import cse, simplify_naive, substitute
 
 x, y = Symbol("x"), Symbol("y")
@@ -140,7 +140,7 @@ def test_pickle_keeps_kinds():
     expr = linalg.transpose(A) @ A
     loaded = pickle.loads(pickle.dumps(expr))
     assert loaded.kind == Matrix(3, 3)
-    assert loaded.args[1] == A
+    assert args_of(loaded)[1] == A
 
 
 # algebras

@@ -16,7 +16,7 @@ from collections.abc import Iterable, Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from ..._core import Call, Expr, Symbol, as_expr, name_of
+from ..._core import Call, Expr, Symbol, args_of, as_expr, name_of
 from ..._derivative import D, Variable, is_variable
 from ...ops._algebraic._linear import solve_linear
 from ...ops._analysis._inspect import free_symbols
@@ -130,12 +130,12 @@ def to_first_order(ode: ODE, /) -> ODE:
             continue
         order, base = 0, state
         while isinstance(base, Call):
-            (base,) = base.args
+            (base,) = args_of(base)
             order += 1
         assert isinstance(base, Symbol)
         symbol = Symbol(f"{name_of(base)}_{'t' * order}", kind=state.kind)
         if symbol in taken:
-            raise ValueError(f"to_first_order: {symbol.name} is already used")
+            raise ValueError(f"to_first_order: {name_of(symbol)} is already used")
         names[state] = symbol
     return ODE(
         {names.get(s, s): substitute_variables(f, names) for s, f in ode.rhs.items()},

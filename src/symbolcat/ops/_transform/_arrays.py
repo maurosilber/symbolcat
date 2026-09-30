@@ -20,7 +20,17 @@ from itertools import repeat
 from typing import Any
 
 from ... import linalg, real
-from ..._core import Algebra, Call, Expr, Literal, as_expr, cata
+from ..._core import (
+    Algebra,
+    Call,
+    Expr,
+    Literal,
+    args_of,
+    as_expr,
+    cata,
+    func_of,
+    value_of,
+)
 from ...lib import operators as op
 from ...linalg import Array, array, matrix, nest, vector
 
@@ -34,8 +44,8 @@ arrays_algebra = Algebra[Expr]("arrays")
 
 def entries(expr: Expr, /) -> tuple[Expr, ...] | None:
     """The entries of an explicit array, or ``None``."""
-    if isinstance(expr, Call) and isinstance(expr.func, Array):
-        return expr.args
+    if isinstance(expr, Call) and isinstance(func_of(expr), Array):
+        return args_of(expr)
     return None
 
 
@@ -84,19 +94,19 @@ def _(node: Call[Expr]) -> Expr:
     if not shape:
         return node
     columns = []
-    for arg in node.args:
+    for arg in args_of(node):
         items = entries(arg) if arg.kind.shape else repeat(arg)
         if items is None:
             return node
         columns.append(items)
-    return array(shape)(*map(node.func, *columns))
+    return array(shape)(*map(func_of(node), *columns))
 
 
 @arrays_algebra.register(op.matmul)
 def _(node: Call[Expr]) -> Expr:
     """Matrix product, as NumPy: a vector is a row on the left, a column on
     the right, and the product of two vectors is their dot product."""
-    a, b = node.args
+    a, b = args_of(node)
     sa, sb = a.kind.shape, b.kind.shape
     ea, eb = entries(a), entries(b)
     if ea is None or eb is None:
@@ -111,18 +121,18 @@ def _(node: Call[Expr]) -> Expr:
 @arrays_algebra.register(op.getitem)
 def _(node: Call[Expr]) -> Expr:
     """An entry of a vector, or a row of a matrix."""
-    obj, key = node.args
+    obj, key = args_of(node)
     items = entries(obj)
-    if items is None or not (isinstance(key, Literal) and type(key.value) is int):
+    if items is None or not (isinstance(key, Literal) and type(value_of(key)) is int):
         return node
-    item = nest(obj.kind.shape, items)[key.value]
+    item = nest(obj.kind.shape, items)[value_of(key)]
     return vector(item) if node.kind.shape else item
 
 
 @arrays_algebra.register(linalg.transpose)
 def _(node: Call[Expr]) -> Expr:
     """Reverses the axes: a vector is its own transpose, as in NumPy."""
-    (value,) = node.args
+    (value,) = args_of(node)
     if len(value.kind.shape) == 1:
         return value
     rows = rows_of(value)
@@ -131,20 +141,20 @@ def _(node: Call[Expr]) -> Expr:
 
 @arrays_algebra.register(linalg.trace)
 def _(node: Call[Expr]) -> Expr:
-    rows = rows_of(node.args[0])
+    rows = rows_of(args_of(node)[0])
     return node if rows is None else total([row[i] for i, row in enumerate(rows)])
 
 
 @arrays_algebra.register(linalg.det)
 def _(node: Call[Expr]) -> Expr:
-    rows = rows_of(node.args[0])
+    rows = rows_of(args_of(node)[0])
     return node if rows is None else determinant(rows)
 
 
 @arrays_algebra.register(linalg.inv)
 def _(node: Call[Expr]) -> Expr:
     """The adjugate divided by the determinant."""
-    rows = rows_of(node.args[0])
+    rows = rows_of(args_of(node)[0])
     if rows is None:
         return node
     d = determinant(rows)  # a shared node, computed once by ``cata``
@@ -161,19 +171,19 @@ def _(node: Call[Expr]) -> Expr:
 
 @arrays_algebra.register(linalg.norm)
 def _(node: Call[Expr]) -> Expr:
-    items = entries(node.args[0])
+    items = entries(args_of(node)[0])
     return node if items is None else real.sqrt(total([x**2 for x in items]))
 
 
 @arrays_algebra.register(linalg.sum)
 def _(node: Call[Expr]) -> Expr:
-    items = entries(node.args[0])
+    items = entries(args_of(node)[0])
     return node if items is None else total(list(items))
 
 
 @arrays_algebra.register(linalg.cross)
 def _(node: Call[Expr]) -> Expr:
-    ea, eb = map(entries, node.args)
+    ea, eb = map(entries, args_of(node))
     if ea is None or eb is None:
         return node
     (a0, a1, a2), (b0, b1, b2) = ea, eb
