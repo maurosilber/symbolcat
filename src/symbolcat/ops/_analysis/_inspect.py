@@ -14,14 +14,26 @@ from ..._core import (
     Algebra,
     Call,
     Constant,
+    Done,
+    Expr,
     Literal,
     Symbol,
     as_expr,
     cata,
     children,
+    hylo,
 )
 from ..._core import Function as _Function
 from ..._derivative import Variable, is_variable
+
+
+def union[T](layer: Expr, /) -> dict[T, None]:
+    """The children of ``layer``, insertion-ordered sets, merged in order."""
+    out: dict[T, None] = {}
+    for child in children(layer):
+        out |= child
+    return out
+
 
 # Folds into an insertion-ordered set (a dict with None values).
 free_symbols_algebra = Algebra[dict[Symbol, None]]("free_symbols")
@@ -89,19 +101,13 @@ def variables(expr: Any, /) -> tuple[Variable, ...]:
     >>> variables(D(D(x)) + v * D(x))
     (Call(D, (Call(D, (Symbol('x'),)),)), Symbol('v'), Call(D, (Symbol('x'),)))
     """
-    out: dict[Variable, None] = {}
-    seen: set[int] = set()
-    stack = [as_expr(expr)]
-    while stack:
-        node = stack.pop()
-        if id(node) in seen:
-            continue
-        seen.add(id(node))
-        if is_variable(node):
-            out[node] = None
-        else:
-            stack.extend(reversed(children(node)))
-    return tuple(out)
+
+    # A cata would fold the ``x`` inside ``D(x)`` first; the coalgebra stops
+    # at a variable instead of unfolding it.
+    def coalgebra(node: Expr, /) -> Expr | Done[dict[Variable, None]]:
+        return Done({node: None}) if is_variable(node) else node
+
+    return tuple(hylo(union, coalgebra, as_expr(expr)))
 
 
 # Whether a node is complex, given whether its arguments are.

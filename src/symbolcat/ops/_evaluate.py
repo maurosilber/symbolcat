@@ -88,6 +88,9 @@ def is_scalar_bool(value: Any, /) -> bool:
 
 def fold(expr: Expr, /, **ctx: Any) -> Any:
     """Like ``cata(evaluate_algebra, expr)``, with a lazy ``ifelse``."""
+    # Written out rather than as a ``hylo``: which branch of an ``ifelse``
+    # to visit depends on the value of its condition, and a coalgebra only
+    # sees seeds, not folded values.
     done: dict[int, Any] = {}
     stack = [expr]
     while stack:

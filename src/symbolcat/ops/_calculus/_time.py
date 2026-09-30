@@ -20,9 +20,9 @@ from __future__ import annotations
 from collections.abc import Iterable, Mapping
 from typing import Any
 
-from ..._core import Call, Expr, Literal, Symbol, as_expr, cata
+from ..._core import Call, Done, Expr, Literal, Symbol, as_expr, cata, hylo
 from ..._derivative import D, delay, is_variable
-from .._analysis._inspect import variables
+from .._analysis._inspect import union, variables
 from .._transform._substitute import substitute
 from ._diff import jvp
 
@@ -36,15 +36,15 @@ def delays(expr: Any, /) -> tuple[Call[Expr], ...]:
     >>> delays(x + delay(x, tau) * delay(x, 2 * tau))
     (Call(delay, (Symbol('x'), Symbol('tau'))), Call(delay, (Symbol('x'), Call(mul, (Literal(2), Symbol('tau'))))))
     """
-    out: dict[Call[Expr], None] = {}
-    stack = [as_expr(expr)]
-    while stack:
-        node = stack.pop()
-        if isinstance(node, Call):
-            if node.func is delay:
-                out[node] = None
-            stack.extend(reversed(node.args))
-    return tuple(out)
+
+    # A delay is kept, and its arguments are unfolded in turn: it goes first
+    # in its own layer so that it comes before the delays inside it.
+    def coalgebra(node: Expr, /) -> Expr:
+        if isinstance(node, Call) and node.func is delay:
+            return Call(delay, (Done({node: None}), *node.args))
+        return node
+
+    return tuple(hylo(union, coalgebra, as_expr(expr)))
 
 
 def _base(var: Expr, /) -> Expr:

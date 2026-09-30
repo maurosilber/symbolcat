@@ -39,7 +39,11 @@ def _share(expr: Expr, cache: dict[Expr, Expr], /) -> Expr:
 
 
 def _uses(expr: Expr, /) -> Counter[int]:
-    """How many parents each node has (by identity) in a shared expression."""
+    """How many parents each node has (by identity) in a shared expression.
+
+    Not a fold: ``cata`` visits a shared node once, and this counts the
+    edges into it.
+    """
     uses: Counter[int] = Counter()
     seen: set[int] = set()
     stack = [expr]

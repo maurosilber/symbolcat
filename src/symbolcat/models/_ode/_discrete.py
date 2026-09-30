@@ -90,6 +90,7 @@ def iterate(system: DiscreteSystem, n: int, /) -> DiscreteSystem:
     if n < 1:
         raise ValueError("iterate: n must be at least 1")
     update = dict(system.update)
+    # Iterated, not unfolded: only the last composition is kept.
     for _ in range(n - 1):
         update = {
             s: simplify_exact(substitute_variables(f, update))

@@ -4,10 +4,10 @@ symbolcat.ops.egraph._convert
 
 Translate between symbolcat expressions and egglog terms.
 
-``to_egglog`` is one more algebra folded with ``cata``. ``from_egglog``
-walks the extracted egglog term back, memoizing on the term so that shared
-sub-terms (from DAG extraction) become shared Python objects, which
-``cata`` then folds only once.
+``to_egglog`` is one more algebra folded with ``cata``. ``from_egglog`` is
+its dual, a coalgebra unfolded with ``ana``: shared sub-terms (from DAG
+extraction) become shared Python objects, which ``cata`` then folds only
+once.
 """
 
 from __future__ import annotations
@@ -23,10 +23,12 @@ from ..._core import (
     Algebra,
     Call,
     Constant,
+    Done,
     Expr,
     Function,
     Literal,
     Symbol,
+    ana,
     cata,
     name_of,
 )
@@ -135,32 +137,28 @@ def from_rational(value: Fraction, /) -> Expr:
 
 def from_egglog(num: Num, table: Table, /) -> Expr:
     """Translate an extracted egglog term back into an expression."""
-    memo: dict[Num, Expr] = {}
 
+    # One layer per term: the arguments of a call are the next seeds.
     # Typed accessors give the ``*Like`` argument types; extracted terms
     # always hold the egglog types, hence the casts.
-    def convert(num: Num, /) -> Expr:
-        if num in memo:
-            return memo[num]
+    def coalgebra(num: Num, /) -> Expr | Done[Expr]:
         fn = get_callable_fn(num)
-        result: Expr
         if fn in CONSTANTS_BACK:
-            result = CONSTANTS_BACK[fn]
-        elif (rational := get_callable_args(num, Num)) is not None:
-            result = from_rational(cast("BigRat", rational[0]).value)
-        elif (floating := get_callable_args(num, Num.float)) is not None:
-            result = Literal(cast("f64", floating[0]).value)
-        elif (name := get_callable_args(num, Num.var)) is not None:
-            result = Symbol(cast("String", name[0]).value)
-        elif (index := get_callable_args(num, Num.opaque)) is not None:
-            result = table[cast("i64", index[0]).value]
-        elif (call := get_callable_args(num, Num.apply)) is not None:
+            return CONSTANTS_BACK[fn]
+        if (rational := get_callable_args(num, Num)) is not None:
+            return Done(from_rational(cast("BigRat", rational[0]).value))
+        if (floating := get_callable_args(num, Num.float)) is not None:
+            return Literal(cast("f64", floating[0]).value)
+        if (name := get_callable_args(num, Num.var)) is not None:
+            return Symbol(cast("String", name[0]).value)
+        if (index := get_callable_args(num, Num.opaque)) is not None:
+            return Done(table[cast("i64", index[0]).value])
+        if (call := get_callable_args(num, Num.apply)) is not None:
             func = table[cast("i64", call[0]).value]
-            result = func(*map(convert, call[1].value))
-        else:
-            args = cast("tuple[Num, ...]", get_callable_args(num))
-            result = FUNCTIONS_BACK[fn](*map(convert, args))
-        memo[num] = result
-        return result
+            return Call(func, tuple(call[1].value))
+        args = cast("tuple[Num, ...]", get_callable_args(num))
+        return Call(FUNCTIONS_BACK[fn], args)
 
-    return convert(num)
+    # Keyed on the term, not its identity: egglog hands out a new Python
+    # object for each occurrence of a shared sub-term.
+    return ana(coalgebra, num, key=lambda num: num)

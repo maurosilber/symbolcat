@@ -308,7 +308,11 @@ def unbroadcast(cotangent: Expr, arg: Shape, out: Shape, /) -> Expr:
 
 
 def _postorder(expr: Expr, /) -> list[Expr]:
-    """The distinct nodes (by identity), each after its children."""
+    """The distinct nodes (by identity), each after its children.
+
+    ``vjp`` needs the order itself, to walk it forward and then backward,
+    so this is ``cata``'s traversal without an algebra.
+    """
     order: list[Expr] = []
     done: set[int] = set()
     stack = [expr]
@@ -376,6 +380,8 @@ def vjp(
             active.add(id(node))
 
     # Backward pass: push the cotangents from the output to the variables.
+    # Not an unfold: a node shared by several parents sums the cotangents
+    # from all of them, so it can only be visited after every parent.
     adjoint: dict[int, Expr] = {}
     if id(expr) in active:
         adjoint[id(expr)] = as_expr(cotangent)

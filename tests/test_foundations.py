@@ -11,7 +11,7 @@ from symbolcat import D, Symbol, real
 from symbolcat.lib import operators as op
 from symbolcat.linalg import vector
 from symbolcat.ops import evaluate
-from symbolcat.ops.algebras import Literal
+from symbolcat.ops.algebras import Call, Literal
 from symbolcat.ops.calculus import diff, vjp
 from symbolcat.ops.equations import (
     generic_rank,
@@ -255,6 +255,17 @@ def test_rewrite_prewalk():
     result = rewrite(real.sin(x + y), [swap], strategy="prewalk")
     point = {x: 0.3, y: 0.5}
     assert value(result, point) == pytest.approx(math.sin(0.8))
+
+
+def test_rewrite_prewalk_keeps_sharing():
+    u = Wild("u")
+    to_cos = Rule(real.sin(u), real.cos(u))
+    inner = x + y
+    result = rewrite(real.sin(inner) * real.cos(inner), [to_cos], strategy="prewalk")
+    assert isinstance(result, Call)
+    left, right = result.args
+    assert left == right == real.cos(inner)
+    assert left.args[0] is right.args[0]
 
 
 def test_match_is_syntactic():

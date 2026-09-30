@@ -45,6 +45,7 @@ def lie_derivative(expr: Any, ode: ODE, /, order: int = 1) -> Expr:
     seed: dict[Expr, Expr] = {s: f for s, f in ode.rhs.items()}
     if ode.t is not None:
         seed[ode.t] = Literal(1)
+    # Iterated, not unfolded: only the last derivative is kept.
     for _ in range(order):
         expr = jvp(expr, seed)
     return expr

@@ -20,6 +20,10 @@ Define a new operation as an algebra and fold it with ``cata``:
 >>> cata(depth, Symbol("x") + 1)
 2
 
+Top-down traversals unfold with a coalgebra instead: ``ana`` builds an
+expression from a seed, and ``hylo`` folds the layers as they are unfolded.
+``Done`` stops the unfolding with a finished value.
+
 The other node types are ``symbolcat.Symbol``, and ``symbolcat.lib.Function``
 and ``symbolcat.lib.Constant``.
 """
@@ -27,13 +31,16 @@ and ``symbolcat.lib.Constant``.
 from ..._core import (
     Algebra,
     Call,
+    Done,
     Expr,
     Literal,
     Operator,
+    ana,
     as_expr,
     cata,
     children,
     fmap,
+    hylo,
     name_of,
 )
 from .._printing._base import Printed
@@ -42,14 +49,17 @@ from . import builtin
 __all__ = [
     "Algebra",
     "Call",
+    "Done",
     "Expr",
     "Literal",
     "Operator",
     "Printed",
+    "ana",
     "as_expr",
     "builtin",
     "cata",
     "children",
     "fmap",
+    "hylo",
     "name_of",
 ]

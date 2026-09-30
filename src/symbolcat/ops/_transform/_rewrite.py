@@ -21,7 +21,7 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any
 
-from ..._core import Call, Expr, Symbol, as_expr, cata
+from ..._core import Call, Expr, Symbol, ana, as_expr, cata
 from ._substitute import substitute
 
 type Bindings = dict[str, Expr]
@@ -120,15 +120,17 @@ def _postwalk(expr: Expr, rules: list[Rule], /) -> Expr:
 
 
 def _prewalk(expr: Expr, rules: list[Rule], /) -> Expr:
-    node = expr
-    for _ in range(1000):
-        result = _apply(rules, node)
-        if result is None:
-            break
-        node = result
-    if isinstance(node, Call):
-        return Call(node.func, tuple(_prewalk(arg, rules) for arg in node.args))
-    return node
+    # The dual of ``_postwalk``: rewrite each node before unfolding its
+    # arguments, which are then rewritten in turn.
+    def coalgebra(node: Expr, /) -> Expr:
+        for _ in range(1000):
+            result = _apply(rules, node)
+            if result is None:
+                break
+            node = result
+        return node
+
+    return ana(coalgebra, expr)
 
 
 STRATEGIES: Mapping[str, Callable[[Expr, list[Rule]], Expr]] = {

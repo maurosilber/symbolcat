@@ -9,11 +9,14 @@ from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import (
     Algebra,
     Call,
+    Done,
     Literal,
     Operator,
+    ana,
     cata,
     children,
     fmap,
+    hylo,
 )
 from symbolcat.ops.printing import to_latex
 
@@ -148,6 +151,43 @@ def test_cata_handles_deep_trees():
     for _ in range(10 * sys.getrecursionlimit()):
         expr = expr + 1
     assert cata(lambda node: 1 + max(children(node), default=0), expr) > 10_000
+
+
+def halves(n):
+    return Literal(n) if n <= 1 else Call(op.add, (n // 2, n - n // 2))
+
+
+def test_ana_shares_equal_seeds():
+    calls = []
+
+    def coalgebra(n):
+        calls.append(n)
+        return halves(n)
+
+    expr = ana(coalgebra, 5, key=lambda n: n)
+    assert isinstance(expr, Call)
+    two, three = expr.args
+    assert isinstance(three, Call)
+    assert three.args[1] is two
+    assert sorted(calls) == [1, 2, 3, 5]
+
+
+def test_hylo_done_stops_unfolding():
+    def coalgebra(n):
+        if n == 3:
+            return Done(100)  # in place of a layer
+        return Call(op.add, (n - 1, Done(n)))  # among the children
+
+    assert hylo(lambda layer: sum(layer.args), coalgebra, 5, key=lambda n: n) == 109
+
+
+def test_ana_handles_deep_trees():
+    def coalgebra(n):
+        return Literal(0) if n == 0 else Call(op.add, (n - 1, Done(Literal(1))))
+
+    n = 10 * sys.getrecursionlimit()
+    expr = ana(coalgebra, n, key=lambda n: n)
+    assert cata(lambda node: 1 + max(children(node), default=0), expr) == n + 1
 
 
 def test_algebra_dispatch_priority():

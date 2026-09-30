@@ -22,7 +22,7 @@ from fractions import Fraction
 from itertools import combinations
 from typing import Any
 
-from ..._core import Call, Expr, Literal, Symbol, as_expr
+from ..._core import Call, Done, Expr, Literal, Symbol, as_expr, hylo
 from ...lib import operators as op
 from .._analysis._inspect import free_symbols
 from .._transform._simplify import from_fraction
@@ -208,6 +208,27 @@ def _gcd(a: Poly, b: Poly, n: int, /) -> Poly:
 # Conversion
 
 
+_RATIONAL_OPS = (op.add, op.sub, op.mul, op.truediv, op.neg, op.pos)
+
+
+def _rational_layer(node: Expr, /) -> Call[Any] | None:
+    """``node`` as one rational operation of its arguments, or ``None``.
+
+    The exponent of a power is an ``int`` (as ``Done``), not an argument to
+    unfold. Shared by the coalgebras of ``_rational`` and ``_atoms``, which
+    must not open the generators (``sin(x)``), as a ``cata`` would.
+    """
+    if not isinstance(node, Call):
+        return None
+    if node.func in _RATIONAL_OPS:
+        return node
+    if node.func is op.pow:
+        base, exponent = node.args
+        if isinstance(exponent, Literal) and type(exponent.value) is int:
+            return Call(op.pow, (base, Done(exponent.value)))
+    return None
+
+
 def _rational(
     expr: Expr, index: dict[Expr, int], /, *, polynomial: bool = False
 ) -> tuple[Poly, Poly]:
@@ -216,75 +237,66 @@ def _rational(
     With ``polynomial``, only division by constants is allowed.
     """
     n = len(index)
-    memo: dict[int, tuple[Poly, Poly]] = {}
 
-    def convert(node: Expr, /) -> tuple[Poly, Poly]:
-        if id(node) in memo:
-            return memo[id(node)]
-        one = _const(1, n)
+    def coalgebra(node: Expr, /) -> Any:
         if node in index:
             mono = tuple(1 if i == index[node] else 0 for i in range(n))
-            result = ({mono: Fraction(1)}, one)
-        elif isinstance(node, Literal) and type(node.value) in (int, Fraction):
-            result = (_const(node.value, n), one)
-        elif isinstance(node, Call) and node.func in (op.add, op.sub):
-            (an, ad), (bn, bd) = map(convert, node.args)
-            sign = Fraction(1) if node.func is op.add else -Fraction(1)
-            result = (_add(_mul(an, bd), _mul(bn, ad), sign), _mul(ad, bd))
-        elif isinstance(node, Call) and node.func is op.mul:
-            (an, ad), (bn, bd) = map(convert, node.args)
-            result = (_mul(an, bn), _mul(ad, bd))
-        elif isinstance(node, Call) and node.func is op.truediv:
-            (an, ad), (bn, bd) = map(convert, node.args)
+            return Done(({mono: Fraction(1)}, _const(1, n)))
+        if isinstance(node, Literal) and type(node.value) in (int, Fraction):
+            return Done((_const(node.value, n), _const(1, n)))
+        if (layer := _rational_layer(node)) is None:
+            raise NotPolynomial(f"{node} is not a rational operation of the generators")
+        # The node itself goes last, to name it in errors.
+        return Call(layer.func, (*layer.args, Done(node)))
+
+    def algebra(layer: Call[Any], /) -> tuple[Poly, Poly]:
+        *args, node = layer.args
+        if layer.func in (op.add, op.sub):
+            (an, ad), (bn, bd) = args
+            sign = Fraction(1) if layer.func is op.add else -Fraction(1)
+            return (_add(_mul(an, bd), _mul(bn, ad), sign), _mul(ad, bd))
+        if layer.func is op.mul:
+            (an, ad), (bn, bd) = args
+            return (_mul(an, bn), _mul(ad, bd))
+        if layer.func is op.truediv:
+            (an, ad), (bn, bd) = args
             if not bn:
                 raise ZeroDivisionError(f"division by zero in {node}")
             if polynomial and _variables_used(bn) | _variables_used(bd):
                 raise NotPolynomial(f"{node} divides by a polynomial")
-            result = (_mul(an, bd), _mul(ad, bn))
-        elif isinstance(node, Call) and node.func in (op.neg, op.pos):
-            (an, ad) = convert(node.args[0])
-            result = ({m: -c for m, c in an.items()} if node.func is op.neg else an, ad)
-        elif (
-            isinstance(node, Call)
-            and node.func is op.pow
-            and isinstance(node.args[1], Literal)
-            and type(node.args[1].value) is int
-        ):
-            base, exponent = node.args[0], node.args[1].value
-            bn, bd = convert(base)
-            if exponent < 0:
-                if polynomial:
-                    raise NotPolynomial(f"{node} has a negative exponent")
-                bn, bd, exponent = bd, bn, -exponent
-            result = (_pow(bn, exponent, n), _pow(bd, exponent, n))
-        else:
-            raise NotPolynomial(f"{node} is not a rational operation of the generators")
-        memo[id(node)] = result
-        return result
+            return (_mul(an, bd), _mul(ad, bn))
+        if layer.func in (op.neg, op.pos):
+            ((an, ad),) = args
+            return ({m: -c for m, c in an.items()} if layer.func is op.neg else an, ad)
+        (bn, bd), exponent = args  # op.pow
+        if exponent < 0:
+            if polynomial:
+                raise NotPolynomial(f"{node} has a negative exponent")
+            bn, bd, exponent = bd, bn, -exponent
+        return (_pow(bn, exponent, n), _pow(bd, exponent, n))
 
-    return convert(expr)
+    return hylo(algebra, coalgebra, expr)
 
 
 def _atoms(expr: Expr, /) -> list[Expr]:
     """The maximal sub-expressions that are not rational operations."""
-    out: dict[Expr, None] = {}
-    stack = [expr]
-    while stack:
-        node = stack.pop()
-        rational_call = isinstance(node, Call) and (
-            node.func in (op.add, op.sub, op.mul, op.truediv, op.neg, op.pos)
-            or (
-                node.func is op.pow
-                and isinstance(node.args[1], Literal)
-                and type(node.args[1].value) is int
-            )
-        )
-        if rational_call:
-            assert isinstance(node, Call)
-            stack.extend(reversed(node.args[:1] if node.func is op.pow else node.args))
-        elif not (isinstance(node, Literal) and type(node.value) in (int, Fraction)):
-            out[node] = None
-    return list(out)
+
+    def coalgebra(node: Expr, /) -> Any:
+        if (layer := _rational_layer(node)) is not None:
+            return layer
+        if isinstance(node, Literal) and type(node.value) in (int, Fraction):
+            return Done({})
+        return Done({node: None})
+
+    # Folds into an insertion-ordered set (a dict with None values).
+    def algebra(layer: Call[Any], /) -> dict[Expr, None]:
+        out: dict[Expr, None] = {}
+        for arg in layer.args:
+            if isinstance(arg, dict):  # not the exponent of a power
+                out |= arg
+        return out
+
+    return list(hylo(algebra, coalgebra, expr))
 
 
 def _poly(expr: Any, gens: Sequence[Expr], /) -> Poly:
@@ -303,6 +315,8 @@ def _gens(exprs: Iterable[Any], gens: Sequence[Expr] | None, /) -> tuple[Expr, .
 
 def _to_expr(p: Poly, gens: Sequence[Expr], key: Key = ORDERS["lex"], /) -> Expr:
     """An expression for ``p``, with its terms in decreasing order."""
+    # A loop over the sorted terms, not an ``ana``: a ``Poly`` is flat, and
+    # the sum is built left-nested, as the operators would build it.
     total: Expr | None = None
     for m in sorted(p, key=key, reverse=True):
         c = p[m]

@@ -21,17 +21,19 @@ from ... import real
 from ..._core import (
     Call,
     Constant,
+    Done,
     Expr,
     Function,
     Literal,
     Symbol,
     cata,
+    hylo,
     name_of,
 )
 from ..._core.precedence import POSTFIX
 from ...lib import operators as op
 from ...linalg import Array
-from .._analysis._inspect import free_symbols
+from .._analysis._inspect import free_symbols, union
 from .._transform._arrays import expand_arrays
 from .._transform._share import cse
 from ._base import Printed, indices, literal_precedence, operand
@@ -130,14 +132,19 @@ def _(node: Call[Printed]) -> Printed:
     return Printed(f"{operand(obj, op.getitem, 'left')}{index}", POSTFIX)
 
 
-def _nodes(expr: Expr, /) -> list[Expr]:
-    out, stack = [], [expr]
-    while stack:
-        node = stack.pop()
-        out.append(node)
-        if isinstance(node, Call):
-            stack.extend(node.args)
-    return out
+def _arrays(expr: Expr, /) -> dict[str, None]:
+    """The names of the symbols indexed as arrays, ``x[i]``."""
+
+    def coalgebra(node: Expr, /) -> Expr:
+        if (
+            isinstance(node, Call)
+            and node.func is op.getitem
+            and isinstance(array := node.args[0], Symbol)
+        ):
+            return Call(op.getitem, (Done({name_of(array): None}), node.args[1]))
+        return node
+
+    return hylo(union, coalgebra, expr)
 
 
 def _source(expr: Expr, /) -> str:
@@ -184,13 +191,7 @@ def to_c(
     params = [name_of(arg) for arg in args]
     assignments, result = cse(expr, prefix="_")
     body = [f"    const double {name_of(t)} = {_source(v)};" for t, v in assignments]
-    arrays = {
-        name_of(node.args[0])
-        for node in _nodes(expr)
-        if isinstance(node, Call)
-        and node.func is op.getitem
-        and isinstance(node.args[0], Symbol)
-    }
+    arrays = _arrays(expr)
     signature = ", ".join(
         f"const double *{p}" if p in arrays else f"double {p}" for p in params
     )

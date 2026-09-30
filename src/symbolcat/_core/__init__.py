@@ -18,6 +18,11 @@ already been folded into strings. ``fmap`` goes from one to the other, and
 that knows how to collapse a single layer. The traversal lives here, once;
 every operation (printing, LaTeX, evaluation, differentiation, ...) is only
 an algebra.
+
+The dual, ``ana``, unfolds a seed top-down with a *coalgebra*: a function
+that turns a seed into a single layer whose children are the next seeds.
+``hylo`` composes the two, folding the layers as they are unfolded, and is
+the one traversal both are built on.
 """
 
 from .algebra import Algebra
@@ -35,19 +40,23 @@ from .expr import (
     name_of,
 )
 from .fmap import fmap
+from .hylo import Done, ana, hylo
 
 __all__ = [
     "Algebra",
     "Call",
     "Constant",
+    "Done",
     "Expr",
     "Function",
     "Literal",
     "Operator",
     "Symbol",
+    "ana",
     "as_expr",
     "cata",
     "children",
     "fmap",
+    "hylo",
     "name_of",
 ]
