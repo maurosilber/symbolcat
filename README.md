@@ -33,8 +33,8 @@ The top level only has what you need to build expressions and act on them:
 - `linalg`: vectors, matrices and linear algebra (`det`, `inv`, ...).
 - `stats`: probability distributions (`stats.Normal(mu, sigma).logpdf(x)`),
   and propagation of uncertainty (`stats.propagate`).
-- `ops`: operations on expressions, `ops.evaluate`, and one namespace per
-  topic:
+- `ops`: operations on expressions, `ops.evaluate` and `ops.compile`, and one
+  namespace per topic:
   - `ops.transform`: substitution, simplification, rewriting rules.
   - `ops.inspect`: symbols, size, shape, dimensions, sparsity patterns.
   - `ops.printing`: text, LaTeX, MathML, and Python, C and Julia source.
@@ -49,8 +49,8 @@ The top level only has what you need to build expressions and act on them:
   `models.stochastic`, `models.pde` and `models.reactions`.
 - `Function` and `Constant`: define new functions and constants.
 - `operators`: the operators produced by Python syntax (`x + y`, ...).
-- `backends`: the backends for `ops.evaluate` (`backends.std`,
-  `backends.numpy`, `backends.sympy`).
+- `backends`: the backends for `ops.evaluate` and `ops.compile`
+  (`backends.std`, `backends.numpy`, `backends.sympy`).
 
 Everything else lives in private (underscore) modules, so autocompletion
 only shows the public names.
@@ -215,6 +215,17 @@ mapping:
 >>> f = Function("f", arity=1)
 >>> evaluate(f(x) + 1, {x: -3}, backend={**IMPL, f: lambda v: 2 * abs(v)})
 7
+
+```
+
+`compile` uses the same backends to build a Python function, which computes
+repeated sub-expressions once:
+
+```python
+>>> from symbolcat.ops import compile
+>>> g = compile(real.sin(x) ** 2 + real.sin(x), [x])
+>>> g(0.0)
+0.0
 
 ```
 

@@ -5,6 +5,8 @@ symbolcat.ops
 Operations on expressions. Each one is an algebra folded with a catamorphism.
 
 - ``evaluate``: compute an expression with an implementation library.
+- ``compile``: a Python function computing an expression with an
+  implementation library.
 - ``transform``: substitution, simplification, sharing, rewriting rules.
 - ``inspect``: symbols, variables, size, shape, dimensions, sparsity.
 - ``printing``: text, LaTeX, MathML, and Python, C and Julia source.
@@ -22,11 +24,13 @@ Two more subpackages:
 """
 
 from . import algebras, calculus, equations, inspect, polynomials, printing, transform
+from ._compile import compile
 from ._evaluate import evaluate
 
 __all__ = [
     "algebras",
     "calculus",
+    "compile",
     "equations",
     "evaluate",
     "inspect",

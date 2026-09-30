@@ -1,12 +1,13 @@
 """
 symbolcat.ops._printing._python
-~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Generate Python source for a function computing an expression.
 """
 
 from __future__ import annotations
 
+import keyword
 from collections.abc import Sequence
 from typing import Any
 
@@ -88,7 +89,8 @@ def to_python(
     ``cse``). ``args`` defaults to the free symbols of ``expr``. Functions
     and constants are written by name (``sin``, ``pi``), so the source runs
     in a namespace that defines them, like ``vars(math)`` or ``vars(numpy)``,
-    or ``vars(cmath)`` for complex functions. ``complex.re``, ``im`` and
+    or ``vars(cmath)`` for complex functions. ``symbolcat.ops.compile``
+    binds them to a backend instead. ``complex.re``, ``im`` and
     ``conj`` are written as attributes (``z.real``), and the imaginary unit
     as ``1j``.
 
@@ -114,22 +116,41 @@ def to_python(
         return array([[x * y + 1 * x], [0 * y + y * x]])
     """
     expr = expand_arrays(expr)
+    params = parameters(expr, args, name)
+    assignments, result = cse(expr, prefix="_")
+    return function_source(name, params, assignments, result, python_algebra(array))
+
+
+def parameters(expr: Expr, args: Sequence[Symbol] | None, name: str, /) -> list[str]:
+    """The names of the parameters of a function ``name`` computing ``expr``,
+    checked to be identifiers that cover the free symbols."""
     if args is None:
         args = free_symbols(expr)
     params = [name_of(arg) for arg in args]
     for identifier in (name, *params):
-        if not identifier.isidentifier():
+        if not identifier.isidentifier() or keyword.iskeyword(identifier):
             raise ValueError(f"{identifier!r} is not a valid Python identifier")
     missing = [name_of(s) for s in free_symbols(expr) if name_of(s) not in params]
     if missing:
         raise ValueError(f"Free symbols not in args: {', '.join(missing)}")
-    assignments, result = cse(expr, prefix="_")
-    lines = [f"def {name}({', '.join(params)}):"]
-    algebra = python_algebra(array)
+    return params
+
+
+def function_source(
+    name: str,
+    params: Sequence[str],
+    assignments: Sequence[tuple[Symbol, Expr]],
+    result: Expr,
+    algebra: Algebra[Printed],
+    /,
+) -> str:
+    """Source of a function computing ``assignments`` (from ``cse``), and
+    returning ``result``, printed with ``algebra``."""
 
     def source(value: Expr, /) -> str:
         return cata(algebra, value).text
 
+    lines = [f"def {name}({', '.join(params)}):"]
     lines += [f"    {name_of(temp)} = {source(value)}" for temp, value in assignments]
     lines.append(f"    return {source(result)}")
     return "\n".join(lines)

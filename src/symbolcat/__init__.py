@@ -17,8 +17,8 @@ A minimalistic symbolic package, organized around catamorphisms.
 - ``models``: models of dynamical systems (DAEs, ODEs, SDEs, PDEs, reaction
   networks) and their analysis.
 - ``operators``: the operators produced by Python syntax (``x + y``, ...).
-- ``backends``: implementation libraries for ``ops.evaluate`` (``std``,
-  ``numpy``, ``sympy``).
+- ``backends``: implementation libraries for ``ops.evaluate`` and
+  ``ops.compile`` (``std``, ``numpy``, ``sympy``).
 
 >>> from symbolcat import Symbol, ops, real
 >>> x, y = Symbol("x"), Symbol("y")

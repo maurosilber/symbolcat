@@ -2,7 +2,8 @@
 symbolcat.backends
 ~~~~~~~~~~~~~~~~~~
 
-Implementation libraries for ``symbolcat.ops.evaluate``.
+Implementation libraries for ``symbolcat.ops.evaluate`` and
+``symbolcat.ops.compile``.
 
 ``std``, ``numpy`` and ``sympy`` each expose ``IMPL``, a mapping from
 abstract functions and constants (``operators.add``, ``real.sin``,
