@@ -19,7 +19,7 @@ from typing import Any
 from ..._core import Call, Expr, Symbol, args_of, as_expr, name_of
 from ..._derivative import D, Variable, is_variable
 from ...ops._algebraic._linear import solve_linear
-from ...ops._analysis._inspect import free_symbols
+from ...ops._analysis._inspect import check_unused, free_symbols
 from ...ops._calculus._time import _base
 from ...ops._transform._substitute import substitute_variables
 from .._dae._system import IndexOneDAE
@@ -121,10 +121,7 @@ def to_first_order(ode: ODE, /) -> ODE:
     D(x) = x_t
     D(x_t) = -k * x
     """
-    taken = {name_of(s) for f in ode.rhs.values() for s in free_symbols(f)} | {
-        name_of(s) for s in ode.rhs if isinstance(s, Symbol)
-    }
-    names: dict[Expr, Expr] = {}
+    names: dict[Expr, Symbol] = {}
     for state in ode.rhs:
         if not isinstance(state, Call):
             continue
@@ -133,10 +130,8 @@ def to_first_order(ode: ODE, /) -> ODE:
             (base,) = args_of(base)
             order += 1
         assert isinstance(base, Symbol)
-        symbol = Symbol(f"{name_of(base)}_{'t' * order}", kind=state.kind)
-        if name_of(symbol) in taken:
-            raise ValueError(f"to_first_order: {name_of(symbol)} is already used")
-        names[state] = symbol
+        names[state] = Symbol(f"{name_of(base)}_{'t' * order}", kind=state.kind)
+    check_unused(names.values(), [*ode.rhs, *ode.rhs.values()], "to_first_order")
     return ODE(
         {names.get(s, s): substitute_variables(f, names) for s, f in ode.rhs.items()},
         ode.t,

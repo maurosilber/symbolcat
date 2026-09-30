@@ -31,6 +31,7 @@ from .children import children
 from .expr import (
     Call,
     Constant,
+    Dummy,
     Expr,
     Function,
     Literal,
@@ -54,6 +55,7 @@ __all__ = [
     "Call",
     "Constant",
     "Done",
+    "Dummy",
     "Expr",
     "Function",
     "Literal",

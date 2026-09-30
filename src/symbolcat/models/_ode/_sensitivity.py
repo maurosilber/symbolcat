@@ -14,6 +14,7 @@ from __future__ import annotations
 from collections.abc import Iterable
 
 from ..._core import Expr, Literal, Symbol, name_of
+from ...ops._analysis._inspect import check_unused
 from ...ops._calculus._diff import jvp
 from ._system import ODE
 
@@ -33,10 +34,8 @@ def sensitivities(ode: ODE, parameters: Iterable[Symbol], /) -> ODE:
     >>> from symbolcat import Symbol
     >>> x, k = Symbol("x"), Symbol("k")
     >>> ode = sensitivities(ODE({x: -k * x}), [k])
-    >>> for state, rhs in ode.rhs.items():
-    ...     print(f"D({state}) = {rhs}")
-    D(x) = -k * x
-    D(dx_dk) = -x + -k * dx_dk
+    >>> print(ode.rhs[Symbol("dx_dk")])
+    -x + -k * dx_dk
     """
     if ode.events:
         raise NotImplementedError(
@@ -51,9 +50,12 @@ def sensitivities(ode: ODE, parameters: Iterable[Symbol], /) -> ODE:
             )
         states.append(state)
     rhs: dict[Expr, Expr] = {s: f for s, f in ode.rhs.items()}
+    parameters = list(parameters)
+    new = [_sensitivity_symbol(s, p) for p in parameters for s in states]
+    check_unused(new, [*states, *ode.rhs.values()], "sensitivities")
     for p in parameters:
         seed: dict[Expr, Expr] = {s: _sensitivity_symbol(s, p) for s in states}
         seed[p] = Literal(1)
         for s in states:
-            rhs[seed[s]] = jvp(ode.rhs[s], seed)
+            rhs[_sensitivity_symbol(s, p)] = jvp(ode.rhs[s], seed)
     return ODE(rhs, ode.t)

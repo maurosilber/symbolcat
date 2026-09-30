@@ -5,6 +5,7 @@ symbolcat
 A minimalistic symbolic package, organized around catamorphisms.
 
 - ``Symbol``: create symbols and combine them with Python operators.
+  Symbols compare by name and kind; a ``Dummy`` compares by identity.
 - ``Function``, ``Constant``: define new symbolic functions and constants.
 - ``D``: the time derivative of a symbol, ``D(x)``, as an unknown of its own.
   ``delay(x, tau)`` and ``partial(u, x)`` build delay and partial
@@ -32,12 +33,13 @@ x + 3 \\cdot \\sin\\left(y\\right)
 """
 
 from . import backends, complex, linalg, models, operators, ops, real, stats
-from ._core import Constant, Function, Symbol
+from ._core import Constant, Dummy, Function, Symbol
 from ._derivative import D, delay, partial
 
 __all__ = [
     "Constant",
     "D",
+    "Dummy",
     "Function",
     "Symbol",
     "backends",

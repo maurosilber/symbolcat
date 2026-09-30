@@ -36,8 +36,7 @@ def test_operators_build_calls():
 
 
 def test_structural_equality_and_hash():
-    assert x + y == x + y
-    assert x + y != Symbol("x") + Symbol("y")
+    assert x + y == Symbol("x") + Symbol("y")
     assert x + y != y + x
     assert {x + 1: "a"}[x + 1] == "a"
 
@@ -219,3 +218,14 @@ def test_algebra_copy_is_independent():
     child.register(Symbol)(lambda node: 2)
     assert cata(base, x) == 1
     assert cata(child, x) == 2
+
+
+def test_generated_code_rejects_name_conflicts():
+    from symbolcat import Dummy
+    from symbolcat.ops import compile
+    from symbolcat.ops.printing import to_python
+
+    with pytest.raises(ValueError, match="different symbols named 'x'"):
+        to_python(x + Dummy("x"))
+    with pytest.raises(ValueError, match="different symbols named 'x'"):
+        compile(x, [Dummy("x")])

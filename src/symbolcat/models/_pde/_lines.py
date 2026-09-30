@@ -22,11 +22,12 @@ from typing import Any
 from ..._core import Expr, Symbol, as_expr, name_of
 from ..._derivative import D, partial
 from ...ops._algebraic._system import EquationSystem, residual
+from ...ops._analysis._inspect import check_unused
 from ...ops._transform._simplify import simplify_exact
 from ...ops._transform._substitute import substitute_variables
 
 
-def _grid_symbol(u: Symbol, i: int, /) -> Symbol:
+def grid_symbol(u: Symbol, i: int, /) -> Symbol:
     """The unknown ``u`` at the grid point ``i``: ``u_3``."""
     return Symbol(f"{name_of(u)}_{i}")
 
@@ -67,7 +68,12 @@ def method_of_lines(
     h = simplify_exact((b - a) / (n - 1))
     inv_h = simplify_exact(1 / h)
     inv_h2 = simplify_exact(inv_h**2)
-    grid = {u: [_grid_symbol(u, i) for i in range(n)] for u in unknowns}
+    grid = {u: [grid_symbol(u, i) for i in range(n)] for u in unknowns}
+    check_unused(
+        [s for us in grid.values() for s in us],
+        [*equations, *left, *right, *unknowns, x, a, b],
+        "method_of_lines",
+    )
 
     def at(i: int, first: str, /) -> dict[Expr, Expr]:
         """The replacements at grid point ``i``, with ``first`` differences

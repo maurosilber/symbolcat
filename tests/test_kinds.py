@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from symbolcat import Constant, D, Function, Symbol, complex, linalg, real
+from symbolcat import Constant, D, Dummy, Function, Symbol, complex, linalg, real
 from symbolcat import operators as op
 from symbolcat.kinds import Boolean, Complex, Kind, Matrix, Real, Vector
 from symbolcat.ops import evaluate
@@ -31,9 +31,41 @@ def test_leaves():
     assert Literal(1j).kind == Complex()
 
 
-def test_symbols_compare_by_identity():
-    assert {v: 1}[v] == 1
-    assert Symbol("v", kind=Vector(3)) != v
+def test_symbols_compare_by_name_and_kind():
+    assert Symbol("v", kind=Vector(3)) == v
+    assert Symbol("v") != v
+    assert Symbol("v", kind=Vector(2)) != v
+    assert hash(Symbol("v", kind=Vector(3))) == hash(v)
+
+
+def test_dummies_compare_by_identity():
+    t = Dummy("x")
+    assert {t: 1}[t] == 1
+    assert Dummy("x") != t
+    assert t != x and x != t
+    assert Dummy() != Dummy()
+
+
+def test_unnamed_symbols_cannot_be_hashed():
+    with pytest.raises(ValueError, match="has no name"):
+        hash(Symbol())
+    with pytest.raises(ValueError, match="has no name"):
+        _ = Symbol() == Symbol()
+
+    class Model:
+        a = Symbol()
+        b = a + 1  # building expressions does not hash
+
+    assert Model.b == Symbol("a") + 1
+
+
+def test_name_conflicts_fail_where_symbols_go_by_name():
+    other = Symbol("x", kind=Complex())
+    with pytest.raises(ValueError, match="different symbols named 'x'"):
+        evaluate(x + other, {"x": 1})
+    with pytest.raises(ValueError, match="different symbols named 'x'"):
+        evaluate(x + Dummy("x"), {"x": 1})
+    assert evaluate(x + other, {x: 1, other: 2}) == 3
 
 
 def test_repr():
@@ -137,10 +169,7 @@ def test_pickle_keeps_kinds():
     expr = linalg.transpose(A) @ A
     loaded = pickle.loads(pickle.dumps(expr))
     assert loaded.kind == Matrix(3, 3)
-    (transposed,), loaded_A = args_of(args_of(loaded)[0]), args_of(loaded)[1]
-    # a new symbol, shared within the loaded expression
-    assert loaded_A != A and loaded_A.kind == A.kind
-    assert transposed is loaded_A
+    assert args_of(loaded)[1] == A
 
 
 # algebras

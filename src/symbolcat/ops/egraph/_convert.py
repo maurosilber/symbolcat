@@ -103,7 +103,7 @@ to_egglog_algebra = Algebra[Num]("to_egglog")
 @to_egglog_algebra.register(Symbol)
 def _(node: Symbol, *, table: Table) -> Num:
     name = name_of(node)
-    if table.symbols.setdefault(name, node) is not node:
+    if table.symbols.setdefault(name, node) != node:
         raise ValueError(f"egraph: different symbols named {name!r}")
     return Num.var(name)
 

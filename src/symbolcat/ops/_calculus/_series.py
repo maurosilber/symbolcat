@@ -23,6 +23,7 @@ from ..._core import (
     Algebra,
     Call,
     Constant,
+    Dummy,
     Expr,
     Function,
     Literal,
@@ -46,7 +47,7 @@ series_algebra = Algebra[Series]("series")
 # Extra coefficients computed internally, consumed when a quotient has to
 # cancel leading zeros (sin(x) / x at 0).
 PADDING = 4
-DUMMY = Symbol()
+DUMMY = Dummy("t")
 
 
 def zeros(n: int, /) -> Series:

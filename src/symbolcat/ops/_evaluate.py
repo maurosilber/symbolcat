@@ -36,6 +36,7 @@ from .._core import (
 )
 from ..backends._resolve import Backend, as_mapping
 from ..linalg import Array, nest
+from ._analysis._inspect import check_names, free_symbols
 from ._transform._arrays import expand_arrays
 
 evaluate_algebra = Algebra[Any]("evaluate")
@@ -153,6 +154,8 @@ def evaluate[S: Symbol](
     >>> evaluate(real.ifelse(x > 0, real.log(x), 0), {x: -1})
     0
     """
-    return fold(
-        as_expr(expand_arrays(expr)), env=env or {}, backend=as_mapping(backend)
-    )
+    expr = as_expr(expand_arrays(expr))
+    env = env or {}
+    if any(isinstance(key, str) for key in env):
+        check_names(free_symbols(expr), "evaluate")
+    return fold(expr, env=env, backend=as_mapping(backend))

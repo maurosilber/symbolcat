@@ -165,8 +165,8 @@ def test_dimensions_with_string_keys():
 
 
 def test_dimensionless_symbolic_exponent():
-    n, k = Symbol("n"), Symbol("k")
-    assert dimensions(k**n, {k: {}, n: {}}) == {}
+    n = Symbol("n")
+    assert dimensions(Symbol("k") ** n, {Symbol("k"): {}, n: {}}) == {}
 
 
 def test_dimensional_base_needs_numeric_exponent():

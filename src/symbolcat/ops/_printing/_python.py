@@ -28,7 +28,7 @@ from ..._core import (
 )
 from ..._core.precedence import POSTFIX
 from ...linalg import Array, nest
-from .._analysis._inspect import free_symbols
+from .._analysis._inspect import check_names, free_symbols
 from .._transform._arrays import expand_arrays
 from .._transform._share import cse
 from ._base import Printed, operand
@@ -128,6 +128,7 @@ def to_python(
 def parameters(expr: Expr, args: Sequence[Symbol] | None, name: str, /) -> list[str]:
     """The names of the parameters of a function ``name`` computing ``expr``,
     checked to be identifiers that cover the free symbols."""
+    check_names([*(args or ()), *free_symbols(expr)], f"def {name}")
     if args is None:
         args = free_symbols(expr)
     params = [name_of(arg) for arg in args]

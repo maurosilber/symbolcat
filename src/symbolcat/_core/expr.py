@@ -231,7 +231,7 @@ _REAL: Any = Real()
 
 
 class Symbol[K: Kind](_Named, Expr[K]):
-    """A user-defined named leaf. Compares by identity.
+    """A user-defined named leaf. Compares by name and kind.
 
     Symbols are real, unless another ``kind`` is given:
 
@@ -262,12 +262,57 @@ class Symbol[K: Kind](_Named, Expr[K]):
     def kind(self) -> K:
         return self.__symbolcat__.kind
 
+    def __eq__(self, other: object) -> bool:
+        if type(other) is not type(self):
+            return False
+        return _key(self) == _key(cast(Symbol[Any], other))
+
+    def __hash__(self) -> int:
+        return hash(_key(self))
+
     def __repr__(self) -> str:
         name, kind = self.__symbolcat__[:2]
         if kind == Real():
             return super().__repr__()
         name = repr(name) if name else ""
-        return f"Symbol({name}{', ' if name else ''}kind={kind!r})"
+        return f"{type(self).__name__}({name}{', ' if name else ''}kind={kind!r})"
+
+
+def _key(symbol: Symbol[Any], /) -> tuple[str, Kind]:
+    """The name and kind of ``symbol``, which are compared. Unnamed symbols
+    have no key: they would all compare equal, and take their name later (in
+    a class body), which would change their hash."""
+    name, kind = symbol.__symbolcat__[:2]
+    if not name:
+        raise ValueError(
+            f"{type(symbol).__name__} has no name, so it cannot be compared or "
+            "hashed: pass one to the constructor, assign it in a class body, "
+            "or use Dummy"
+        )
+    return name, kind
+
+
+class Dummy[K: Kind](Symbol[K]):
+    """A symbol that compares by identity: it never equals another symbol,
+    even one with the same name and kind. The name is only for printing,
+    and can be omitted.
+
+    Use it for internal unknowns that must not capture a user symbol:
+
+    >>> Dummy("x") == Dummy("x"), Dummy("x") == Symbol("x")
+    (False, False)
+    >>> t = Dummy("t")
+    >>> {t: 1}[t]
+    1
+    """
+
+    __slots__ = ()
+
+    def __eq__(self, other: object) -> bool:
+        return self is other
+
+    def __hash__(self) -> int:
+        return id(self)
 
 
 class Constant[K: Kind](_Named, Expr[K]):

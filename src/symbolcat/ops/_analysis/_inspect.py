@@ -7,6 +7,7 @@ Queries about the structure of an expression.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Any
 
 from ..._core import (
@@ -22,6 +23,7 @@ from ..._core import (
     cata,
     children,
     hylo,
+    name_of,
 )
 from ..._core.kinds import Complex
 from ..._derivative import Variable, is_variable
@@ -68,6 +70,40 @@ def free_symbols(expr: Any, /) -> tuple[Symbol, ...]:
     (Symbol('y'), Symbol('x'))
     """
     return tuple(cata(free_symbols_algebra, expr))
+
+
+def check_names(symbols: Iterable[Symbol], /, context: str) -> None:
+    """Raise if different ``symbols`` share a name, where symbols go by name
+    (in generated code, or given by name): of different kinds, or a ``Dummy``.
+
+    >>> from symbolcat import Dummy, Symbol
+    >>> check_names([Symbol("x"), Symbol("x"), Symbol("y")], "f")
+    >>> check_names([Symbol("x"), Dummy("x")], "f")
+    Traceback (most recent call last):
+    ...
+    ValueError: f: different symbols named 'x'
+    """
+    seen: dict[str, Symbol] = {}
+    for symbol in symbols:
+        if seen.setdefault(name := name_of(symbol), symbol) != symbol:
+            raise ValueError(f"{context}: different symbols named {name!r}")
+
+
+def check_unused(new: Iterable[Symbol], exprs: Iterable[Any], /, context: str) -> None:
+    """Raise if the name of a ``new`` symbol is already used in ``exprs``, so
+    that generated symbols (``x_t``, ``dx_dk``) never capture a user's.
+
+    >>> from symbolcat import Symbol
+    >>> x, x_t = Symbol("x"), Symbol("x_t")
+    >>> check_unused([Symbol("x_t")], [x + x_t], "f")
+    Traceback (most recent call last):
+    ...
+    ValueError: f: x_t is already used
+    """
+    taken = {name_of(s) for expr in exprs for s in free_symbols(expr)}
+    for symbol in new:
+        if (name := name_of(symbol)) in taken:
+            raise ValueError(f"{context}: {name} is already used")
 
 
 def count_nodes(expr: Any, /) -> int:
