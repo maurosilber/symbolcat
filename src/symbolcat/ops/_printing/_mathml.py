@@ -34,7 +34,14 @@ from ..._core import (
 )
 from ..._core.precedence import POSTFIX, POW
 from ...linalg import Array, nest
-from ._base import Printed, Side, literal_precedence, needs_parens, with_ndim
+from ._base import (
+    Printed,
+    Side,
+    disambiguate,
+    literal_precedence,
+    needs_parens,
+    with_ndim,
+)
 
 GREEK = {
     name: chr(code)
@@ -130,11 +137,17 @@ def operand(child: Printed, parent: Operator, side: Side, /) -> str:
 
 
 def mathml_name(name: str, /) -> str:
-    """A symbol name, with greek letters and nested subscripts.
+    """A symbol name, with greek letters and nested subscripts, and the tag
+    of a symbol that shares its name (see ``disambiguate``).
 
     >>> print(mathml_name("alpha_1"))
     <msub><mi>α</mi><mn>1</mn></msub>
+    >>> print(mathml_name("x#3f2a"))
+    <mrow><mi>x</mi><mo>#</mo><mi>3f2a</mi></mrow>
     """
+    name, _, tag = name.partition("#")
+    if tag:
+        return f"<mrow>{mathml_name(name)}<mo>#</mo><mi>{tag}</mi></mrow>"
     base, _, sub = name.partition("_")
     base_markup = f"<mi>{GREEK.get(base, base)}</mi>"
     if not sub:
@@ -330,5 +343,5 @@ def to_mathml(expr: Any, /, *, display: bool = False) -> str:
     <math xmlns="http://www.w3.org/1998/Math/MathML"><mfrac><msqrt><mi>x</mi></msqrt><mn>2</mn></mfrac></math>
     """
     attributes = ' display="block"' if display else ""
-    body = cata(with_ndim(mathml_algebra), expr).text
+    body = cata(with_ndim(mathml_algebra), disambiguate(expr)).text
     return f'<math xmlns="http://www.w3.org/1998/Math/MathML"{attributes}>{body}</math>'

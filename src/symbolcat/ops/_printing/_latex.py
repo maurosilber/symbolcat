@@ -40,7 +40,14 @@ from ..._core import (
 from ..._core.precedence import POSTFIX, POW
 from ..._derivative import D
 from ...linalg import Array, nest
-from ._base import Printed, Side, literal_precedence, needs_parens, with_ndim
+from ._base import (
+    Printed,
+    Side,
+    disambiguate,
+    literal_precedence,
+    needs_parens,
+    with_ndim,
+)
 
 GREEK = frozenset(
     [
@@ -184,13 +191,19 @@ def operand(child: Printed, parent: Operator, side: Side, /) -> str:
 
 
 def latex_name(name: str, /) -> str:
-    r"""Format a symbol name, with greek letters and nested subscripts.
+    r"""Format a symbol name, with greek letters and nested subscripts, and
+    the tag of a symbol that shares its name (see ``disambiguate``).
 
     >>> print(latex_name("alpha_i_j"))
     \alpha_{i_{j}}
     >>> print(latex_name("rate"))
     \mathrm{rate}
+    >>> print(latex_name("x_t#3f2a"))
+    x_{t}\#\mathrm{3f2a}
     """
+    name, _, tag = name.partition("#")
+    if tag:
+        return rf"{latex_name(name)}\#\mathrm{{{tag}}}"
     base, _, sub = name.partition("_")
     if base in GREEK:
         base = "\\" + base
@@ -371,4 +384,4 @@ def to_latex(expr: Any, /) -> str:
     >>> to_latex((x + y) ** 2 / 3)
     '\\frac{\\left(x + y\\right)^{2}}{3}'
     """
-    return cata(with_ndim(latex_algebra), expr).text
+    return cata(with_ndim(latex_algebra), disambiguate(expr)).text

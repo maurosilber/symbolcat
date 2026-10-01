@@ -26,6 +26,7 @@ from ..._core import (
     value_of,
 )
 from ..._core import name_of as _name_of
+from ._base import disambiguate
 
 
 def label(node: Expr, /) -> str:
@@ -68,7 +69,7 @@ def tree_view(expr: Any, /) -> str:
     │       └── x
     └── y
     """
-    return "\n".join(cata(_tree, expr))
+    return "\n".join(cata(_tree, disambiguate(expr)))
 
 
 def to_graphviz(expr: Any, /) -> str:
@@ -101,6 +102,6 @@ def to_graphviz(expr: Any, /) -> str:
         lines.extend(f"  {node} -> {child};" for child in children(layer))
         return node
 
-    cata(algebra, expr)
+    cata(algebra, disambiguate(expr))
     lines.append("}")
     return "\n".join(lines)

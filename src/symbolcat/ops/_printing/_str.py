@@ -28,7 +28,7 @@ from ..._core import (
 )
 from ..._core.precedence import POSTFIX
 from ...linalg import Array, nest
-from ._base import Printed, literal_precedence, operand
+from ._base import Printed, disambiguate, literal_precedence, operand
 
 str_algebra = Algebra[Printed]("str")
 
@@ -88,4 +88,4 @@ def to_str(expr: Any, /) -> str:
     >>> to_str((x + y) * 2 - x**-y)
     '(x + y) * 2 - x ** (-y)'
     """
-    return cata(str_algebra, expr).text
+    return cata(str_algebra, disambiguate(expr)).text

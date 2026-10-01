@@ -14,10 +14,39 @@ from dataclasses import dataclass, replace
 from typing import Any
 from typing import Literal as LiteralType
 
-from ..._core import Expr, Operator, assoc_of, precedence_of
+from ..._core import Expr, Operator, Symbol, assoc_of, name_of, precedence_of
 from ..._core.precedence import UNARY
+from .._analysis._inspect import free_symbols
+from .._transform._substitute import substitute
 
 ATOM = 100
+
+
+def disambiguate(expr: Any, /) -> Any:
+    """``expr`` with the symbols that share a name renamed after their ids,
+    ``x#3f2a``, so that they print differently. Symbols print by name, but
+    different ones can share it: a ``Dummy``, or a symbol of another kind.
+
+    >>> from symbolcat import Dummy
+    >>> x, y = Symbol("x"), Dummy("x")
+    >>> a, b = free_symbols(disambiguate(x + y))
+    >>> name_of(a) != name_of(b), name_of(a).startswith("x#")
+    (True, True)
+    """
+    groups: dict[str, list[Symbol]] = {}
+    for symbol in free_symbols(expr):
+        groups.setdefault(name_of(symbol), []).append(symbol)
+    renames: dict[Symbol, Symbol] = {}
+    for name, symbols in groups.items():
+        if len(symbols) == 1:
+            continue
+        # objects are 16-byte aligned: the low bits of the id carry nothing
+        tags = [f"{id(s) >> 4 & 0xFFFF:04x}" for s in symbols]
+        if len(set(tags)) < len(tags):
+            tags = [f"{id(s):x}" for s in symbols]
+        for symbol, tag in zip(symbols, tags, strict=True):
+            renames[symbol] = Symbol(f"{name}#{tag}", kind=symbol.kind)
+    return substitute(expr, renames) if renames else expr
 
 
 @dataclass(frozen=True)
