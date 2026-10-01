@@ -25,7 +25,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 
 from ..._core import Expr, Symbol
-from ..._derivative import D, Variable
+from ...functions.calculus import D, Variable
 from ...ops._algebraic._matching import augment, perfect_matching
 from ...ops._algebraic._system import EquationSystem
 from ...ops._analysis._inspect import free_symbols, variables

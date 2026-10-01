@@ -31,9 +31,9 @@ from dataclasses import dataclass
 from math import factorial
 from typing import Any
 
-from ... import real
 from ..._core import Call, Expr, Literal, Symbol, as_expr
-from ...linalg import matrix
+from ...functions import real
+from ...functions.linalg import matrix
 from ...ops._algebraic._rank import rational_nullspace, rational_rank
 from ...ops._algebraic._structure import _strongly_connected
 from ...ops._analysis._inspect import free_symbols

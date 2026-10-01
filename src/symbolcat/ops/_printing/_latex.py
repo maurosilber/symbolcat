@@ -18,9 +18,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from ... import complex as cx
-from ... import linalg, real
-from ... import operators as op
 from ..._core import (
     Algebra,
     Call,
@@ -38,8 +35,11 @@ from ..._core import (
     value_of,
 )
 from ..._core.precedence import POSTFIX, POW
-from ..._derivative import D
-from ...linalg import Array, nest
+from ...functions import complex as cx
+from ...functions import linalg, real
+from ...functions import operators as op
+from ...functions.calculus import D
+from ...functions.linalg import Array, nest
 from ._base import (
     Printed,
     Side,

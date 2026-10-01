@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..._core import Call, Expr, Symbol, args_of, as_expr, name_of
-from ..._derivative import D, Variable, is_variable
+from ...functions.calculus import D, Variable, is_variable
 from ...ops._algebraic._linear import solve_linear
 from ...ops._analysis._inspect import check_unused, free_symbols
 from ...ops._calculus._time import _base

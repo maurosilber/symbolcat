@@ -25,9 +25,6 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from ... import complex as cx
-from ... import operators as op
-from ... import real
 from ..._core import (
     Algebra,
     Call,
@@ -41,7 +38,10 @@ from ..._core import (
     func_of,
     value_of,
 )
-from ...linalg import Array
+from ...functions import complex as cx
+from ...functions import operators as op
+from ...functions import real
+from ...functions.linalg import Array
 from .._analysis._inspect import is_complex
 from ._simplify import is_number, simplify_algebra
 

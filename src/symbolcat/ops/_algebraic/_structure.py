@@ -19,7 +19,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ..._core import Expr, Literal
-from ..._derivative import Variable
+from ...functions.calculus import Variable
 from .._analysis._inspect import variables
 from .._calculus._diff import diff
 from .._transform._simplify import is_number, simplify_exact

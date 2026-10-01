@@ -21,10 +21,10 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from ... import operators as op
-from ... import real
 from ..._core import Call, Expr, Literal, Symbol, args_of, func_of, name_of
-from ..._derivative import Variable, is_variable
+from ...functions import operators as op
+from ...functions import real
+from ...functions.calculus import Variable, is_variable
 from .._analysis._polynomial import coefficients
 from .._transform._simplify import is_number, simplify_exact
 from .._transform._substitute import substitute_variables

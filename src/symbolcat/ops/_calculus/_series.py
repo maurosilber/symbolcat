@@ -17,8 +17,6 @@ from collections.abc import Callable, Sequence
 from math import factorial
 from typing import Any
 
-from ... import linalg, real
-from ... import operators as op
 from ..._core import (
     Algebra,
     Call,
@@ -35,6 +33,8 @@ from ..._core import (
     name_of,
     value_of,
 )
+from ...functions import linalg, real
+from ...functions import operators as op
 from .._transform._arrays import entries, expand_arrays
 from .._transform._simplify import as_fraction, is_number, simplify_exact
 from .._transform._substitute import substitute
@@ -338,7 +338,7 @@ def series(
     exp(1) + exp(1) * (x - 1) + exp(1) * (x - 1) ** 2 / 2
     >>> print(series(real.sin(x) / x, x, order=5))
     1 - x ** 2 / 6 + x ** 4 / 120
-    >>> from symbolcat.linalg import vector
+    >>> from symbolcat.functions.linalg import vector
     >>> print(series(real.exp(vector([x, -x])), x, order=3))
     vector([1 + x + x ** 2 / 2, 1 - x + x ** 2 / 2])
     """

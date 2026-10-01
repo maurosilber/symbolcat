@@ -117,7 +117,7 @@ declared otherwise, and the kind of a call follows from its function and the
 kinds of its arguments:
 
 ```python
->>> from symbolcat.kinds import Matrix, Vector
+>>> from symbolcat.types import Matrix, Vector
 >>> A = Symbol("A", kind=Matrix(2, 3))
 >>> v = Symbol("v", kind=Vector(3))
 >>> (A @ v).kind, (x < 1).kind
@@ -289,7 +289,7 @@ Symbols are real scalars, unless declared with another kind (see
 computed by the backend:
 
 ```python
->>> from symbolcat.kinds import Matrix
+>>> from symbolcat.types import Matrix
 >>> A = Symbol("A", kind=Matrix(3, 2))
 >>> shape(linalg.transpose(A) @ A)
 (2, 2)

@@ -11,9 +11,6 @@ import keyword
 from collections.abc import Sequence
 from typing import Any
 
-from ... import complex as cx
-from ... import operators as op
-from ... import real
 from ..._core import (
     Algebra,
     Call,
@@ -27,7 +24,10 @@ from ..._core import (
     name_of,
 )
 from ..._core.precedence import POSTFIX
-from ...linalg import Array, nest
+from ...functions import complex as cx
+from ...functions import operators as op
+from ...functions import real
+from ...functions.linalg import Array, nest
 from .._analysis._inspect import check_names, free_symbols
 from .._transform._arrays import expand_arrays
 from .._transform._share import cse
@@ -114,7 +114,7 @@ def to_python(
     >>> exec(source, namespace)
     >>> namespace["f"](0.0, 2.0) == math.pi
     True
-    >>> from symbolcat.linalg import matrix
+    >>> from symbolcat.functions.linalg import matrix
     >>> print(to_python(matrix([[x, 1], [0, y]]) @ matrix([[y], [x]]), array="array"))
     def f(x, y):
         return array([[x * y + 1 * x], [0 * y + y * x]])

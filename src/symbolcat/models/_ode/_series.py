@@ -15,7 +15,7 @@ from math import factorial
 from typing import Any
 
 from ..._core import Expr, Literal, Symbol, as_expr, value_of
-from ..._derivative import Variable
+from ...functions.calculus import Variable
 from ...ops._transform._simplify import simplify_exact
 from ...ops._transform._substitute import substitute_variables
 from ._analysis import lie_derivative

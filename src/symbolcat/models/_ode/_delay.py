@@ -16,9 +16,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from ... import real
 from ..._core import Call, Expr, Literal, Symbol, args_of
-from ...linalg import matrix
+from ...functions import real
+from ...functions.linalg import matrix
 from ...ops._calculus._diff import jvp
 from ...ops._calculus._time import delays
 from ...ops._transform._simplify import simplify_exact

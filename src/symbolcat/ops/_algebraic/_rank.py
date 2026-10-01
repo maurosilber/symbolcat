@@ -18,10 +18,10 @@ from collections.abc import Sequence
 from fractions import Fraction
 from typing import Any
 
-from ... import operators as op
 from ..._core import Call, Expr, func_of
 from ...backends.std import IMPL
-from ...linalg import Array, to_list
+from ...functions import operators as op
+from ...functions.linalg import Array, to_list
 from .._analysis._inspect import free_symbols, variables
 from .._evaluate import evaluate
 from .._transform._substitute import substitute_variables
@@ -110,7 +110,7 @@ def generic_rank(matrix: Any, /, *, seed: int = 0) -> int:
     ``matrix`` is a symbolic matrix or a list of rows.
 
     >>> from symbolcat import Symbol
-    >>> from symbolcat.linalg import matrix
+    >>> from symbolcat.functions.linalg import matrix
     >>> x, y = Symbol("x"), Symbol("y")
     >>> generic_rank(matrix([[x, y], [2 * x, 2 * y]]))
     1

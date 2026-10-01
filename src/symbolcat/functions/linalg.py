@@ -1,6 +1,6 @@
 """
-symbolcat.linalg
-~~~~~~~~~~~~~~~~
+symbolcat.functions.linalg
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Vectors, matrices and linear algebra functions.
 
@@ -19,7 +19,7 @@ matrix([[x, 1], [0, y]])
 
 A symbol can also be an array, with unknown entries, by declaring its kind:
 
->>> from symbolcat.kinds import Matrix
+>>> from symbolcat.types import Matrix
 >>> A = Symbol("A", kind=Matrix(2, 2))
 >>> (A @ m).kind
 Matrix(2, 2)
@@ -43,14 +43,14 @@ from collections.abc import Iterable, Sequence
 from functools import cache
 from typing import Any, NamedTuple, overload
 
+from .._core import Call, Expr, Function, Operator, args_of, func_of, name_of
+from .._core.expr import _init
+from .._core.infer import kind_algebra
+from .._core.signatures import Transpose
+from ..types._kinds import Kind, Matrix, Real, Scalar, Vector, array_kind, join
 from . import complex as _complex
 from . import operators as _op
 from . import real as _real
-from ._core import Call, Expr, Function, Operator, args_of, func_of, name_of
-from ._core.expr import _init
-from ._core.infer import kind_algebra
-from ._core.kinds import Kind, Matrix, Real, Scalar, Vector, array_kind, join
-from ._core.signatures import Transpose
 
 
 class _ArrayData(NamedTuple):

@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 
 from symbolcat import Symbol
-from symbolcat.linalg import to_list
+from symbolcat.functions.linalg import to_list
 from symbolcat.models.dynamics import lie_derivative
 from symbolcat.models.reactions import (
     Reaction,

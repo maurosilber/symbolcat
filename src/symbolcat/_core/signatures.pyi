@@ -13,7 +13,7 @@ from numbers import Real as _RealNumber
 from typing import overload
 
 from .expr import Call, Expr, Function
-from .kinds import Complex, Kind, Matrix, Real, Vector
+from ..types._kinds import Complex, Kind, Matrix, Real, Vector
 
 type R = Expr[Real] | float | _RealNumber
 type C = Expr[Complex] | complex | _ComplexNumber

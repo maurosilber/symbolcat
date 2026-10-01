@@ -60,7 +60,7 @@ def substitute_variables(expr: Any, mapping: Mapping[Any, Any], /) -> Expr:
     >>> print(substitute_variables(D(D(x)) + D(x) + x, {D(x): a, x: b}))
     D(D(x)) + a + b
     """
-    from ..._derivative import is_variable
+    from ...functions.calculus import is_variable
 
     mapping = {as_expr(k): as_expr(v) for k, v in mapping.items()}
 

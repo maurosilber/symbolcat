@@ -1,6 +1,6 @@
 """
-symbolcat._derivative
-~~~~~~~~~~~~~~~~~~~~~
+symbolcat.functions.calculus
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The time derivative as an expression node.
 
@@ -27,10 +27,10 @@ from __future__ import annotations
 
 from typing import Any, TypeGuard
 
-from ._core import Call, Expr, Symbol, args_of, func_of, name_of
-from ._core.infer import kind_algebra
-from ._core.kinds import Kind, Real, array_kind, join
-from ._core.signatures import Delay, Derivative
+from .._core import Call, Expr, Symbol, args_of, func_of, name_of
+from .._core.infer import kind_algebra
+from .._core.signatures import Delay, Derivative
+from ..types._kinds import Kind, Real, array_kind, join
 
 D = Derivative("D", arity=1)
 delay = Delay("delay", arity=2)

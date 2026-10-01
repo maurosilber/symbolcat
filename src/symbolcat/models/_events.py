@@ -22,7 +22,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .._core import Expr, as_expr
-from .._derivative import Variable, is_variable
+from ..functions.calculus import Variable, is_variable
 from ..ops._algebraic._system import residual
 
 

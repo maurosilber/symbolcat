@@ -27,7 +27,7 @@ expression from a seed, and ``hylo`` folds the layers as they are unfolded.
 The other node types are ``symbolcat.Symbol``, and ``symbolcat.Function``
 and ``symbolcat.Constant``.
 
-``kind_algebra`` gives the kind of a call (``symbolcat.kinds``) from the
+``kind_algebra`` gives the kind of a call (``symbolcat.types``) from the
 kinds of its arguments. ``entrywise(element)`` builds a rule for a function
 applied entry by entry, broadcasting scalars.
 """

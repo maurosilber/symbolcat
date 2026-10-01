@@ -17,7 +17,7 @@ from collections.abc import Iterable
 from typing import Any
 
 from ..._core import Expr, Symbol
-from ..._derivative import D
+from ...functions.calculus import D
 from .._transform._simplify import simplify_exact
 from ._diff import diff
 from ._time import time_derivative

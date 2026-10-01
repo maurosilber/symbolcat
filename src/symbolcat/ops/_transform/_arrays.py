@@ -5,7 +5,7 @@ symbolcat.ops._transform._arrays
 Shapes of expressions, and array operations computed entry by entry.
 
 A shape is ``()`` for a scalar, ``(n,)`` for a vector and ``(n, m)`` for a
-matrix. It is part of the kind of every expression (``symbolcat.kinds``),
+matrix. It is part of the kind of every expression (``symbolcat.types``),
 checked when the expression is built. ``expand_arrays`` folds each node
 into the expression with the operations on explicit arrays
 (``linalg.vector``, ``linalg.matrix``) computed entry by entry. Operations
@@ -19,8 +19,6 @@ from functools import reduce
 from itertools import repeat
 from typing import Any
 
-from ... import linalg, real
-from ... import operators as op
 from ..._core import (
     Algebra,
     Call,
@@ -32,7 +30,9 @@ from ..._core import (
     func_of,
     value_of,
 )
-from ...linalg import Array, array, matrix, nest, vector
+from ...functions import linalg, real
+from ...functions import operators as op
+from ...functions.linalg import Array, array, matrix, nest, vector
 
 type Shape = tuple[int, ...]
 type Rows = list[list[Expr]]
@@ -198,8 +198,8 @@ def shape(expr: Any, /) -> Shape:
     shapes are an error when the expression is built.
 
     >>> from symbolcat import Symbol
-    >>> from symbolcat.kinds import Matrix, Vector
-    >>> from symbolcat.linalg import vector
+    >>> from symbolcat.types import Matrix, Vector
+    >>> from symbolcat.functions.linalg import vector
     >>> A = Symbol("A", kind=Matrix(3, 2))
     >>> shape(A @ vector([1, 2]))
     (3,)
@@ -217,7 +217,7 @@ def expand_arrays(expr: Any, /) -> Expr:
     Operations on symbols of an array kind are kept.
 
     >>> from symbolcat import Symbol, real
-    >>> from symbolcat.linalg import vector
+    >>> from symbolcat.functions.linalg import vector
     >>> x, y = Symbol("x"), Symbol("y")
     >>> print(expand_arrays(2 * real.sin(vector([x, y]))))
     vector([2 * sin(x), 2 * sin(y)])

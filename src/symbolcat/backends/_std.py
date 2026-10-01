@@ -11,9 +11,9 @@ import math
 import operator
 from typing import Any
 
-from .. import complex as cx
-from .. import operators as op
-from .. import real
+from ..functions import complex as cx
+from ..functions import operators as op
+from ..functions import real
 
 
 def gammainc(a: float, x: float, /) -> float:

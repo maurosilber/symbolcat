@@ -3,7 +3,7 @@ from fractions import Fraction
 import pytest
 
 from symbolcat import Symbol, real
-from symbolcat.linalg import matrix, vector
+from symbolcat.functions.linalg import matrix, vector
 from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Literal
 from symbolcat.ops.calculus import gradient, hessian, jacobian, series

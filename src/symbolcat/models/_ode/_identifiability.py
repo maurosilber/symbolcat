@@ -18,8 +18,8 @@ from collections.abc import Sequence
 from typing import Any
 
 from ..._core import Literal, Symbol
-from ..._derivative import Variable
-from ...linalg import to_list
+from ...functions.calculus import Variable
+from ...functions.linalg import to_list
 from ...ops._algebraic._rank import generic_rank
 from ._analysis import observability_matrix
 from ._system import ODE

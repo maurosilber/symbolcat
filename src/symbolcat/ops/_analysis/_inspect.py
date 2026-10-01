@@ -25,8 +25,8 @@ from ..._core import (
     hylo,
     name_of,
 )
-from ..._core.kinds import Complex
-from ..._derivative import Variable, is_variable
+from ...functions.calculus import Variable, is_variable
+from ...types._kinds import Complex
 
 
 def union[T](layer: Expr, /) -> dict[T, None]:
@@ -148,7 +148,7 @@ def variables(expr: Any, /) -> tuple[Variable, ...]:
 
 def is_complex(expr: Any, /) -> bool:
     """Whether ``expr`` may have a complex value, or complex entries: whether
-    its kind is complex (see ``symbolcat.kinds``).
+    its kind is complex (see ``symbolcat.types``).
 
     Symbols are real, and so are the functions in ``real``. The functions in
     ``complex`` are complex, except ``re``, ``im``, ``abs`` and ``phase``.

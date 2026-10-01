@@ -16,7 +16,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from ..._core import as_expr
-from ..._derivative import Variable
+from ...functions.calculus import Variable
 from ._inspect import free_symbols, variables
 
 type Pattern = tuple[tuple[bool, ...], ...]

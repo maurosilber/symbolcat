@@ -21,8 +21,8 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..._core import Call, Dummy, Expr, Literal, Symbol, args_of
-from ..._derivative import Variable
-from ...linalg import matrix, to_list
+from ...functions.calculus import Variable
+from ...functions.linalg import matrix, to_list
 from ...ops._algebraic._linear import solve_linear
 from ...ops._algebraic._polynomial import cancel
 from ...ops._algebraic._system import EquationSystem

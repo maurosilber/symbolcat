@@ -16,9 +16,6 @@ import math
 from collections.abc import Sequence
 from typing import Any
 
-from ... import complex as cx
-from ... import operators as op
-from ... import real
 from ..._core import (
     Call,
     Constant,
@@ -35,7 +32,10 @@ from ..._core import (
     value_of,
 )
 from ..._core.precedence import POSTFIX
-from ...linalg import Array
+from ...functions import complex as cx
+from ...functions import operators as op
+from ...functions import real
+from ...functions.linalg import Array
 from .._analysis._inspect import free_symbols, union
 from .._transform._arrays import expand_arrays
 from .._transform._share import cse
@@ -175,7 +175,7 @@ def to_c(
         const double _0 = sin(x);
         return pow(_0, 2.0) / 2.0 + _0 * y;
     }
-    >>> from symbolcat.linalg import vector
+    >>> from symbolcat.functions.linalg import vector
     >>> print(to_c(vector([x * y, real.ifelse(x < y, x, y)]), name="g"))
     void g(double x, double y, double *out) {
         out[0] = x * y;

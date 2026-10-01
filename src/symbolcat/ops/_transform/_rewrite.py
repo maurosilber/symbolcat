@@ -23,7 +23,7 @@ from typing import Any, NamedTuple
 
 from ..._core import Call, Expr, Symbol, ana, args_of, as_expr, cata, func_of, name_of
 from ..._core.expr import _init
-from ..._core.kinds import Kind, Real
+from ...types._kinds import Kind, Real
 from ._substitute import substitute
 
 type Bindings = dict[str, Expr]

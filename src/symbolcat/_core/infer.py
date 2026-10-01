@@ -15,7 +15,7 @@ Functions declare their rule by registering it, like for any algebra:
 >>> from symbolcat import Symbol
 >>> from symbolcat import Function
 >>> from symbolcat.ops.algebras import args_of, kind_algebra
->>> from symbolcat.kinds import Vector
+>>> from symbolcat.types import Vector
 >>> double = Function("double", arity=1)
 >>> @kind_algebra.register(double)
 ... def _(node):
@@ -30,9 +30,9 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
+from ..types._kinds import Complex, Kind, Real, Scalar, array_kind
 from .algebra import Algebra
 from .expr import Call, Expr, Function, _label, args_of, func_of
-from .kinds import Complex, Kind, Real, Scalar, array_kind
 
 kind_algebra = Algebra[Kind]("kind")
 

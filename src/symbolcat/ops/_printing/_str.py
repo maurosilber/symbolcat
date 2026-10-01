@@ -9,7 +9,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from ... import operators as op
 from ..._core import (
     Algebra,
     Call,
@@ -27,7 +26,8 @@ from ..._core import (
     value_of,
 )
 from ..._core.precedence import POSTFIX
-from ...linalg import Array, nest
+from ...functions import operators as op
+from ...functions.linalg import Array, nest
 from ._base import Printed, disambiguate, literal_precedence, operand
 
 str_algebra = Algebra[Printed]("str")

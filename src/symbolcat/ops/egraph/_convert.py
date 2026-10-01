@@ -18,8 +18,6 @@ from typing import Any, cast
 
 from egglog import BigRat, String, Vec, f64, get_callable_args, get_callable_fn, i64
 
-from ... import linalg, real
-from ... import operators as op
 from ..._core import (
     Algebra,
     Call,
@@ -36,6 +34,8 @@ from ..._core import (
     name_of,
     value_of,
 )
+from ...functions import linalg, real
+from ...functions import operators as op
 from . import _term as term
 from ._term import Num
 

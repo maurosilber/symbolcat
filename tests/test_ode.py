@@ -5,8 +5,7 @@ from typing import Any
 import pytest
 
 from symbolcat import D, Symbol, real
-from symbolcat.kinds import Complex
-from symbolcat.linalg import to_list
+from symbolcat.functions.linalg import to_list
 from symbolcat.models.dynamics import (
     lie_derivative,
     linearize,
@@ -18,6 +17,7 @@ from symbolcat.models.ode import ODE, taylor_solution, to_first_order
 from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Literal
 from symbolcat.ops.transform import substitute_variables
+from symbolcat.types import Complex
 
 x, v, k, g, u, t = (Symbol(n) for n in ("x", "v", "k", "g", "u", "t"))
 

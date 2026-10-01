@@ -1,6 +1,6 @@
 """
-symbolcat.complex
-~~~~~~~~~~~~~~~~~
+symbolcat.functions.complex
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Complex functions and constants, named after Python's ``cmath`` module.
 
@@ -30,19 +30,19 @@ Symbols are real. Derivatives are with respect to real variables; for
 holomorphic functions, they are the complex derivative.
 """
 
-from ._core import Constant as _Constant
-from ._core import Function as _Function
-from ._core.infer import entrywise as _entrywise
-from ._core.infer import kind_algebra as _kind_algebra
-from ._core.infer import real_arguments as _real_arguments
-from ._core.kinds import Complex as _Complex
-from ._core.kinds import Real as _Real
-from ._core.kinds import Scalar as _Scalar
-from ._core.kinds import join as _join
-from ._core.signatures import ComplexFunction as _ComplexFunction
-from ._core.signatures import ComplexToReal as _ComplexToReal
-from ._core.signatures import Conjugate as _Conjugate
-from ._core.signatures import Polar as _Polar
+from .._core import Constant as _Constant
+from .._core import Function as _Function
+from .._core.infer import entrywise as _entrywise
+from .._core.infer import kind_algebra as _kind_algebra
+from .._core.infer import real_arguments as _real_arguments
+from .._core.signatures import ComplexFunction as _ComplexFunction
+from .._core.signatures import ComplexToReal as _ComplexToReal
+from .._core.signatures import Conjugate as _Conjugate
+from .._core.signatures import Polar as _Polar
+from ..types._kinds import Complex as _Complex
+from ..types._kinds import Real as _Real
+from ..types._kinds import Scalar as _Scalar
+from ..types._kinds import join as _join
 
 re = _ComplexToReal("re", arity=1)
 im = _ComplexToReal("im", arity=1)

@@ -9,7 +9,7 @@ import pytest
 
 from symbolcat import D, Symbol, real
 from symbolcat import operators as op
-from symbolcat.linalg import vector
+from symbolcat.functions.linalg import vector
 from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Call, Literal, args_of, value_of
 from symbolcat.ops.calculus import diff, vjp

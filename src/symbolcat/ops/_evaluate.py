@@ -18,7 +18,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from typing import Any
 
-from .. import real
 from .._core import (
     Algebra,
     Call,
@@ -35,7 +34,8 @@ from .._core import (
     value_of,
 )
 from ..backends._resolve import Backend, as_mapping
-from ..linalg import Array, nest
+from ..functions import real
+from ..functions.linalg import Array, nest
 from ._analysis._inspect import check_names, free_symbols
 from ._transform._arrays import expand_arrays
 

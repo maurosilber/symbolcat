@@ -10,7 +10,7 @@ from __future__ import annotations
 import numbers
 from typing import TYPE_CHECKING, Any, Generic, NamedTuple, cast, overload
 
-from .kinds import Boolean, Complex, Kind, Real
+from ..types._kinds import Boolean, Complex, Kind, Real
 from .opaque import _init, _Opaque
 from .overloads import Overloads
 
@@ -35,7 +35,7 @@ class Expr[K: Kind](Overloads[K], _Opaque):
     dictionary keys. Use ``operators.eq`` and ``operators.ne`` to build
     symbolic comparisons: ``operators.eq(x, 1)``.
 
-    Every expression has a ``kind`` (see ``symbolcat.kinds``), which is also
+    Every expression has a ``kind`` (see ``symbolcat.types``), which is also
     its type parameter for static type checkers: ``Symbol("x")`` is an
     ``Expr[Real]``, and ``x < 1`` an ``Expr[Boolean]``. Unparameterized,
     ``Expr`` is an expression of any kind.
@@ -235,7 +235,7 @@ class Symbol[K: Kind](_Named, Expr[K]):
 
     Symbols are real, unless another ``kind`` is given:
 
-    >>> from symbolcat.kinds import Matrix
+    >>> from symbolcat.types import Matrix
     >>> Symbol("A", kind=Matrix(3, 2))
     Symbol('A', kind=Matrix(3, 2))
 
@@ -526,7 +526,7 @@ class Function[**P, R: Kind](_Named, _Opaque):
     and returns an expression of kind ``R``. Unparameterized, it takes any
     arguments, and returns an expression of any kind:
 
-    >>> from symbolcat.kinds import Matrix, Vector
+    >>> from symbolcat.types import Matrix, Vector
     >>> outer: Function[[Expr[Vector], Expr[Vector]], Matrix] = Function("outer")
     """
 
@@ -579,7 +579,7 @@ class Operator(Function):
 
 # Kind inference and Expr's operator overloads need the algebra and the
 # operator definitions, which in turn need the classes above.
-from .. import operators as _op
+from ..functions import operators as _op
 from .infer import infer as _infer
 
 if TYPE_CHECKING:

@@ -22,8 +22,6 @@ from itertools import count
 from types import FunctionType
 from typing import Any
 
-from .. import operators as op
-from .. import real
 from .._core import (
     Call,
     Constant,
@@ -40,7 +38,9 @@ from .._core import (
 from ..backends._resolve import Backend, as_mapping
 from ..backends._std import IMPL as STD
 from ..backends._std import OPERATORS
-from ..linalg import Array, nest
+from ..functions import operators as op
+from ..functions import real
+from ..functions.linalg import Array, nest
 from ._printing._base import Printed
 from ._printing._python import function_source, parameters
 from ._printing._str import str_algebra

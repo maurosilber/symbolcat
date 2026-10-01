@@ -11,9 +11,9 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
-from ... import operators as op
 from ..._core import Call, Expr, args_of, as_expr, func_of
-from ..._derivative import Variable, is_variable
+from ...functions import operators as op
+from ...functions.calculus import Variable, is_variable
 from .._analysis._inspect import variables
 
 

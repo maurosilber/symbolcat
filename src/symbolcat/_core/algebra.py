@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any, NamedTuple
 
-from .kinds import Kind
+from ..types._kinds import Kind
 from .opaque import _init, _Opaque
 
 
@@ -44,11 +44,11 @@ class Algebra[A](_Opaque):
     >>> cata(depth, (x + 1) * 2)
     3
 
-    ``kind`` restricts a handler to nodes of that kind (``symbolcat.kinds``),
+    ``kind`` restricts a handler to nodes of that kind (``symbolcat.types``),
     including its subclasses (``kind=Real`` also matches booleans). For the
     same key, it takes precedence over a handler without ``kind``:
 
-    >>> from symbolcat.kinds import Vector
+    >>> from symbolcat.types import Vector
     >>> describe = Algebra("describe")
     >>> @describe.register(Expr)
     ... def _(node):

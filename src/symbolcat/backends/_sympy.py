@@ -13,11 +13,11 @@ from typing import Any
 
 import sympy
 
-from .. import complex as cx
-from .. import linalg, real
-from .. import operators as op
 from .._core import Symbol, name_of
-from ..linalg import ENTRYWISE, Array
+from ..functions import complex as cx
+from ..functions import linalg, real
+from ..functions import operators as op
+from ..functions.linalg import ENTRYWISE, Array
 from ._std import OPERATORS
 
 

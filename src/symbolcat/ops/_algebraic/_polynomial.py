@@ -22,7 +22,6 @@ from fractions import Fraction
 from itertools import combinations
 from typing import Any
 
-from ... import operators as op
 from ..._core import (
     Call,
     Done,
@@ -35,6 +34,7 @@ from ..._core import (
     hylo,
     value_of,
 )
+from ...functions import operators as op
 from .._analysis._inspect import free_symbols
 from .._transform._simplify import from_fraction
 

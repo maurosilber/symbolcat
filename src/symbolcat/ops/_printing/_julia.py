@@ -19,9 +19,6 @@ import math
 from collections.abc import Sequence
 from typing import Any
 
-from ... import complex as cx
-from ... import operators as op
-from ... import real
 from ..._core import (
     Call,
     Constant,
@@ -38,7 +35,10 @@ from ..._core import (
     value_of,
 )
 from ..._core.precedence import POSTFIX, POW
-from ...linalg import Array, nest
+from ...functions import complex as cx
+from ...functions import operators as op
+from ...functions import real
+from ...functions.linalg import Array, nest
 from .._analysis._inspect import free_symbols
 from .._transform._arrays import expand_arrays
 from .._transform._share import cse

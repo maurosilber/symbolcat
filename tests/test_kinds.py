@@ -5,10 +5,10 @@ import pytest
 
 from symbolcat import Constant, D, Dummy, Function, Symbol, complex, linalg, real
 from symbolcat import operators as op
-from symbolcat.kinds import Boolean, Complex, Kind, Matrix, Real, Vector
 from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Algebra, Call, Expr, Literal, args_of, fmap
 from symbolcat.ops.transform import cse, simplify_naive, substitute
+from symbolcat.types import Boolean, Complex, Kind, Matrix, Real, Vector
 
 x, y = Symbol("x"), Symbol("y")
 z = Symbol("z", kind=Complex())

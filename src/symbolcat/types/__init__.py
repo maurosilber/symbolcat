@@ -1,5 +1,5 @@
 """
-symbolcat.kinds
+symbolcat.types
 ~~~~~~~~~~~~~~~
 
 Kinds: what the value of an expression is.
@@ -9,7 +9,7 @@ and the kind of a call follows from its function and the kinds of its
 arguments, when it is built:
 
 >>> from symbolcat import Symbol, linalg, real
->>> from symbolcat.kinds import Matrix, Vector
+>>> from symbolcat.types import Matrix, Vector
 >>> x = Symbol("x")
 >>> A = Symbol("A", kind=Matrix(2, 3))
 >>> v = Symbol("v", kind=Vector(3))
@@ -30,6 +30,6 @@ ValueError: add of incompatible shapes: (3,), (2,)
   ``element`` kind is given (``Vector(2, Complex())``).
 """
 
-from ._core.kinds import Boolean, Complex, Kind, Matrix, Real, Scalar, Vector
+from ._kinds import Boolean, Complex, Kind, Matrix, Real, Scalar, Vector
 
 __all__ = ["Boolean", "Complex", "Kind", "Matrix", "Real", "Scalar", "Vector"]

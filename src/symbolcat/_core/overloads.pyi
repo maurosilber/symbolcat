@@ -15,7 +15,7 @@ from numbers import Real as _RealNumber
 from typing import Any, overload
 
 from .expr import Call, Expr
-from .kinds import Boolean, Complex, Kind, Matrix, Real, Vector
+from ..types._kinds import Boolean, Complex, Kind, Matrix, Real, Vector
 
 type RealNumber = float | _RealNumber
 type ComplexNumber = complex | _ComplexNumber

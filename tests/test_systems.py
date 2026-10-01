@@ -5,7 +5,7 @@ import pytest
 
 from symbolcat import D, Symbol, delay, partial, real
 from symbolcat import operators as op
-from symbolcat.linalg import to_list
+from symbolcat.functions.linalg import to_list
 from symbolcat.models.dae import IndexOneDAE, structural_simplify
 from symbolcat.models.dynamics import (
     characteristic_matrix,

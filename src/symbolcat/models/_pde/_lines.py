@@ -20,7 +20,7 @@ from collections.abc import Iterable, Sequence
 from typing import Any
 
 from ..._core import Expr, Symbol, as_expr, name_of
-from ..._derivative import D, partial
+from ...functions.calculus import D, partial
 from ...ops._algebraic._system import EquationSystem, residual
 from ...ops._analysis._inspect import check_unused
 from ...ops._transform._simplify import simplify_exact

@@ -1,6 +1,6 @@
 """
-symbolcat.real
-~~~~~~~~~~~~~~
+symbolcat.functions.real
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 Mathematical functions and constants, named after Python's ``math`` module.
 
@@ -20,17 +20,17 @@ defined for real arguments.
 in SciPy.
 """
 
-from ._core import Constant as _Constant
-from ._core import Function as _Function
-from ._core.infer import entrywise as _entrywise
-from ._core.infer import kind_algebra as _kind_algebra
-from ._core.infer import real_arguments as _real_arguments
-from ._core.kinds import Real as _Real
-from ._core.kinds import Scalar as _Scalar
-from ._core.kinds import join as _join
-from ._core.signatures import IfElse as _IfElse
-from ._core.signatures import RealFunction as _RealFunction
-from ._core.signatures import RealFunction2 as _RealFunction2
+from .._core import Constant as _Constant
+from .._core import Function as _Function
+from .._core.infer import entrywise as _entrywise
+from .._core.infer import kind_algebra as _kind_algebra
+from .._core.infer import real_arguments as _real_arguments
+from .._core.signatures import IfElse as _IfElse
+from .._core.signatures import RealFunction as _RealFunction
+from .._core.signatures import RealFunction2 as _RealFunction2
+from ..types._kinds import Real as _Real
+from ..types._kinds import Scalar as _Scalar
+from ..types._kinds import join as _join
 
 abs = _RealFunction("abs", arity=1)
 ceil = _RealFunction("ceil", arity=1)

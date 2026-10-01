@@ -20,9 +20,6 @@ from collections.abc import Callable, Mapping
 from fractions import Fraction
 from typing import Any
 
-from ... import complex as cx
-from ... import linalg, real
-from ... import operators as op
 from ..._core import (
     Algebra,
     Call,
@@ -36,8 +33,11 @@ from ..._core import (
     func_of,
     name_of,
 )
-from ..._derivative import D
-from ...linalg import Array, nest
+from ...functions import complex as cx
+from ...functions import linalg, real
+from ...functions import operators as op
+from ...functions.calculus import D
+from ...functions.linalg import Array, nest
 from .._evaluate import evaluate
 from .._transform._arrays import expand_arrays
 
@@ -276,7 +276,7 @@ def dimensions[S: Symbol](
     Traceback (most recent call last):
     ...
     ValueError: add of incompatible dimensions: m, s
-    >>> from symbolcat.linalg import vector
+    >>> from symbolcat.functions.linalg import vector
     >>> dimensions(vector([x, v0]) * t, units)
     [{'m': 1, 's': 1}, {'m': 1}]
     >>> from symbolcat import D

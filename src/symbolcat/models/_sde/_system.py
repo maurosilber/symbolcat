@@ -18,7 +18,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..._core import Expr, Literal, Symbol, as_expr
-from ..._derivative import Variable, is_variable
+from ...functions.calculus import Variable, is_variable
 from ...ops._analysis._inspect import free_symbols
 from ...ops._calculus._diff import diff
 from ...ops._transform._simplify import simplify_exact

@@ -10,14 +10,21 @@ A minimalistic symbolic package, organized around catamorphisms.
 - ``D``: the time derivative of a symbol, ``D(x)``, as an unknown of its own.
   ``delay(x, tau)`` and ``partial(u, x)`` build delay and partial
   differential equations.
-- ``real``: mathematical functions and constants.
-- ``complex``: complex functions and constants.
-- ``linalg``: vectors and matrices of expressions.
+- ``types``: the kinds of values of expressions (``Real``, ``Vector``, ...).
+- ``functions``: the functions expressions are built from, with the kind of
+  their result. ``real``, ``complex``, ``linalg`` and ``operators`` are
+  available from here too.
+
+  - ``real``: mathematical functions and constants.
+  - ``complex``: complex functions and constants.
+  - ``linalg``: vectors and matrices of expressions.
+  - ``operators``: the operators produced by Python syntax (``x + y``, ...).
+  - ``calculus``: ``D``, ``delay`` and ``partial``.
+
 - ``stats``: probability distributions, and propagation of uncertainty.
 - ``ops``: operations on expressions (printing, LaTeX, evaluation, ...).
 - ``models``: models of dynamical systems (DAEs, ODEs, SDEs, PDEs, reaction
   networks) and their analysis.
-- ``operators``: the operators produced by Python syntax (``x + y``, ...).
 - ``backends``: implementation libraries for ``ops.evaluate`` and
   ``ops.compile`` (``std``, ``numpy``, ``sympy``).
 
@@ -32,9 +39,10 @@ x + 3 \\cdot \\sin\\left(y\\right)
 1.0
 """
 
-from . import backends, complex, linalg, models, operators, ops, real, stats
+from . import backends, functions, models, ops, stats, types
 from ._core import Constant, Dummy, Function, Symbol
-from ._derivative import D, delay, partial
+from .functions import complex, linalg, operators, real
+from .functions.calculus import D, delay, partial
 
 __all__ = [
     "Constant",
@@ -45,6 +53,7 @@ __all__ = [
     "backends",
     "complex",
     "delay",
+    "functions",
     "linalg",
     "models",
     "operators",
@@ -52,4 +61,5 @@ __all__ = [
     "partial",
     "real",
     "stats",
+    "types",
 ]

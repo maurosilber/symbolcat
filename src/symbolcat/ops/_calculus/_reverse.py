@@ -18,7 +18,7 @@ node is visited once, and the derivatives share sub-expressions.
 A rule receives the node, its cotangent ``g`` and the shapes of its
 arguments and result, and returns the cotangent of each argument.
 
-Complex nodes (``symbolcat.complex``) have complex cotangents, paired with
+Complex nodes (``symbolcat.functions.complex``) have complex cotangents, paired with
 tangents as ``re(g * dz)``. For a holomorphic function, the rule is then the
 same as for a real one: ``f'(a) * g``. Symbols are real, and so is the
 cotangent of every real node: where a complex node passes a cotangent to a
@@ -32,9 +32,6 @@ from collections.abc import Callable, Sequence
 from itertools import product
 from typing import Any
 
-from ... import complex as cx
-from ... import linalg, real
-from ... import operators as op
 from ..._core import (
     Algebra,
     Call,
@@ -50,8 +47,11 @@ from ..._core import (
     value_of,
 )
 from ..._core.infer import kind_algebra
-from ..._core.kinds import Kind
-from ...linalg import Array, array, identity, matrix, transpose, vector
+from ...functions import complex as cx
+from ...functions import linalg, real
+from ...functions import operators as op
+from ...functions.linalg import Array, array, identity, matrix, transpose, vector
+from ...types._kinds import Kind
 from .._analysis._inspect import free_symbols, is_complex
 from .._transform._arrays import Shape, entries
 from .._transform._share import share

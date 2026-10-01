@@ -11,9 +11,9 @@ from typing import Any
 
 import numpy as np
 
-from .. import complex as cx
-from .. import linalg, real
-from ..linalg import Array
+from ..functions import complex as cx
+from ..functions import linalg, real
+from ..functions.linalg import Array
 from ._std import OPERATORS, gammainc
 
 IMPL: dict[Any, Any] = {

@@ -32,7 +32,7 @@ from ..._core import (
     func_of,
     hylo,
 )
-from ..._derivative import D, delay, is_variable
+from ...functions.calculus import D, delay, is_variable
 from .._analysis._inspect import union, variables
 from .._transform._substitute import substitute
 from ._diff import jvp

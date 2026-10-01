@@ -6,7 +6,7 @@ import pytest
 from symbolcat import Function, Symbol, real
 from symbolcat import operators as op
 from symbolcat.backends.std import IMPL
-from symbolcat.linalg import matrix, to_list, vector
+from symbolcat.functions.linalg import matrix, to_list, vector
 from symbolcat.ops import evaluate
 from symbolcat.ops.algebras import Literal
 from symbolcat.ops.calculus import diff

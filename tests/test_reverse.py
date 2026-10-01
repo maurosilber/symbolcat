@@ -3,12 +3,21 @@ from typing import Any
 import pytest
 
 from symbolcat import Symbol, linalg, real
-from symbolcat.kinds import Matrix
-from symbolcat.linalg import cross, det, inv, matrix, norm, trace, transpose, vector
+from symbolcat.functions.linalg import (
+    cross,
+    det,
+    inv,
+    matrix,
+    norm,
+    trace,
+    transpose,
+    vector,
+)
 from symbolcat.ops import evaluate
 from symbolcat.ops._calculus._reverse import _postorder
 from symbolcat.ops.algebras import Literal
 from symbolcat.ops.calculus import gradient, reverse_gradient, vjp
+from symbolcat.types import Matrix
 
 x, y, z = Symbol("x"), Symbol("y"), Symbol("z")
 A, B = Symbol("A", kind=Matrix(3, 3)), Symbol("B", kind=Matrix(3, 3))

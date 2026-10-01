@@ -1,11 +1,11 @@
 """
-symbolcat.operators
-~~~~~~~~~~~~~~~~~~~
+symbolcat.functions.operators
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Operators produced by Python syntax on expressions (``x + y``, ``x[0]``, ...).
 
 These are declarations, with the kind of their result (see
-``symbolcat.kinds``): what each operator *means* is given by the algebras in
+``symbolcat.types``): what each operator *means* is given by the algebras in
 ``symbolcat.ops`` and the implementation libraries in ``symbolcat.backends``.
 
 Precedences follow Python (higher binds tighter). Comparisons are non-associative, as
@@ -14,20 +14,20 @@ Precedences follow Python (higher binds tighter). Comparisons are non-associativ
 
 from __future__ import annotations
 
-from ._core import precedence as _p
-from ._core.expr import Call as _Call
-from ._core.expr import Function as _Function
-from ._core.expr import Operator as _Operator
-from ._core.expr import args_of as _args_of
-from ._core.infer import entrywise as _entrywise
-from ._core.infer import kind_algebra as _kind_algebra
-from ._core.infer import real_arguments as _real_arguments
-from ._core.kinds import Boolean as _Boolean
-from ._core.kinds import Kind as _Kind
-from ._core.kinds import Real as _Real
-from ._core.kinds import Scalar as _Scalar
-from ._core.kinds import array_kind as _array_kind
-from ._core.kinds import join as _join
+from .._core import precedence as _p
+from .._core.expr import Call as _Call
+from .._core.expr import Function as _Function
+from .._core.expr import Operator as _Operator
+from .._core.expr import args_of as _args_of
+from .._core.infer import entrywise as _entrywise
+from .._core.infer import kind_algebra as _kind_algebra
+from .._core.infer import real_arguments as _real_arguments
+from ..types._kinds import Boolean as _Boolean
+from ..types._kinds import Kind as _Kind
+from ..types._kinds import Real as _Real
+from ..types._kinds import Scalar as _Scalar
+from ..types._kinds import array_kind as _array_kind
+from ..types._kinds import join as _join
 
 
 def _binary(

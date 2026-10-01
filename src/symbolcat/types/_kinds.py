@@ -1,6 +1,6 @@
 """
-symbolcat._core.kinds
-~~~~~~~~~~~~~~~~~~~~~
+symbolcat.types._kinds
+~~~~~~~~~~~~~~~~~~~~~~
 
 Kinds: what the value of an expression is.
 

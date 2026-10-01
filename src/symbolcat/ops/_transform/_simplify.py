@@ -20,9 +20,6 @@ from collections.abc import Callable
 from fractions import Fraction
 from typing import Any
 
-from ... import complex as cx
-from ... import linalg, real
-from ... import operators as op
 from ..._core import (
     Algebra,
     Call,
@@ -36,7 +33,10 @@ from ..._core import (
     value_of,
 )
 from ...backends.std import IMPL
-from ...linalg import Array
+from ...functions import complex as cx
+from ...functions import linalg, real
+from ...functions import operators as op
+from ...functions.linalg import Array
 from .._analysis._inspect import is_complex
 
 

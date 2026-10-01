@@ -1,8 +1,7 @@
 import pytest
 
 from symbolcat import Symbol, linalg, real
-from symbolcat.kinds import Matrix, Vector
-from symbolcat.linalg import (
+from symbolcat.functions.linalg import (
     cross,
     det,
     identity,
@@ -21,6 +20,7 @@ from symbolcat.ops.calculus import diff
 from symbolcat.ops.inspect import shape
 from symbolcat.ops.printing import to_latex, to_mathml
 from symbolcat.ops.transform import expand_arrays, simplify_naive
+from symbolcat.types import Matrix, Vector
 
 x, y = Symbol("x"), Symbol("y")
 A, B = Symbol("A", kind=Matrix(2, 2)), Symbol("B", kind=Matrix(2, 2))

@@ -49,10 +49,10 @@ from collections.abc import Mapping
 from dataclasses import dataclass, fields
 from typing import Any, ClassVar
 
-from . import operators as op
-from . import real
 from ._core import Call, Expr, Literal, Symbol, args_of, as_expr, func_of
-from .linalg import Array, det, inv, matrix, to_list, vector
+from .functions import operators as op
+from .functions import real
+from .functions.linalg import Array, det, inv, matrix, to_list, vector
 from .ops._algebraic._polynomial import cancel
 from .ops._calculus._diff import diff
 from .ops._transform._simplify import is_number, simplify_exact
